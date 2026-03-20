@@ -17,8 +17,8 @@
 
 | ID | Title | Phase | Value | Effort | Notes |
 |----|-------|-------|-------|--------|-------|
-| WP-002 | Memgraph schema + vector index | 2 | H | M | Cypher init script; `Memory`/`Agent`/`Person`/`Project` constraints; `CREATE VECTOR INDEX` on `Memory(embedding)`; smoke test inserts one node and runs `CALL vector_search.search(...)` |
-| WP-003 | Local embeddings module | 3 | H | M | `memory_service/embeddings.py`: `get_embedding(text) -> list[float]`; model loaded once at startup via lifespan; model name from `settings.embedding_model`; optional on-disk cache |
+| WP-002 | Memgraph schema + vector index | 2 | H | M | **Run in parallel with WP-003.** `scripts/init_schema.py`: create constraints + `CREATE VECTOR INDEX` on `Memory(embedding)`; `scripts/smoke_test.py`: insert one Memory node with random vector, verify `CALL vector_search.search(...)` returns it |
+| WP-003 | Local embeddings module | 3 | H | M | **Run in parallel with WP-002.** `memory_service/embeddings.py`: `get_embedding(text) -> list[float]`; model loaded once at startup via lifespan; model name from `settings.embedding_model`; optional on-disk cache |
 | WP-004 | Wire POST /memory | 4 | H | L | Full implementation: embed text, upsert Agent/Project/Person nodes, create Memory node, create PRODUCED_BY/ABOUT edges, auto RELATED_TO via vector search if `related_ids` not provided |
 | WP-005 | Wire POST /memory/search | 4 | H | M | Vector search on `Memory.embedding` + tag/agent/project filters + graph expansion up to `max_hops` |
 | WP-006 | Wire GET /memory/graph | 4 | M | M | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}` |

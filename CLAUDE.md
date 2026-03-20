@@ -37,9 +37,11 @@ Where a work package has independent sub-tasks, launch **parallel agents** in a 
 
 ## Definition of Done (every work package)
 
+**Before starting:** Move the WP to "Currently In Progress" in BACKLOG.md.
+
 1. All DoS checklist items verified — commands run, outputs match expected
 2. `/simplify` run; findings acted on or explicitly deferred to BACKLOG.md with ID
-3. BACKLOG.md updated: WP marked complete, any new items added with priority
+3. BACKLOG.md updated: WP moved to Completed, any new items added with priority
 4. Retrospective note added to BACKLOG.md (what went well, what to improve)
 5. Git commit created: `WP-NNN: <title>`
 
@@ -52,6 +54,17 @@ Where a work package has independent sub-tasks, launch **parallel agents** in a 
 | Python identifiers | snake_case |
 | CLI commands | kebab-case: `add-memory`, `search-memory` |
 | Work package IDs | `WP-NNN` (zero-padded three digits) |
+
+## Directory conventions
+
+| Directory | Purpose |
+|-----------|---------|
+| `memory_service/` | FastAPI application code |
+| `tests/` | pytest test suite; one file per work package or feature area |
+| `scripts/` | One-off operational scripts (schema init, smoke tests, migrations); never called by the running service |
+| `docs/` | Project brief, design specs, workflow patterns |
+
+All scripts in `scripts/` read config from `.env` via `pydantic-settings`. Never hardcode hosts or ports in scripts.
 
 ## Configuration
 
