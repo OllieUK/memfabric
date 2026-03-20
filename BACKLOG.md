@@ -20,9 +20,7 @@
 
 ### 🎯 MVP — Store + retrieve memories via CLI
 
-| ID | Title | Phase | Value | Effort | Depends on | Notes |
-|----|-------|-------|-------|--------|------------|-------|
-| WP-015 | In-session LLM workflow patterns | 6 | M | S | WP-007 | Define repeatable prompt patterns for the IDE LLM: summarise notes into Memory records, propose todos from past memories, refine edges. Delivered as `docs/workflows/` markdown files, no runtime changes. Highest-leverage item once CLI exists. |
+*(MVP complete — all items delivered)*
 
 ### Post-MVP — Complete v1 feature set
 
@@ -39,7 +37,8 @@
 | WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. `/simplify` finding from WP-005. |
 | WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-005, WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper; best done alongside WP-006 when a 3rd endpoint would create a 3rd copy. `/simplify` finding from WP-005. |
 | WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
-| WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. Do before WP-015 so workflow docs can reference typed values. `/simplify` finding from WP-007. |
+| WP-027 | `memory list-strands` CLI command | 5 | M | S | WP-007 | Strand IDs are user-assigned strings with no discovery path. Workflow docs must instruct users to track strand IDs manually. A `list-strands` command (and corresponding `GET /strand` endpoint) would make strand IDs discoverable. `/simplify` finding from WP-015. |
+| WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
 | WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | WP-007 | `add-memory`, `search-memory`, `dump-graph` each repeat identical `except httpx.HTTPStatusError / ConnectError` blocks (~6 lines × 3). Extract when a 4th CLI command is added. `/simplify` finding from WP-007. |
 
 ### v2+ — Future phases (not in scope for v1)
@@ -54,6 +53,22 @@
 ---
 
 ## Completed
+
+### WP-015 — In-session LLM workflow patterns
+**Completed:** 2026-03-20
+
+**What was done:**
+- Created `docs/workflows/` directory with five workflow files and an index README.
+- `README.md`: index table, prerequisites, trigger prompt pattern, MemoryType reference table, CLI quick reference.
+- `contextual-recall.md`: retrieve relevant memories before starting a task; parallelised searches, zero-result early-exit, stale-todo flagging (corrected to not reference `created_at` which is not in the API response).
+- `summarise-session.md`: convert session notes to structured Memory records; draft-then-approve gate before any CLI writes.
+- `propose-todos.md`: surface action items from past memories; parallel search, early-exit on empty results, internal deduplication.
+- `refine-edges.md`: identify and add missing RELATED_TO links via bridging observation workaround; pair-selection criterion added (weight ≥ 0.6, max 10 pairs).
+- `strand-maintenance.md`: audit and assign memories to Strands; v1 limitation noted (no PATCH endpoint, no list-strands command).
+
+**DoS result:** Six markdown files created and reviewed. No runtime changes. `/simplify` run; four issues fixed (parallelised searches, early-exit conditions, `created_at` unexecutable step, refine-edges pair-selection ambiguity). One BACKLOG item added (WP-027).
+
+---
 
 ### WP-007 — memory_client.py + Typer CLI
 **Completed:** 2026-03-20
@@ -196,6 +211,12 @@
 - **What to improve:** Redundant import (`import memory_service.embeddings` in lifespan — now superseded by top-level `from memory_service.embeddings import get_embedding`) and unused `Settings` import in `main.py` were both caught post-implementation during simplify prep. Both were quick fixes, but agents should verify their own imports after editing.
 - **Simplify findings acted on:** `importance` default moved from repo magic number to Pydantic `Field(default=3)`; `Settings()` re-instantiation in conftest replaced with module-level singleton; 503 test teardown wrapped in `try/finally`; Agent+Memory+PRODUCED_BY merged into single round-trip; test helpers (`node_exists`, `edge_exists`, `get_memory_node`, `cleanup_nodes`) moved to `conftest.py` for reuse across future test modules; stale `Settings` import removed from `main.py`.
 - **Deferred to backlog:** WP-020 (UNWIND for person/strand/related_ids N+1); WP-021 (non-blocking `get_embedding` via `run_in_executor`); `EdgeType` enum for Cypher edge type strings (medium value, deferred until more edge types are used across more files).
+
+### WP-015 (2026-03-20)
+- **What went well:** Plan agent produced a clear five-file structure with content outlines before any writing. Three parallel review agents (reuse, quality, efficiency) caught all significant issues. Most valuable finding: `created_at` is not returned by the search API, making the stale-todo step unexecutable — fixed before commit.
+- **What to improve:** Workflow docs should be validated against the actual API response schema, not just the CLI option names. A quick check of `SearchMemoryResponse` fields earlier would have caught the `created_at` issue before review.
+- **Simplify findings acted on:** Parallelised independent searches (contextual-recall, propose-todos, refine-edges); added zero-result early-exit conditions (contextual-recall, propose-todos, refine-edges); fixed unexecutable `created_at` stale-todo step; added pair-selection criterion to refine-edges (weight ≥ 0.6, max 10 pairs); added `memory --help` hint to README.
+- **Deferred to backlog:** WP-027 (`memory list-strands` command — strand IDs not discoverable without it).
 
 ### WP-007 (2026-03-20)
 - **What went well:** Clean package separation — `memory_client/` has zero imports from `memory_service/`. Parallel agent dispatch (production code + tests) worked conflict-free. Plan agent resolved all design questions upfront (httpx sync client, single `API_BASE_URL` env var, `_make_client()` module-level for testability). `respx` mocking kept tests fast and self-contained.
