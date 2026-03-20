@@ -1,6 +1,7 @@
 # memory_service/main.py
 
 from contextlib import asynccontextmanager
+from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
@@ -114,10 +115,17 @@ async def search_memory(req: SearchMemoryRequest) -> SearchMemoryResponse:
     raise NotImplementedError("search_memory endpoint not implemented yet")
 
 
+class NodeLabel(str, Enum):
+    memory = "Memory"
+    agent = "Agent"
+    person = "Person"
+    project = "Project"
+
+
 class GraphNode(BaseModel):
     id: str
-    label: str
-    type: str
+    label: NodeLabel
+    type: Optional[MemoryType] = None  # only present for Memory nodes
     tags: List[str] = []
 
 
@@ -138,6 +146,8 @@ async def get_graph(
     project_id: Optional[str] = None,
     agent_id: Optional[str] = None,
     tag: Optional[str] = None,
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
 ) -> GraphResponse:
     # TODO: Implement a query against Memgraph to return a filtered subgraph
     raise NotImplementedError("get_graph endpoint not implemented yet")

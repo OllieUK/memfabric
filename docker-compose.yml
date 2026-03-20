@@ -13,7 +13,7 @@ services:
       - MEMGRAPH_USER=${MEMGRAPH_USER}
       - MEMGRAPH_PASSWORD=${MEMGRAPH_PASSWORD}
     healthcheck:
-      test: ["CMD", "mg_client", "--host", "localhost", "--port", "7687", "-e", "RETURN 1;"]
+      test: ["CMD-SHELL", "echo > /dev/tcp/localhost/7687 && echo healthy || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

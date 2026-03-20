@@ -9,7 +9,7 @@
 
 | ID | Title |
 |----|-------|
-| — | *(none — WP-001 just completed)* |
+| — | *(none)* |
 
 ---
 
@@ -30,6 +30,7 @@
 | WP-012 | Pin dependency versions in requirements.txt | 1 | M | S | Use `>=x,<y` bounds for reproducibility; research compatible version matrix |
 | WP-013 | Pin Docker image tags (no `latest`) | 1 | M | S | Replace `memgraph/memgraph-mage:latest` + `memgraph/lab:latest` with specific versions once stack stabilises |
 | WP-014 | Docker resource limits | 1 | L | S | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use |
+| WP-015 | In-session LLM workflow patterns | 6 | M | S | Define repeatable prompt patterns for the IDE LLM: summarise notes into Memory records, propose todos from past memories, refine edges. Delivered as `docs/workflows/` markdown files, no runtime changes |
 
 ---
 

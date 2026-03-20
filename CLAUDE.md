@@ -57,6 +57,13 @@ Where a work package has independent sub-tasks, launch **parallel agents** in a 
 
 All tuneable values live in `.env` / `pydantic-settings`. Never hardcode hosts, ports, credentials, or model names in source files. Reference `.env.example` for the full list of supported variables.
 
+## API design decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| `POST /memory/search` (not `GET`) | Search takes a structured body (query text, list filters, pagination). GET query strings handle lists poorly and have length limits; POST body is cleaner and more extensible. |
+| `GET /memory/graph` | Graph export is a simple filtered read with scalar params; GET with query params is appropriate here. |
+
 ## Key constraints (v1)
 
 - No external LLM API calls inside any running service
