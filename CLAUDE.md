@@ -1,0 +1,73 @@
+# Graph-Memory Fabric – Operating Instructions
+
+## Project purpose
+
+Build a local-first memory service that represents all "memories" as graph nodes with vector embeddings, exposes a simple HTTP API for multiple independent agents, and provides a live graph-cloud visualisation via Memgraph Lab. In v1 the only LLM is Claude Code (this session); the runtime stack has no dependency on external LLM APIs. All embeddings are generated locally via `sentence-transformers`.
+
+## Architecture (v1)
+
+```
+[Claude Code / IDE session]
+        |
+        v
+[Memory API Service]  ←  FastAPI + sentence-transformers (local embeddings)
+        |
+        v
+[Memgraph]            ←  Graph DB + vector index + MAGE procedures
+        |
+        v
+[Memgraph Lab UI]     ←  http://localhost:3000 (graph-cloud visualisation)
+```
+
+No server-side LLM calls. No external API dependencies.
+
+## Working norms
+
+### Before touching any code
+Run an **Explore agent** to read the relevant files first. Never propose changes to code you haven't read.
+
+### Before each work package
+Run a **Plan agent** to validate the approach, identify reusable utilities, and consider alternatives. Capture the plan as a plan file.
+
+### After completing each work package
+Run `/simplify` to review the changed code for reuse, quality, and efficiency. Act on findings immediately if high-value / low-effort; otherwise add to BACKLOG.md with priority.
+
+### Parallelism
+Where a work package has independent sub-tasks, launch **parallel agents** in a single message to reduce wall-clock time.
+
+## Definition of Done (every work package)
+
+1. All DoS checklist items verified — commands run, outputs match expected
+2. `/simplify` run; findings acted on or explicitly deferred to BACKLOG.md with ID
+3. BACKLOG.md updated: WP marked complete, any new items added with priority
+4. Retrospective note added to BACKLOG.md (what went well, what to improve)
+5. Git commit created: `WP-NNN: <title>`
+
+## Naming conventions
+
+| Concept | Convention |
+|---------|-----------|
+| Graph node labels | PascalCase: `Memory`, `Agent`, `Person`, `Project` |
+| Edge types | SCREAMING_SNAKE: `RELATED_TO`, `DEPENDS_ON`, `PRODUCED_BY`, `ABOUT` |
+| Python identifiers | snake_case |
+| CLI commands | kebab-case: `add-memory`, `search-memory` |
+| Work package IDs | `WP-NNN` (zero-padded three digits) |
+
+## Configuration
+
+All tuneable values live in `.env` / `pydantic-settings`. Never hardcode hosts, ports, credentials, or model names in source files. Reference `.env.example` for the full list of supported variables.
+
+## Key constraints (v1)
+
+- No external LLM API calls inside any running service
+- All embeddings generated locally (`sentence-transformers`, model from `EMBEDDING_MODEL` env var)
+- Python driver for Memgraph: `neo4j` (Bolt-compatible, no native build step)
+- Target environment: WSL2 (Ubuntu 22.04) + Docker Desktop
+
+## Data model quick-reference
+
+**Nodes:** `Memory`, `Agent`, `Person`, `Project`
+
+**Edges:** `RELATED_TO` (semantic/temporal/causal), `DEPENDS_ON`, `PRODUCED_BY` (Memory→Agent), `ABOUT` (Memory→Person|Project)
+
+**Key Memory properties:** `id` (UUID), `text`, `type` (fact/decision/insight/todo/event/observation), `tags`, `created_at`, `last_used_at`, `importance` (1–5), `embedding`

@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  memgraph:
+    image: memgraph/memgraph-mage:latest
+    container_name: memgraph-mage
+    ports:
+      - "7687:7687"   # Bolt protocol
+      - "7444:7444"   # HTTP / REST
+    command: ["--log-level=INFO"]
+    env_file: .env
+    environment:
+      - MEMGRAPH_USER=${MEMGRAPH_USER}
+      - MEMGRAPH_PASSWORD=${MEMGRAPH_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mg_client", "--host", "localhost", "--port", "7687", "-e", "RETURN 1;"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - memgraph_lib:/var/lib/memgraph
+      - memgraph_log:/var/log/memgraph
+      - memgraph_etc:/etc/memgraph
+
+  lab:
+    image: memgraph/lab:latest
+    container_name: memgraph-lab
+    ports:
+      - "3000:3000"   # Memgraph Lab UI
+    depends_on:
+      memgraph:
+        condition: service_healthy
+    environment:
+      - QUICK_CONNECT_MG_HOST=memgraph
+      - QUICK_CONNECT_MG_PORT=7687
+
+volumes:
+  memgraph_lib:
+  memgraph_log:
+  memgraph_etc:
