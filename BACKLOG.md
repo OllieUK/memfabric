@@ -22,7 +22,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-007 | memory_client.py + Typer CLI | 5 | H | M | WP-004, WP-005 | `memory_client.py` wrapping HTTP API; Typer CLI with `add-memory`, `search-memory`, `dump-graph` commands. **Does not require WP-006.** |
 | WP-015 | In-session LLM workflow patterns | 6 | M | S | WP-007 | Define repeatable prompt patterns for the IDE LLM: summarise notes into Memory records, propose todos from past memories, refine edges. Delivered as `docs/workflows/` markdown files, no runtime changes. Highest-leverage item once CLI exists. |
 
 ### Post-MVP — Complete v1 feature set
@@ -40,6 +39,8 @@
 | WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. `/simplify` finding from WP-005. |
 | WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-005, WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper; best done alongside WP-006 when a 3rd endpoint would create a 3rd copy. `/simplify` finding from WP-005. |
 | WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
+| WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | WP-007 | `add-memory`, `search-memory`, `dump-graph` each repeat identical `except httpx.HTTPStatusError / ConnectError` blocks (~6 lines × 3). Extract to a helper or decorator. Add when a 4th command is added. `/simplify` finding from WP-007. |
+| WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
 
 ### v2+ — Future phases (not in scope for v1)
 
@@ -53,6 +54,20 @@
 ---
 
 ## Completed
+
+### WP-007 — memory_client.py + Typer CLI
+**Completed:** 2026-03-20
+
+**What was done:**
+- Created `memory_client/` package: `__init__.py`, `config.py` (`ClientSettings` with `api_base_url` + `agent_id`), `client.py` (`MemoryClient` synchronous httpx client wrapping all three API endpoints), `cli.py` (Typer app with `add-memory`, `search-memory`, `dump-graph` commands).
+- Created `memory_client/requirements.txt` (httpx, typer, rich, pydantic-settings, respx).
+- Created `pyproject.toml` + `setup.cfg` for editable install and `memory` console-script entry point.
+- Updated `.env.example` with `API_BASE_URL=http://localhost:8000`.
+- Created `tests/test_cli.py`: 17 unit tests across 3 classes using `typer.testing.CliRunner` + `respx` HTTP mocks; no running service required.
+
+**DoS result:** `PYTHONPATH=. python3 -m pytest tests/test_cli.py -v` → 17 passed. `PYTHONPATH=. python3 -m memory_client.cli --help` lists all three commands.
+
+---
 
 ### WP-005 — Wire POST /memory/search
 **Completed:** 2026-03-20
@@ -181,3 +196,9 @@
 - **What to improve:** Redundant import (`import memory_service.embeddings` in lifespan — now superseded by top-level `from memory_service.embeddings import get_embedding`) and unused `Settings` import in `main.py` were both caught post-implementation during simplify prep. Both were quick fixes, but agents should verify their own imports after editing.
 - **Simplify findings acted on:** `importance` default moved from repo magic number to Pydantic `Field(default=3)`; `Settings()` re-instantiation in conftest replaced with module-level singleton; 503 test teardown wrapped in `try/finally`; Agent+Memory+PRODUCED_BY merged into single round-trip; test helpers (`node_exists`, `edge_exists`, `get_memory_node`, `cleanup_nodes`) moved to `conftest.py` for reuse across future test modules; stale `Settings` import removed from `main.py`.
 - **Deferred to backlog:** WP-020 (UNWIND for person/strand/related_ids N+1); WP-021 (non-blocking `get_embedding` via `run_in_executor`); `EdgeType` enum for Cypher edge type strings (medium value, deferred until more edge types are used across more files).
+
+### WP-007 (2026-03-20)
+- **What went well:** Clean package separation — `memory_client/` has zero imports from `memory_service/`. Parallel agent dispatch (production code + tests) worked conflict-free. Plan agent resolved all design questions upfront (httpx sync client, single `API_BASE_URL` env var, `_make_client()` module-level for testability). `respx` mocking kept tests fast and self-contained.
+- **What to improve:** `setup.cfg` was needed alongside `pyproject.toml` due to old setuptools (v59.6) lacking PEP 660 editable-install support — a minor packaging surprise. Editable installs via `pip install -e .` should be validated as part of DoS in future WPs that introduce new packages.
+- **Simplify findings acted on:** Removed unused `import sys` from `cli.py`; changed `dump-graph` 500/501 handler to exit 1 (was exit 0 — incorrect for script callers); removed duplicate entry-point declaration from `setup.cfg` (kept only in `pyproject.toml`); updated `test_not_implemented_prints_message` to assert `exit_code == 1`.
+- **Deferred to backlog:** WP-025 (extract shared CLI error handler — triplicated `except httpx.*` blocks); WP-026 (`MemoryType` mirror in `memory_client` for typed `type` parameter).
