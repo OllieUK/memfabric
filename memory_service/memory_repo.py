@@ -101,7 +101,7 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
         # 5b: auto — vector search, exclude self, only close neighbours
         session.run(
             """
-            CALL vector_search.search("Memory", "embedding", $k, $query_vec)
+            CALL vector_search.search("mem_embedding_idx", $k, $query_vec)
             YIELD node, distance
             WITH node, distance
             WHERE node.id <> $memory_id AND distance < $max_distance
@@ -125,23 +125,19 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
 # tight, the response may be empty even if matching nodes exist further down the ranking.
 # This is expected behaviour for this architecture.
 _SEARCH_QUERY_TEMPLATE = """\
-CALL vector_search.search("Memory", "embedding", $limit, $query_vec)
+CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
 YIELD node AS m, distance
+WITH m, distance
 WHERE ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
-WITH m, distance
-WHERE ($agent_ids IS NULL OR
-       EXISTS {{ MATCH (m)-[:PRODUCED_BY]->(a:Agent) WHERE a.id IN $agent_ids }})
-WITH m, distance
-WHERE ($project_ids IS NULL OR
-       EXISTS {{ MATCH (m)-[:ABOUT]->(p:Project) WHERE p.id IN $project_ids }})
+OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
+WITH m, distance, a
+WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
+OPTIONAL MATCH (m)-[:ABOUT]->(p:Project)
+WITH m, distance, p
+WHERE ($project_ids IS NULL OR p.id IN $project_ids)
+WITH m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, m
 {neighbour_clause}
-RETURN
-    m.id         AS id,
-    m.text       AS text,
-    m.type       AS type,
-    m.tags       AS tags,
-    m.importance AS importance,
-    {neighbour_return}
+RETURN id, text, type, tags, importance, distance, {neighbour_return}
 ORDER BY distance ASC\
 """
 

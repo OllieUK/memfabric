@@ -8,10 +8,6 @@ services:
       - "7687:7687"   # Bolt protocol
       - "7444:7444"   # HTTP / REST
     command: ["--log-level=INFO"]
-    env_file: .env
-    environment:
-      - MEMGRAPH_USER=${MEMGRAPH_USER}
-      - MEMGRAPH_PASSWORD=${MEMGRAPH_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "echo > /dev/tcp/localhost/7687 && echo healthy || exit 1"]
       interval: 10s

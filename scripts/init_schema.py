@@ -63,8 +63,8 @@ def create_constraint(session, label: str, prop: str) -> None:
 
 def create_vector_index(session, dim: int, model_name: str) -> None:
     query = (
-        f'CREATE VECTOR INDEX ON :Memory(embedding) '
-        f'OPTIONS {{dimension: {dim}, capacity: 1000, metric: "cos"}};'
+        f'CREATE VECTOR INDEX mem_embedding_idx ON :Memory(embedding) '
+        f'WITH CONFIG {{"dimension": {dim}, "capacity": 1000, "metric": "cos"}};'
     )
     try:
         session.run(query)
@@ -116,7 +116,7 @@ def main() -> int:
                     f"  [FAIL] Existing vector index has dimension={existing_dim} but "
                     f"model '{settings.embedding_model}' produces dimension={dim}. "
                     f"Drop the index manually:\n"
-                    f"    DROP VECTOR INDEX ON :Memory(embedding);\n"
+                    f"    DROP VECTOR INDEX mem_embedding_idx;\n"
                     f"  Then re-run init_schema.py."
                 )
                 success = False
