@@ -114,3 +114,78 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
             memory_id=memory_id,
             max_distance=_AUTO_RELATED_MAX_DISTANCE,
         )
+
+
+# Query template — {neighbour_clause} and {neighbour_return} are filled in at call time.
+# max_hops is interpolated as an integer (Pydantic-validated ge=0, le=3); all other
+# filter values are passed as named Cypher parameters to avoid injection risk.
+# NOTE: agent_ids / project_ids filters use EXISTS{} subquery syntax (Memgraph 2.4+).
+# If your Memgraph version predates this, see the fallback comment in the function body.
+# NOTE: vector_search returns up to $limit nodes *before* filtering. When filters are
+# tight, the response may be empty even if matching nodes exist further down the ranking.
+# This is expected behaviour for this architecture.
+_SEARCH_QUERY_TEMPLATE = """\
+CALL vector_search.search("Memory", "embedding", $limit, $query_vec)
+YIELD node AS m, distance
+WHERE ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
+WITH m, distance
+WHERE ($agent_ids IS NULL OR
+       EXISTS {{ MATCH (m)-[:PRODUCED_BY]->(a:Agent) WHERE a.id IN $agent_ids }})
+WITH m, distance
+WHERE ($project_ids IS NULL OR
+       EXISTS {{ MATCH (m)-[:ABOUT]->(p:Project) WHERE p.id IN $project_ids }})
+{neighbour_clause}
+RETURN
+    m.id         AS id,
+    m.text       AS text,
+    m.type       AS type,
+    m.tags       AS tags,
+    m.importance AS importance,
+    {neighbour_return}
+ORDER BY distance ASC\
+"""
+
+
+def search_memories(session, req, query_embedding: list) -> list:
+    """Run vector search with optional filters and graph expansion.
+
+    Args:
+        session: open neo4j Session
+        req: SearchMemoryRequest (query, tags, agent_ids, project_ids, limit, max_hops)
+        query_embedding: pre-computed embedding for req.query
+
+    Returns:
+        List of dicts with keys: id, text, type, tags, importance, neighbours
+    """
+    if req.max_hops == 0:
+        neighbour_clause = ""
+        neighbour_return = "[] AS neighbours"
+    else:
+        neighbour_clause = f"OPTIONAL MATCH (m)-[:RELATED_TO*1..{req.max_hops}]->(n:Memory)"
+        neighbour_return = "collect(DISTINCT n.id) AS neighbours"
+
+    query = _SEARCH_QUERY_TEMPLATE.format(
+        neighbour_clause=neighbour_clause,
+        neighbour_return=neighbour_return,
+    )
+
+    result = session.run(
+        query,
+        query_vec=query_embedding,
+        limit=req.limit,
+        tags=req.tags,
+        agent_ids=req.agent_ids,
+        project_ids=req.project_ids,
+    )
+
+    return [
+        {
+            "id": record["id"],
+            "text": record["text"],
+            "type": record["type"],
+            "tags": record["tags"],
+            "importance": record["importance"],
+            "neighbours": record["neighbours"],
+        }
+        for record in result
+    ]

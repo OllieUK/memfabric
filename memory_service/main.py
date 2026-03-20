@@ -100,11 +100,26 @@ class SearchMemoryResponse(BaseModel):
 
 
 @app.post("/memory/search", response_model=SearchMemoryResponse)
-async def search_memory(req: SearchMemoryRequest) -> SearchMemoryResponse:
-    # TODO: Implement:
-    #  - compute query embedding
-    #  - Memgraph vector search + graph expansion
-    raise NotImplementedError("search_memory endpoint not implemented yet")
+async def search_memory(req: SearchMemoryRequest, request: Request) -> SearchMemoryResponse:
+    query_embedding = get_embedding(req.query)
+    try:
+        with request.app.state.driver.session() as session:
+            results = memory_repo.search_memories(session, req, query_embedding)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return SearchMemoryResponse(
+        memories=[
+            MemoryHit(
+                id=r["id"],
+                text=r["text"],
+                type=r["type"],
+                tags=r["tags"],
+                importance=r["importance"],
+                neighbours=r["neighbours"],
+            )
+            for r in results
+        ]
+    )
 
 
 class NodeLabel(str, Enum):

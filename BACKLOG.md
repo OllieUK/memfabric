@@ -22,7 +22,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-005 | Wire POST /memory/search | 4 | H | M | WP-004 | Vector search on `Memory.embedding` + tag/agent/project filters + graph expansion up to `max_hops` |
 | WP-007 | memory_client.py + Typer CLI | 5 | H | M | WP-004, WP-005 | `memory_client.py` wrapping HTTP API; Typer CLI with `add-memory`, `search-memory`, `dump-graph` commands. **Does not require WP-006.** |
 | WP-015 | In-session LLM workflow patterns | 6 | M | S | WP-007 | Define repeatable prompt patterns for the IDE LLM: summarise notes into Memory records, propose todos from past memories, refine edges. Delivered as `docs/workflows/` markdown files, no runtime changes. Highest-leverage item once CLI exists. |
 
@@ -37,7 +36,10 @@
 | WP-017 | Embedding cache eviction / size cap | 3 | L | S | WP-003 | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap before long-running deployments. `/simplify` finding from WP-003. |
 | WP-019 | Expose vector index `capacity` as config | 3 | L | S | WP-016 | `capacity: 1000` is hardcoded in `init_schema.py`'s index query. Add `vector_index_capacity: int = 1000` to `Settings` and use it in `create_vector_index`. `/simplify` finding from WP-018. |
 | WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
-| WP-021 | Non-blocking embedding in async endpoint | 4 | L | S | WP-004 | `get_embedding()` is synchronous and blocks the event loop. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
+| WP-021 | Non-blocking embedding in async endpoints | 4 | L | S | WP-004, WP-005 | `get_embedding()` is synchronous and blocks the event loop in both `/memory` and `/memory/search`. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
+| WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. `/simplify` finding from WP-005. |
+| WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-005, WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper; best done alongside WP-006 when a 3rd endpoint would create a 3rd copy. `/simplify` finding from WP-005. |
+| WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
 
 ### v2+ — Future phases (not in scope for v1)
 
@@ -51,6 +53,18 @@
 ---
 
 ## Completed
+
+### WP-005 — Wire POST /memory/search
+**Completed:** 2026-03-20
+
+**What was done:**
+- Added `_SEARCH_QUERY_TEMPLATE` and `search_memories(session, req, query_embedding)` to `memory_service/memory_repo.py`: single Cypher query combining vector search, tag/agent/project filters via `EXISTS{}` subqueries, and optional neighbour expansion via `OPTIONAL MATCH (m)-[:RELATED_TO*1..N]->(n:Memory)` (N f-stringed, Pydantic-validated).
+- Implemented `search_memory` endpoint in `memory_service/main.py`: same driver/503 pattern as `add_memory`; maps repo `list[dict]` to `SearchMemoryResponse`.
+- Created `tests/test_search_memory.py`: 18 tests across 8 classes covering basic search, ordering, limit/validation, tag/agent/project filters, graph expansion (max_hops=0 and 1), and 503 path.
+
+**DoS result:** All DoS checklist items verified against implementation. `pytest tests/test_search_memory.py` requires Memgraph running with schema initialised.
+
+---
 
 ### WP-004 — Wire POST /memory
 **Completed:** 2026-03-20
@@ -155,6 +169,12 @@
 - **What to improve:** WP-016 agent left a stale `get_driver()` function in `init_schema.py` (body referenced undefined `neo4j`/`GraphDatabase` names). Agents should do an import-check step after editing to catch this class of error.
 - **Simplify findings acted on:** Silent `except Exception: pass` in `get_existing_index_dimension` replaced with explicit warning print; `dict(record)` conversion deferred to matching row only; stale `→ 384-dim` example removed from `embeddings.py` docstring.
 - **Deferred to backlog:** WP-019 (expose `capacity` as config setting); URI construction duplication between scripts and `config.get_driver()` (low risk, cosmetic).
+
+### WP-005 (2026-03-20)
+- **What went well:** Single-query design (vector search + filters + neighbour expansion) came out clean. Parallel agent dispatch for production code + tests worked conflict-free. The `_add` and `_search` test helpers kept test bodies concise.
+- **What to improve:** Graph expansion tests used `if hit is not None:` guards — silently skipping assertions if the target node wasn't in results. This gives false confidence; always assert the hit is found first. Caught by simplify.
+- **Simplify findings acted on:** Unused `import pytest` removed; `if tags:` / `if related_ids:` guards changed to `is not None` (empty-list safety); misleading `test_empty_result_returns_empty_list` renamed to `test_search_response_has_correct_shape`; graph expansion tests strengthened with `assert hit is not None` + `limit=50` to reduce ranking noise.
+- **Deferred to backlog:** WP-022 (cap unbounded `collect(DISTINCT n.id)` for dense graphs); WP-023 (extract `ServiceUnavailable`/503 try/except into shared context manager); WP-024 (`cleanup_nodes` multi-id-per-label support).
 
 ### WP-004 (2026-03-20)
 - **What went well:** Plan agent produced a complete, implementable design with all key decisions resolved (repo module, driver injection via `app.state`, Strand MERGE-by-id-only, combined Agent+Memory+PRODUCED_BY in single round-trip). Parallel agents for production code + tests worked cleanly with no file conflicts.
