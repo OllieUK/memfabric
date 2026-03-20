@@ -86,8 +86,16 @@ All tuneable values live in `.env` / `pydantic-settings`. Never hardcode hosts, 
 
 ## Data model quick-reference
 
-**Nodes:** `Memory`, `Agent`, `Person`, `Project`
+**Nodes:** `Memory`, `Strand`, `Agent`, `Person`, `Project`
 
-**Edges:** `RELATED_TO` (semantic/temporal/causal), `DEPENDS_ON`, `PRODUCED_BY` (Memory→Agent), `ABOUT` (Memory→Person|Project)
+**Edges:**
+- `RELATED_TO` (Memory→Memory): semantic/temporal/causal similarity; properties: `weight float`
+- `PRODUCED_BY` (Memory→Agent): which agent created this memory
+- `ABOUT` (Memory→Person|Project): contextual association
+- `IN_STRAND` (Memory→Strand): strand membership; properties: `weight float` (default 1.0)
 
-**Key Memory properties:** `id` (UUID), `text`, `type` (fact/decision/insight/todo/event/observation), `tags`, `created_at`, `last_used_at`, `importance` (1–5), `embedding`
+**Key Memory properties:** `id` (UUID), `text`, `type` (fact/decision/insight/todo/event/observation), `tags[]`, `created_at`, `last_used_at`, `importance` (1–5), `embedding` (vector)
+
+**Key Strand properties:** `id` (UUID), `name`, `description`, `category` (life/companion/shadow)
+
+**Key Agent properties:** `id` (string, from AGENT_ID env var), `name`

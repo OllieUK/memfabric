@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     embedding_model: str = "all-MiniLM-L6-v2"
+    agent_id: str = "claude-code"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -28,7 +29,7 @@ settings = Settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # WP-002: initialise Memgraph driver / connection pool here
-    # WP-003: load embedding model here (once, not per-request)
+    import memory_service.embeddings  # noqa: F401 — triggers model load at startup
     yield
     # WP-002: close Memgraph driver here
 
@@ -117,6 +118,7 @@ async def search_memory(req: SearchMemoryRequest) -> SearchMemoryResponse:
 
 class NodeLabel(str, Enum):
     memory = "Memory"
+    strand = "Strand"
     agent = "Agent"
     person = "Person"
     project = "Project"
