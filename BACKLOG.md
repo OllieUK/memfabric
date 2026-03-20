@@ -22,7 +22,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-004 | Wire POST /memory | 4 | H | L | WP-016, WP-018 | Full implementation: embed text, upsert Agent/Project/Person/Strand nodes, create Memory node, create PRODUCED_BY/ABOUT/IN_STRAND edges, auto RELATED_TO via vector search if `related_ids` not provided |
 | WP-005 | Wire POST /memory/search | 4 | H | M | WP-004 | Vector search on `Memory.embedding` + tag/agent/project filters + graph expansion up to `max_hops` |
 | WP-007 | memory_client.py + Typer CLI | 5 | H | M | WP-004, WP-005 | `memory_client.py` wrapping HTTP API; Typer CLI with `add-memory`, `search-memory`, `dump-graph` commands. **Does not require WP-006.** |
 | WP-015 | In-session LLM workflow patterns | 6 | M | S | WP-007 | Define repeatable prompt patterns for the IDE LLM: summarise notes into Memory records, propose todos from past memories, refine edges. Delivered as `docs/workflows/` markdown files, no runtime changes. Highest-leverage item once CLI exists. |
@@ -37,6 +36,8 @@
 | WP-014 | Docker resource limits | 1 | L | S | — | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use |
 | WP-017 | Embedding cache eviction / size cap | 3 | L | S | WP-003 | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap before long-running deployments. `/simplify` finding from WP-003. |
 | WP-019 | Expose vector index `capacity` as config | 3 | L | S | WP-016 | `capacity: 1000` is hardcoded in `init_schema.py`'s index query. Add `vector_index_capacity: int = 1000` to `Settings` and use it in `create_vector_index`. `/simplify` finding from WP-018. |
+| WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
+| WP-021 | Non-blocking embedding in async endpoint | 4 | L | S | WP-004 | `get_embedding()` is synchronous and blocks the event loop. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
 
 ### v2+ — Future phases (not in scope for v1)
 
@@ -50,6 +51,19 @@
 ---
 
 ## Completed
+
+### WP-004 — Wire POST /memory
+**Completed:** 2026-03-20
+
+**What was done:**
+- Created `memory_service/memory_repo.py`: `add_memory(session, req, memory_id, embedding, now)` — all Cypher operations in one place; upserts Agent+Memory+PRODUCED_BY in a single round-trip; upserts Project/Person/Strand with ABOUT/IN_STRAND edges; auto RELATED_TO via vector search (k=5, distance < 0.5) when `related_ids` not provided; explicit RELATED_TO when provided.
+- Updated `memory_service/main.py`: driver lifecycle in lifespan (`app.state.driver`); added `strand_ids` to `AddMemoryRequest`; moved `importance` default from repo to Pydantic model (`Field(default=3, ge=1, le=5)`); implemented endpoint with 503 handling for `ServiceUnavailable`.
+- Updated `tests/conftest.py`: added `test_driver` (session-scoped) and `client` fixtures; moved graph inspection helpers (`node_exists`, `edge_exists`, `get_memory_node`, `cleanup_nodes`) to conftest for reuse across future test modules; replaced `Settings()` re-instantiation with module-level `settings` singleton.
+- Created `tests/test_add_memory.py`: 14 integration tests covering minimal write, node properties, agent upsert idempotency, project/person/strand edges, explicit and auto RELATED_TO, validation, and 503 error path.
+
+**DoS result:** All DoS checklist items verified manually against implementation. `pytest tests/test_add_memory.py` requires Memgraph running with schema initialised.
+
+---
 
 ### WP-016 — Shared config module
 **Completed:** 2026-03-20
@@ -141,3 +155,9 @@
 - **What to improve:** WP-016 agent left a stale `get_driver()` function in `init_schema.py` (body referenced undefined `neo4j`/`GraphDatabase` names). Agents should do an import-check step after editing to catch this class of error.
 - **Simplify findings acted on:** Silent `except Exception: pass` in `get_existing_index_dimension` replaced with explicit warning print; `dict(record)` conversion deferred to matching row only; stale `→ 384-dim` example removed from `embeddings.py` docstring.
 - **Deferred to backlog:** WP-019 (expose `capacity` as config setting); URI construction duplication between scripts and `config.get_driver()` (low risk, cosmetic).
+
+### WP-004 (2026-03-20)
+- **What went well:** Plan agent produced a complete, implementable design with all key decisions resolved (repo module, driver injection via `app.state`, Strand MERGE-by-id-only, combined Agent+Memory+PRODUCED_BY in single round-trip). Parallel agents for production code + tests worked cleanly with no file conflicts.
+- **What to improve:** Redundant import (`import memory_service.embeddings` in lifespan — now superseded by top-level `from memory_service.embeddings import get_embedding`) and unused `Settings` import in `main.py` were both caught post-implementation during simplify prep. Both were quick fixes, but agents should verify their own imports after editing.
+- **Simplify findings acted on:** `importance` default moved from repo magic number to Pydantic `Field(default=3)`; `Settings()` re-instantiation in conftest replaced with module-level singleton; 503 test teardown wrapped in `try/finally`; Agent+Memory+PRODUCED_BY merged into single round-trip; test helpers (`node_exists`, `edge_exists`, `get_memory_node`, `cleanup_nodes`) moved to `conftest.py` for reuse across future test modules; stale `Settings` import removed from `main.py`.
+- **Deferred to backlog:** WP-020 (UNWIND for person/strand/related_ids N+1); WP-021 (non-blocking `get_embedding` via `run_in_executor`); `EdgeType` enum for Cypher edge type strings (medium value, deferred until more edge types are used across more files).

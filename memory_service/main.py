@@ -1,22 +1,25 @@
 # memory_service/main.py
 
+import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, Field
 
-from memory_service.config import Settings, settings
+from memory_service import memory_repo
+from memory_service.config import get_driver, settings
+from memory_service.embeddings import get_embedding
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # WP-002: initialise Memgraph driver / connection pool here
-    import memory_service.embeddings  # noqa: F401 — triggers model load at startup
+    app.state.driver = get_driver(settings)
     yield
-    # WP-002: close Memgraph driver here
+    app.state.driver.close()
 
 
 app = FastAPI(
@@ -45,9 +48,6 @@ async def health_check() -> HealthResponse:
     return HealthResponse()
 
 
-# --- Placeholders for v1 endpoints (Phase 4 will implement them properly) ---
-
-
 class AddMemoryRequest(BaseModel):
     text: str
     type: MemoryType
@@ -55,7 +55,8 @@ class AddMemoryRequest(BaseModel):
     agent_id: str
     project_id: Optional[str] = None
     person_ids: List[str] = []
-    importance: Optional[int] = Field(default=None, ge=1, le=5)
+    strand_ids: List[str] = []
+    importance: int = Field(default=3, ge=1, le=5)
     related_ids: Optional[List[str]] = None
 
 
@@ -64,11 +65,16 @@ class AddMemoryResponse(BaseModel):
 
 
 @app.post("/memory", response_model=AddMemoryResponse)
-async def add_memory(req: AddMemoryRequest) -> AddMemoryResponse:
-    # TODO: Implement:
-    #  - local embedding generation
-    #  - Memgraph node + edge creation
-    raise NotImplementedError("add_memory endpoint not implemented yet")
+async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryResponse:
+    embedding = get_embedding(req.text)
+    memory_id = str(uuid.uuid4())
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            memory_repo.add_memory(session, req, memory_id, embedding, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return AddMemoryResponse(memory_id=memory_id)
 
 
 class SearchMemoryRequest(BaseModel):
