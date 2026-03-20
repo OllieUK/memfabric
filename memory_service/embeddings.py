@@ -23,7 +23,9 @@ def _cache_key(text: str) -> str:
 
 
 def get_embedding(text: str) -> list[float]:
-    """Return a 384-dim (all-MiniLM-L6-v2) embedding for *text* as a plain list[float].
+    """Return an embedding vector for *text* as a plain list[float].
+
+    Dimension is determined by the loaded model.
 
     If EMBEDDING_CACHE_DIR is set, results are cached on disk as JSON files
     keyed by SHA-256(model_name + text). Cache misses fall through to the model.

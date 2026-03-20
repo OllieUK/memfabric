@@ -7,23 +7,8 @@ from typing import List, Optional
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-class Settings(BaseSettings):
-    memgraph_host: str = "localhost"
-    memgraph_port: int = 7687
-    memgraph_user: str = ""
-    memgraph_password: str = ""
-    api_host: str = "0.0.0.0"
-    api_port: int = 8000
-    embedding_model: str = "all-MiniLM-L6-v2"
-    agent_id: str = "claude-code"
-
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-
-
-settings = Settings()
+from memory_service.config import Settings, settings
 
 
 @asynccontextmanager

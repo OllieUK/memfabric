@@ -11,10 +11,12 @@ from memory_service.embeddings import get_embedding
 
 
 def test_get_embedding_returns_list():
+    from memory_service.embeddings import _model
+    expected_dim = _model.get_sentence_embedding_dimension()
     result = get_embedding("hello world")
-    assert isinstance(result, list), "Expected a list, got %s" % type(result)
-    assert len(result) == 384, "all-MiniLM-L6-v2 should produce 384-dim vectors"
-    assert all(isinstance(v, float) for v in result), "All elements must be float"
+    assert isinstance(result, list)
+    assert len(result) == expected_dim
+    assert all(isinstance(v, float) for v in result)
 
 
 def test_get_embedding_consistent():
