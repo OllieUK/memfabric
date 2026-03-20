@@ -26,20 +26,240 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-006 | Wire GET /memory/graph | 4 | M | M | WP-004 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}` |
+| WP-028 | Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge | 4 | H | M | WP-004 | **Do before WP-006/WP-029** — establishes the core Memory schema shape. See detailed description below. |
+| WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
+| WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
+| WP-027 | `memory list-strands` CLI command | 5 | M | S | WP-007 | **Immediately actionable** — 20 strand nodes are now seeded with kebab-case IDs. Any memory ingestion requires knowing strand IDs; without this command they are invisible at the CLI. Adds `GET /strands` endpoint + `memory list-strands` command. `/simplify` finding from WP-015. |
 | WP-012 | Pin dependency versions in requirements.txt | 1 | M | S | — | Use `>=x,<y` bounds for reproducibility; research compatible version matrix. Do before stack is considered stable. |
 | WP-013 | Pin Docker image tags (no `latest`) | 1 | M | S | WP-012 | Replace `memgraph/memgraph-mage:latest` + `memgraph/lab:latest` with specific versions. Do after stack stabilises (after WP-012). |
-| WP-014 | Docker resource limits | 1 | L | S | — | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use |
+| WP-014 | Docker resource limits | 1 | L | S | — | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use. |
 | WP-017 | Embedding cache eviction / size cap | 3 | L | S | WP-003 | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap before long-running deployments. `/simplify` finding from WP-003. |
 | WP-019 | Expose vector index `capacity` as config | 3 | L | S | WP-016 | `capacity: 1000` is hardcoded in `init_schema.py`'s index query. Add `vector_index_capacity: int = 1000` to `Settings` and use it in `create_vector_index`. `/simplify` finding from WP-018. |
+| WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. `/simplify` finding from WP-005. |
+| WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper. WP-006 creates the 3rd copy; WP-029 adds further endpoints — do after either. `/simplify` finding from WP-005. |
 | WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
 | WP-021 | Non-blocking embedding in async endpoints | 4 | L | S | WP-004, WP-005 | `get_embedding()` is synchronous and blocks the event loop in both `/memory` and `/memory/search`. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
-| WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. `/simplify` finding from WP-005. |
-| WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-005, WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper; best done alongside WP-006 when a 3rd endpoint would create a 3rd copy. `/simplify` finding from WP-005. |
-| WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
-| WP-027 | `memory list-strands` CLI command | 5 | M | S | WP-007 | Strand IDs are user-assigned strings with no discovery path. Workflow docs must instruct users to track strand IDs manually. A `list-strands` command (and corresponding `GET /strand` endpoint) would make strand IDs discoverable. `/simplify` finding from WP-015. |
+| WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | WP-029 | `add-memory`, `search-memory`, `dump-graph` each repeat identical `except httpx.HTTPStatusError / ConnectError` blocks. WP-029 adds `run-decay` as the 4th CLI command — **trigger condition now met**. Extract at that point. `/simplify` finding from WP-007. |
 | WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
-| WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | WP-007 | `add-memory`, `search-memory`, `dump-graph` each repeat identical `except httpx.HTTPStatusError / ConnectError` blocks (~6 lines × 3). Extract when a 4th CLI command is added. `/simplify` finding from WP-007. |
+| WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
+
+---
+
+### WP-028 Detail — Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge
+
+#### Motivation
+
+Every memory in the Memory Web has two conceptual parts: the **fact** (what is true) and the **so what** (why it matters / what it causes or constrains). The current data model stores a single `text` field that conflates both. This makes it impossible to:
+
+- Traverse *backwards* from a consequence to its causes ("why does Oliver respond well to structure?")
+- Traverse *forwards* from a root fact to everything it shapes downstream
+- Distinguish raw factual retrieval from impact/meaning retrieval in search
+
+#### Data model changes
+
+**New Memory node properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `fact` | `str` | The raw, observable fact. e.g. *"Oliver has ADHD."* |
+| `so_what` | `str \| None` | The impact or meaning. e.g. *"Structure and short feedback loops matter more than motivation."* |
+| `text` | `str` | Embedding target: `fact + " " + so_what` (computed at write time). Unchanged as the search field. |
+
+`so_what` is optional — not every memory type (e.g. `event`, `todo`) has a meaningful consequence statement.
+
+**New edge type:**
+
+| Edge | Direction | Meaning |
+|------|-----------|---------|
+| `LEADS_TO` | Memory → Memory | Causal: this fact produces or enables this consequence. Directional, not symmetric. |
+
+`LEADS_TO` complements `RELATED_TO` (semantic/associative, auto-linked by vector search). The difference:
+- `RELATED_TO`: *these memories are conceptually close*
+- `LEADS_TO`: *this memory is a cause or precondition of that memory*
+
+**Example graph fragment:**
+
+```
+(Oliver has ADHD) ──LEADS_TO──► (Oliver responds well to structure and short feedback loops)
+(Oliver trained as engineer) ──LEADS_TO──► (Oliver responds well to structure and short feedback loops)
+(Oliver responds well to structure) ──LEADS_TO──► (Oliver enjoys D&D — clear rules, structured world)
+(Oliver responds well to structure) ──LEADS_TO──► (Oliver uses Notion + checklists for everything)
+```
+
+Multiple causes can converge on a single consequence node. A consequence can itself be a cause further downstream. The graph is a DAG (in practice; cycles are possible but should be rare and meaningful).
+
+#### API changes
+
+`POST /memory` request body gains:
+
+```json
+{
+  "fact": "Oliver has ADHD.",
+  "so_what": "Structure and short feedback loops matter more than motivation.",
+  "cause_ids": ["<memory-uuid>"],
+  "effect_ids": ["<memory-uuid>"],
+  "create_effect_node": true
+}
+```
+
+- `fact` replaces `text` as the primary input field. `text` is derived internally.
+- `so_what` is optional. If provided and `create_effect_node=true`, the service auto-creates a new Memory node for the consequence and links it with `LEADS_TO`.
+- `cause_ids`: explicit list of existing Memory UUIDs that cause *this* memory → creates `LEADS_TO` edges pointing *to* this node.
+- `effect_ids`: explicit list of existing Memory UUIDs that *this* memory causes → creates `LEADS_TO` edges pointing *from* this node.
+
+#### Search changes
+
+`POST /memory/search` gains a `traversal_direction` parameter:
+
+| Value | Behaviour |
+|-------|-----------|
+| `"none"` (default) | Current behaviour: `RELATED_TO` expansion only |
+| `"causes"` | Also traverse `LEADS_TO` edges *backwards* (find contributing causes) |
+| `"effects"` | Also traverse `LEADS_TO` edges *forwards* (find downstream consequences) |
+| `"both"` | Both directions |
+
+#### Backwards compatibility
+
+- `text` field on `AddMemoryRequest` is kept as a deprecated alias for `fact` (for one release). If `text` is provided and `fact` is not, `fact = text` and `so_what = None`.
+- Existing Memory nodes without `fact`/`so_what` properties are unaffected. The properties are simply absent; Cypher queries handle missing properties gracefully with `coalesce()`.
+
+#### Definition of Success
+
+- [ ] `POST /memory` accepts `fact`, `so_what`, `cause_ids`, `effect_ids`, `create_effect_node`
+- [ ] `Memory.text` is computed as `fact + " " + so_what` (or just `fact` if no `so_what`)
+- [ ] `LEADS_TO` edges created correctly for all four ingestion paths (cause_ids, effect_ids, create_effect_node, none)
+- [ ] `POST /memory/search` supports `traversal_direction` parameter
+- [ ] At least one round-trip test: insert cause + effect, search for effect, traverse back to cause
+- [ ] Existing tests pass (backwards compat via `text`→`fact` alias)
+- [ ] `scripts/seed_strands.py` unchanged — no Strand schema impact
+
+---
+
+### WP-029 Detail — Memory + edge reinforcement (strength, decay, Hebbian activation)
+
+#### Motivation
+
+A flat memory store treats a note written yesterday the same as a pattern confirmed over years. The reinforcement system fixes this by making the graph *self-organise around relevance over time*:
+
+- Memories that are repeatedly recalled and confirmed as useful become **stronger** and surface higher in search results.
+- Memories that are never recalled **decay** and fade into the background — still retrievable, but de-prioritised.
+- Edges between memories that are frequently co-retrieved become **stronger**, making graph expansion along those paths more likely.
+- Edges that were auto-created by vector similarity but never confirmed as useful weaken and are eventually excluded from traversal.
+
+This combines two well-established mechanisms:
+- **Ebbinghaus forgetting curve** (spaced repetition): strength decays exponentially with time since last reinforcement.
+- **Hebbian learning**: "neurons that fire together, wire together" — co-activation of connected memories strengthens the edge between them.
+
+---
+
+#### Node reinforcement
+
+**New Memory node properties:**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `strength` | `float` (0–1) | derived from `importance` | Current reinforcement level. Decays over time; incremented on recall and explicit reinforcement. |
+| `recall_count` | `int` | 0 | Total number of times this memory has appeared in a search result. Monotonically increasing — never decays. |
+| `reinforcement_count` | `int` | 0 | Total number of explicit reinforcement signals received. Monotonically increasing. |
+| `last_reinforced_at` | `datetime` | `created_at` | Timestamp of last explicit reinforcement. Used as the anchor for decay calculation. |
+| `decay_rate` | `float` | `MEMORY_DECAY_RATE` env var (default 0.01) | Per-memory decay rate. Allows pinned/important memories to decay more slowly. |
+
+**Initial strength** is seeded from `importance`: `strength = importance / 5.0` (so importance=5 starts at 1.0, importance=1 starts at 0.2).
+
+**Effective strength** (computed at query time via Cypher):
+```
+effective_strength = strength × exp(-decay_rate × days_since_last_reinforced)
+```
+
+This is the Ebbinghaus forgetting curve. It is **not stored** — it is computed inline during search queries so it always reflects the current moment.
+
+**Two reinforcement signals:**
+
+| Signal | Trigger | `strength` increment | Who sends it |
+|--------|---------|---------------------|--------------|
+| `recall` | Memory appears in search results | +0.05 (configurable) | Server-side, automatic on every search response |
+| `explicit` | Caller confirms memory was actually used | +0.20 (configurable) | Caller via `POST /memory/{id}/reinforce` |
+
+The `recall` increment is applied automatically by the search endpoint — the caller does not need to do anything. The `explicit` increment requires the caller to actively confirm relevance, which provides a stronger signal.
+
+**Strength ceiling:** `min(strength + increment, 1.0)` — strength is capped at 1.0.
+
+**Search integration:** `effective_strength` is used as a secondary sort key after vector distance. Two candidates at similar distances will be ranked by their effective strength. A configurable `min_strength` filter (default 0.0, i.e. off) can exclude fully-decayed memories from results.
+
+---
+
+#### Edge reinforcement (Hebbian activation)
+
+**New edge properties** (added to `RELATED_TO` and `LEADS_TO`):
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `weight` | `float` (0–1) | set at creation | Already exists on `RELATED_TO`. Now also the reinforceable activation strength, not just the initial similarity score. |
+| `activation_count` | `int` | 0 | Number of times this edge has been traversed in a retrieval session. Monotonically increasing. |
+| `last_activated_at` | `datetime` | `created_at` | Timestamp of last traversal. Used for decay. |
+| `decay_rate` | `float` | `EDGE_DECAY_RATE` env var (default 0.005) | Edge decay rate (slower than node decay by default — connections persist longer than individual memories). |
+
+**Effective weight** (computed at query time):
+```
+effective_weight = weight × exp(-decay_rate × days_since_last_activated)
+```
+
+**Activation trigger:** when a graph expansion traverses an edge (i.e. the `max_hops > 0` path in search), that edge receives a small activation increment (+0.02 by default). When an explicit reinforcement signal is sent for a memory, all edges connecting it to other memories that appeared in the *same search result set* also receive a larger increment (+0.10).
+
+**Weak edge handling:**
+- Edges with `effective_weight < EDGE_PRUNE_THRESHOLD` (default 0.05) are excluded from graph expansion queries — they remain in the DB but are dormant.
+- A background maintenance operation (manual in v1, scheduled in v2) can hard-delete edges below a minimum floor (e.g. `effective_weight < 0.01` after 90 days of no activation).
+
+---
+
+#### New API surface
+
+**Automatic (no caller action required):**
+- `POST /memory/search` — after building the result set, the server fires a lightweight Cypher update in a background task (non-blocking): increments `recall_count` and `strength` on all returned Memory nodes; increments `activation_count` and `weight` on all edges traversed during graph expansion.
+
+**Explicit reinforcement:**
+- `POST /memory/{id}/reinforce`
+  - Body: `{ "signal": "explicit", "co_recalled_ids": ["<uuid>", ...] }`
+  - `signal`: always `"explicit"` for caller-initiated reinforcement (server handles `"recall"` automatically).
+  - `co_recalled_ids`: optional list of other memory IDs that were recalled in the same session — used to reinforce the edges between them (Hebbian step).
+  - Response: `{ "memory_id": "...", "new_strength": 0.85 }`
+
+**Maintenance:**
+- `POST /memory/maintenance/decay` — triggers a full-graph decay pass: recomputes and writes `strength` for all Memory nodes and `weight` for all edges based on their `last_reinforced_at`/`last_activated_at`. Intended for scheduled execution (e.g. nightly cron in v2). In v1, run manually via CLI (`memory run-decay`).
+- `GET /memory/maintenance/weak-edges` — returns edges below the prune threshold, for review before hard deletion.
+
+---
+
+#### Configuration (new `.env` variables)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEMORY_DECAY_RATE` | `0.01` | Default per-node decay rate (per day) |
+| `EDGE_DECAY_RATE` | `0.005` | Default per-edge decay rate (per day) |
+| `RECALL_STRENGTH_INCREMENT` | `0.05` | Strength bump on automatic recall |
+| `EXPLICIT_STRENGTH_INCREMENT` | `0.20` | Strength bump on explicit reinforcement |
+| `EDGE_RECALL_INCREMENT` | `0.02` | Edge weight bump on traversal |
+| `EDGE_EXPLICIT_INCREMENT` | `0.10` | Edge weight bump on explicit co-reinforcement |
+| `EDGE_PRUNE_THRESHOLD` | `0.05` | Effective weight below which edges are excluded from traversal |
+| `MIN_MEMORY_STRENGTH` | `0.0` | Minimum effective strength to appear in search results (0 = off) |
+
+---
+
+#### Definition of Success
+
+- [ ] `Memory` nodes created with `strength`, `recall_count`, `reinforcement_count`, `last_reinforced_at`, `decay_rate` properties
+- [ ] `strength` seeded from `importance` at creation time
+- [ ] `RELATED_TO` and `LEADS_TO` edges gain `activation_count`, `last_activated_at`; `decay_rate` added to edges
+- [ ] `POST /memory/search` automatically fires background recall increments (non-blocking — does not add latency to the response)
+- [ ] `effective_strength` computed inline in search Cypher and used as secondary sort key
+- [ ] `POST /memory/{id}/reinforce` accepts `explicit` signal + `co_recalled_ids`; updates node strength and co-edge weights
+- [ ] `POST /memory/maintenance/decay` runs full decay pass; returns count of nodes + edges updated
+- [ ] `GET /memory/maintenance/weak-edges` returns edges below prune threshold
+- [ ] `memory run-decay` CLI command triggers maintenance decay pass
+- [ ] All new config variables read from `.env` via `Settings`
+- [ ] At least one round-trip test: insert memory, search for it twice, confirm `recall_count == 2` and `strength > initial_strength`
+- [ ] At least one edge activation test: insert two linked memories, search with `max_hops=1`, confirm edge `activation_count` incremented
+- [ ] Existing tests pass (backwards compat — new properties have defaults, old queries unaffected)
 
 ### v2+ — Future phases (not in scope for v1)
 

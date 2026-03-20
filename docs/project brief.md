@@ -127,12 +127,19 @@ The Memory Service and Memgraph remain unchanged; you only add new consumers.
 
 - `Memory`
   - `id: UUID`
-  - `text: str` – compact, human‑readable summary (authored with LLM help).
+  - `fact: str` – the raw, observable fact or statement. e.g. *"Oliver has ADHD."*
+  - `so_what: str | None` – the impact or meaning of the fact. e.g. *"Structure and short feedback loops matter more than motivation."* Optional; not all memory types have a meaningful consequence.
+  - `text: str` – derived embedding target: `fact + " " + so_what` (or just `fact` if no `so_what`). Used for vector search; not a user-authored field.
   - `type: str` – `"fact" | "decision" | "insight" | "todo" | "event" | "observation"`.
   - `tags: list[str]` – topics/projects, e.g. `["security","IAM"]`.
   - `created_at: datetime`
   - `last_used_at: datetime`
   - `importance: int` – 1–5, for prioritisation/pruning.
+  - `strength: float` (0–1) – current reinforcement level. Seeded from `importance / 5.0` at creation. Incremented on recall and explicit reinforcement; decays exponentially over time when not recalled (Ebbinghaus forgetting curve). Used as a secondary ranking signal in search.
+  - `recall_count: int` – total number of times this memory has appeared in a search result. Monotonically increasing; never decays.
+  - `reinforcement_count: int` – total number of explicit reinforcement signals received.
+  - `last_reinforced_at: datetime` – anchor timestamp for decay calculation.
+  - `decay_rate: float` – per-memory decay rate; defaults to global `MEMORY_DECAY_RATE` config. Lower values make a memory stickier.
   - `embedding: list[float]` – vector used by Memgraph’s vector index. [memgraph](https://memgraph.com/docs/querying/vector-search)
 
 - `Agent`
@@ -153,11 +160,19 @@ The Memory Service and Memgraph remain unchanged; you only add new consumers.
 ### 4.2 Edge types
 
 - `RELATED_TO (Memory -> Memory)`
-  - `weight: float` (0–1)
-  - `relation_type: str` – `"semantic" | "temporal" | "causal"`.
+  - `weight: float` (0–1) – reinforceable activation strength. Set at creation from vector similarity score; incremented each time the edge is traversed in a retrieval; decays over time if not activated.
+  - `relation_type: str` – `"semantic" | "temporal"`.
+  - `activation_count: int` – number of times traversed in a retrieval session.
+  - `last_activated_at: datetime` – anchor for edge decay calculation.
+  - `decay_rate: float` – per-edge decay rate; defaults to `EDGE_DECAY_RATE` config (slower than node decay by default).
+  - Auto-created by vector search on ingestion. Symmetric in intent; directional in storage. Edges that are never activated will decay below the prune threshold and be excluded from graph expansion.
 
-- `DEPENDS_ON (Memory -> Memory)`
-  - Indicates preconditions / dependencies.
+- `LEADS_TO (Memory -> Memory)`
+  - Explicit causal edge: *this fact produces or enables that consequence.* Directional and asymmetric.
+  - Carries the same reinforcement properties as `RELATED_TO`: `weight`, `activation_count`, `last_activated_at`, `decay_rate`.
+  - Created explicitly on ingestion via `cause_ids` / `effect_ids`, or auto-created when `create_effect_node=true` and a `so_what` is provided.
+  - Enables backwards traversal ("why is this true?") and forwards traversal ("what does this affect?").
+  - Example: `(Oliver has ADHD) -[:LEADS_TO]-> (Oliver responds well to structure)` and `(Oliver trained as engineer) -[:LEADS_TO]-> (Oliver responds well to structure)`.
 
 - `PRODUCED_BY (Memory -> Agent)`
   - Which logical agent generated this memory.
@@ -165,25 +180,68 @@ The Memory Service and Memgraph remain unchanged; you only add new consumers.
 - `ABOUT (Memory -> Person | Project)`
   - Which person/project this memory concerns.
 
+- `IN_STRAND (Memory -> Strand)`
+  - `weight: float` (0–1) – strength of association. Primary strand = 1.0; secondary strands carry lower weights.
+  - Every Memory must have at least one `IN_STRAND` edge (primary strand).
+
 ***
 
 ## 5. Semantics and usage patterns (v1)
 
-- **Vector‑only links first:**  
+- **Vector‑only links first:**
   - When inserting a new Memory, the Memory Service:
-    - Computes its embedding locally.
-    - Uses Memgraph’s vector search to find K nearest neighbours. [github](https://github.com/memgraph/ai-demos/blob/main/retrieval/vector-search/vector_search_example.ipynb)
-    - Creates `RELATED_TO` edges to these neighbours with `relation_type="semantic"`.
+    - Computes its embedding from `text` (= `fact + so_what`) locally.
+    - Uses Memgraph’s vector search to find K nearest neighbours.
+    - Creates `RELATED_TO` edges to these neighbours (associative, auto-linked).
+
+- **Causal graph — fact + so_what + LEADS_TO:**
+  - Every memory has a `fact` (what is true) and optionally a `so_what` (why it matters / what it causes).
+  - When a `so_what` is significant enough to be its own traversable node, it is stored as a separate Memory and linked with a `LEADS_TO` edge.
+  - Multiple cause nodes can converge on a single consequence node. A consequence can itself be a cause further downstream, forming a directed causal chain:
+    ```
+    (Oliver has ADHD) ──LEADS_TO──► (Oliver responds well to structure)
+    (Oliver trained as engineer) ──LEADS_TO──► (Oliver responds well to structure)
+    (Oliver responds well to structure) ──LEADS_TO──► (Oliver enjoys D&D)
+    (Oliver responds well to structure) ──LEADS_TO──► (Oliver uses Notion + checklists)
+    ```
+  - This enables two traversal modes:
+    - **Upstream** ("why is this true?"): follow `LEADS_TO` edges backwards to find contributing causes.
+    - **Downstream** ("what does this affect?"): follow `LEADS_TO` edges forwards to find consequences.
+  - `LEADS_TO` is complementary to `RELATED_TO`: related-to is semantic proximity; leads-to is explicit causation.
+
+- **Strand membership:**
+  - Every Memory must be assigned to at least one Strand (primary, `weight=1.0`).
+  - Secondary strand connections can be added with lower weights (0.5–0.9) reflecting partial relevance.
+  - Strands are the thematic spokes of the Memory Web: Core Life Domains, Companion Domain, Shadow Domain.
+
+- **Memory reinforcement — spaced repetition for facts:**
+  - Every memory has a `strength` (0–1) that starts seeded from its `importance` and evolves over time.
+  - Two reinforcement signals exist:
+    - **Recall** (automatic): every time a memory appears in a search result, the server increments its `strength` slightly and updates `recall_count`. No caller action needed.
+    - **Explicit** (caller-initiated): when the caller confirms a memory was actually used (`POST /memory/{id}/reinforce`), a larger strength increment is applied. This is the higher-quality signal.
+  - Between reinforcements, `strength` decays exponentially — the Ebbinghaus forgetting curve:
+    ```
+    effective_strength = strength × exp(-decay_rate × days_since_last_reinforced)
+    ```
+  - `effective_strength` is computed at query time (not stored) and used as a secondary ranking signal: at equal vector distance, stronger memories rank higher.
+  - A configurable floor (`MIN_MEMORY_STRENGTH`) can exclude fully-decayed memories from search results entirely, creating a natural long-term memory horizon.
+
+- **Edge reinforcement — Hebbian learning:**
+  - Edges between memories strengthen each time they are traversed together in a retrieval session ("neurons that fire together, wire together").
+  - Two activation signals mirror the node model:
+    - **Traversal** (automatic): graph expansion traversals (`max_hops > 0`) increment `activation_count` and `weight` on each edge crossed.
+    - **Co-reinforcement** (caller-initiated): when an explicit reinforcement names `co_recalled_ids`, all edges connecting the reinforced memory to those co-recalled memories receive a larger weight increment.
+  - Edge `weight` also decays over time (at a slower default rate than node `strength`, so connections persist longer than individual memories).
+  - Edges that decay below `EDGE_PRUNE_THRESHOLD` are excluded from graph expansion — dormant but not deleted. A maintenance sweep can hard-delete edges below a minimum floor.
+  - The combined effect: the graph self-organises over time. Frequently confirmed connections become highways; speculative auto-linked edges that are never confirmed quietly fade.
+
 - **LLM‑assisted edge refinement (in‑session):**
-  - You ask Claude Code / Codex to:
-    - Inspect top neighbours (texts).
-    - Propose which neighbours should be `DEPENDS_ON` vs `RELATED_TO`, and with which weights.
-  - You then:
-    - Approve/edit those suggestions.
-    - Run a script (generated by the LLM) to update the graph accordingly.
+  - You ask Claude Code to inspect top neighbours and propose which should be `LEADS_TO` (causal) vs `RELATED_TO` (associative), and with which weights.
+  - You then approve/edit those suggestions and run a script to update the graph accordingly.
+
 - **Agent separation via tags and edges:**
-  - Even before headless agents exist, you tag memories with logical `agent_id`, `project_id`, etc.
-  - That way, v2 agents and visual filters can distinguish which area they belong to.
+  - Memories are tagged with logical `agent_id`, `strand_ids`, `project_id`, etc.
+  - v2 agents and visual filters use these to distinguish which area of life they belong to.
 
 ***
 

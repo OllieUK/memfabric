@@ -89,13 +89,16 @@ All tuneable values live in `.env` / `pydantic-settings`. Never hardcode hosts, 
 **Nodes:** `Memory`, `Strand`, `Agent`, `Person`, `Project`
 
 **Edges:**
-- `RELATED_TO` (Memory→Memory): semantic/temporal/causal similarity; properties: `weight float`
+- `RELATED_TO` (Memory→Memory): semantic/associative similarity (auto-linked by vector search); properties: `weight float`
+- `LEADS_TO` (Memory→Memory): explicit causal edge — this fact produces or enables that consequence; directional, asymmetric; enables upstream ("why?") and downstream ("what does this affect?") traversal
 - `PRODUCED_BY` (Memory→Agent): which agent created this memory
 - `ABOUT` (Memory→Person|Project): contextual association
-- `IN_STRAND` (Memory→Strand): strand membership; properties: `weight float` (default 1.0)
+- `IN_STRAND` (Memory→Strand): strand membership; properties: `weight float` (primary=1.0, secondary=0.5–0.9)
 
-**Key Memory properties:** `id` (UUID), `text`, `type` (fact/decision/insight/todo/event/observation), `tags[]`, `created_at`, `last_used_at`, `importance` (1–5), `embedding` (vector)
+**Key Memory properties:** `id` (UUID), `fact` (raw statement), `so_what` (impact/meaning, optional), `text` (derived: fact+so_what, used for embedding), `type` (fact/decision/insight/todo/event/observation), `tags[]`, `created_at`, `last_used_at`, `importance` (1–5), `strength` (0–1, reinforcement level, decays via Ebbinghaus curve), `recall_count`, `reinforcement_count`, `last_reinforced_at`, `decay_rate`, `embedding` (vector)
 
-**Key Strand properties:** `id` (UUID), `name`, `description`, `category` (life/companion/shadow)
+**Key edge reinforcement properties** (on `RELATED_TO` and `LEADS_TO`): `weight` (0–1, Hebbian activation strength), `activation_count`, `last_activated_at`, `decay_rate`
+
+**Key Strand properties:** `id` (kebab-case string e.g. `strand-core-health`), `name`, `description`, `category` (Core Life Domains / Companion Domain / Shadow Domain)
 
 **Key Agent properties:** `id` (string, from AGENT_ID env var), `name`
