@@ -9,7 +9,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-037 | Person nodes + `ABOUT` edges — schema, API, migration | 4 | H | M | WP-028 ✅ | Wire `Person` nodes and `ABOUT (Memory→Person)` edges. Add `person_ids: list[str]` to `POST /memory` request body and `memory_repo.add_memory`. Add `GET /person` list endpoint. Write migration script to scan existing memories and create ABOUT edges for named individuals. |
 
 ---
 
@@ -35,7 +34,7 @@
 
 | Priority | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----------|----|-------|-------|-------|--------|------------|-------|
-| 1 | ~~WP-037~~ | ~~Person nodes + `ABOUT` edges~~ | — | — | — | — | **In Progress** |
+| 1 | ~~WP-037~~ | ~~Person nodes + `ABOUT` edges~~ | — | — | — | — | **Done ✅** |
 | 2 | WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 ✅ | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
 | 3 | WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028 ✅, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
 | 4 | WP-034 | Add version/build hash to `/health` response | 5 | L | S | — | Detect stale service during companion session startup. Gap found in WP-032 validation: service ran stale code silently. Batch with WP-035/036 — all three are small companion-polish items. |
@@ -553,6 +552,24 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-037 — Person nodes + `ABOUT` edges
+
+**Date:** 2026-03-21
+
+- `PersonItem`, `PersonsResponse`, `CreatePersonRequest` Pydantic models added; `GET /person` and `POST /person` endpoints (MERGE + SET upsert semantics)
+- `list_persons()` and `upsert_person()` added to `memory_repo.py`; `upsert_person` guards `result.single()` with RuntimeError on unexpected None
+- `MemoryClient.list_persons()` and `MemoryClient.create_person()` added to `memory_client/client.py`
+- CLI `list-persons` (Rich table) and `create-person` (positional id + `--name` + `--description`) added to `memory_client/cli.py`
+- MCP `memory_list_persons` and `memory_create_person` tools added to `mcp_server/server.py`
+- `scripts/migrate_person_nodes.py`: JSON-line stdin/stdout, `--dry-run`, `--pre-created-persons`, `coalesce` name heuristic preserves explicit names
+- `scripts/__init__.py` created for package resolution under pytest
+- **Key finding:** `person_ids`, `ABOUT` edge creation (step 3 in `add_memory`), and `Person` schema constraint were already implemented — WP-037 added the management endpoints and migration only
+- 59 new tests (32 unit, 27 integration); 175 total passing; 4 pre-existing failures unchanged
+
+**Retrospective:** Parallel subagent dispatch (Tasks 6–7 and 8–9 in parallel; 10–11 and 12–13 in parallel) shaved significant wall-clock time. Review-loop quality gate caught the `result.single()` None guard in Task 3 — caught before integration tests ran. Tasks 12–13 required `scripts/__init__.py` for dotted imports under pytest — not in the original plan but a 1-line fix. The `test_connect_error_exits_nonzero` for list-persons reproduces the same pre-existing env-override issue as the strand CLI test — added to backlog observation but not a WP-037 regression.
+
+---
 
 ### WP-028 — Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge
 

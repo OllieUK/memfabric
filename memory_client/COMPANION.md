@@ -93,6 +93,18 @@ Run `memory list-strands` if strand IDs are uncertain. Always use an existing st
 
 Write all memory content with "the user" as subject: *"The user prefers short feedback loops over long planning phases."* — not "you prefer" (ambiguous when read by an LLM) and not a specific name (non-portable).
 
+When using the `fact` / `so_what` split, write `so_what` so it can stand on its own as a consequence statement. It should still make sense if surfaced independently or later promoted into its own Memory node via `LEADS_TO`. Avoid pronouns whose meaning depends on the paired `fact`.
+
+Good:
+
+- `fact`: *"The user has ADHD."*
+- `so_what`: *"Structure and short feedback loops matter more than motivation."*
+
+Bad:
+
+- `fact`: *"The user has ADHD."*
+- `so_what`: *"This means it helps."*
+
 ---
 
 ## Session close — `memory close-session`
