@@ -38,13 +38,25 @@ The output is a structured briefing grouped by strand. Read it fully before resp
 
 ## During the session
 
-### Adding memories
+### Search before proposing
 
-Use `memory add-memory` whenever you learn something worth retaining:
+Before making a recommendation, recalling a fact, or suggesting an approach, check whether the fabric already holds relevant context:
 
 ```bash
-memory add-memory --text "..." --type <type> --strand-id <strand-id>
+memory search-memory "your query" [--tag strand-id] [--limit N]
 ```
+
+Do not propose something the user has already decided, or repeat a fact the fabric already knows.
+
+### Add memories as they arise
+
+Do not batch memory writes to the end of the session. When something new and durable is established — a decision, insight, observation, or todo — add it immediately:
+
+```bash
+memory add-memory --text "..." --type <type> --strand-id <strand-id> [--importance 1-5]
+```
+
+A memory is worth storing if it would be useful to a future session that has no knowledge of this conversation.
 
 **Types:**
 
@@ -63,24 +75,15 @@ memory add-memory --text "..." --type <type> --strand-id <strand-id>
 |-------|---------|
 | 5 | Critical — always include in wake-up |
 | 4 | High — include when relevant strand is active |
-| 3 | Normal (default) — include when contextually relevant |
+| 3 | Normal (default) |
 | 2 | Low — background context, rarely surfaced |
 | 1 | Ephemeral — expected to decay quickly |
 
-### Checking available strands
+Run `memory list-strands` if strand IDs are uncertain. Always use an existing strand ID — never invent one.
 
-```bash
-memory list-strands
-```
+### Wording convention
 
-Use strand IDs to route memories to the correct area of the fabric. Always use an existing strand ID rather than inventing one.
-
-### Searching for specific memories
-
-```bash
-memory search-memory "your query here"
-memory search-memory "ADHD coping strategies" --tag strand-core-health --limit 5
-```
+Write all memory content with "the user" as subject: *"The user prefers short feedback loops over long planning phases."* — not "you prefer" (ambiguous when read by an LLM) and not a specific name (non-portable).
 
 ---
 
@@ -107,13 +110,15 @@ Do not end the session without running at least one `memory add-memory` if any o
 
 ```
 [session start]
-memory wake-up
+memory wake-up [--topic "..."]
 
 ... session work ...
 
-memory add-memory --text "Oliver decided to defer WP-035 until after WP-032" --type decision --strand-id strand-companion-graph-memory-fabric --importance 4
-memory add-memory --text "Oliver prefers short feedback loops and frequent commits" --type insight --strand-id strand-core-health --importance 4
+# store durables as they arise
+memory add-memory --text "The user decided to ..." --type decision --strand-id <strand-id> --importance 4
+memory add-memory --text "The user prefers ..." --type insight --strand-id <strand-id> --importance 3
 
+# review and close
 memory close-session
 [end]
 ```

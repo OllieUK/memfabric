@@ -62,15 +62,33 @@ open http://localhost:8000/docs
 
 ## Current status
 
-| Work Package | Status |
-|---|---|
-| WP-001: Project framework + scaffold | ✅ Complete |
-| WP-002: Memgraph schema + vector index | Backlog |
-| WP-003: Local embeddings module | Backlog |
-| WP-004–006: Wire API endpoints | Backlog |
-| WP-007: Python client + CLI | Backlog |
+MVP complete. The memory service, CLI, and companion integration package are all working.
 
-See [BACKLOG.md](BACKLOG.md) for the full prioritised backlog.
+See [BACKLOG.md](BACKLOG.md) for the full prioritised backlog and completed work packages.
+
+---
+
+## Using the CLI
+
+```bash
+# Session start — load memory briefing
+memory wake-up
+memory wake-up --topic "what I'm working on today"
+
+# Store a memory
+memory add-memory "TEXT" --type fact --strand-id <strand-id> --importance 3
+
+# Search
+memory search-memory "QUERY" [--tag TAG] [--limit N]
+
+# Session end — review and store what was learned
+memory close-session
+
+# List available strands
+memory list-strands
+```
+
+For the full companion session protocol, see [memory_client/COMPANION.md](memory_client/COMPANION.md).
 
 ---
 

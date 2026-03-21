@@ -42,8 +42,6 @@ Each session begins with a briefing drawn from the graph, and ends with new memo
 |------|---------|
 | `memory_client/COMPANION.md` | Full session protocol — what to run, when, and why |
 | `memory_client/WIRING.md` | Environment-specific setup: Claude Code (active), Claude Desktop + MCP (planned) |
-| `memory_client/cli.py` | CLI entry point (`memory wake-up`, `memory add-memory`, etc.) |
-| `memory_client/client.py` | Python client library (`MemoryClient`) |
 
 ---
 
@@ -69,17 +67,19 @@ docker compose up -d
 uvicorn memory_service.main:app --reload
 
 # 2. At session start
-python -m memory_client.cli wake-up
+memory wake-up
 
 # 3. Store a memory
-python -m memory_client.cli add-memory \
-  --text "Oliver decided to tackle WP-031 before WP-032" \
+memory add-memory \
+  --text "The user decided to ..." \
   --type decision \
-  --strand-id strand-companion-graph-memory-fabric \
+  --strand-id <strand-id> \
   --importance 4
 
 # 4. At session end
-python -m memory_client.cli close-session
+memory close-session
 ```
+
+> If `memory` is not yet on PATH (requires WP-035), substitute `python -m memory_client.cli` for `memory`.
 
 See `memory_client/COMPANION.md` for the full protocol and `memory_client/WIRING.md` for wiring details.

@@ -54,11 +54,19 @@ Claude Code will read the file and execute the steps autonomously, pausing at ex
 ## CLI quick reference
 
 ```bash
+# Session lifecycle
+memory wake-up [--topic "..."] [--limit N]
+memory close-session
+
+# Memory operations
 memory add-memory "TEXT" --type TYPE [--tag TAG ...] [--importance 1-5] \
   [--project-id ID] [--person-id ID ...] [--strand-id ID ...] [--related-id ID ...]
 
 memory search-memory "QUERY" [--tag TAG ...] [--agent-id ID] [--project-id ID] \
   [--limit 1-100] [--max-hops 0-3]
+
+# Discovery
+memory list-strands
 
 memory dump-graph [--project-id ID] [--agent-id ID] [--tag TAG]   # requires WP-006
 ```

@@ -21,16 +21,12 @@ The `memory` CLI is available in any Claude Code session opened in this reposito
    pip install -r memory_client/requirements.txt
    ```
 
-3. CLI entry point on PATH (one-time setup):
+3. CLI entry point on PATH — install from the repo root:
    ```bash
-   pip install -e .   # requires WP-035; until then use python -m memory_client.cli
+   pip install -e .
    ```
 
-   Until WP-035 is complete, invoke via:
-   ```bash
-   python -m memory_client.cli wake-up
-   python -m memory_client.cli add-memory --text "..." --type fact
-   ```
+   > **Note:** This requires `pyproject.toml` at the repo root (WP-035). Until WP-035 is complete, invoke the CLI via `python -m memory_client.cli` instead of `memory`.
 
 ### Configuration
 
@@ -41,24 +37,13 @@ API_BASE_URL=http://localhost:8000   # memory service URL
 AGENT_ID=claude-code                 # identifies which agent produced a memory
 ```
 
-### Hook: automatic session start
-
-Add to `.claude/hooks` (once available) to auto-run wake-up at session open:
-
-```json
-{
-  "event": "session_start",
-  "command": "python -m memory_client.cli wake-up"
-}
-```
-
 ### Recommended CLAUDE.md additions
 
 ```markdown
 ## Memory protocol
 
-At session start: run `python -m memory_client.cli wake-up`
-At session end: run `python -m memory_client.cli close-session` and act on it
+At session start: run `memory wake-up` (or `python -m memory_client.cli wake-up`)
+At session end: run `memory close-session` and act on it
 See memory_client/COMPANION.md for full protocol.
 ```
 
@@ -101,10 +86,10 @@ This config will be finalised in WP-033.
 
 ## Other environments
 
-Any environment that can run a shell command or call HTTP endpoints can integrate:
+| Integration path | How |
+|-----------------|-----|
+| Shell | Use the CLI directly (`memory wake-up`, `memory add-memory`, etc.) |
+| HTTP | Call the REST API at `http://localhost:8000` (interactive docs at `/docs`) |
+| Python | Import `MemoryClient` from `memory_client.client` |
 
-- **Shell**: use the CLI directly (`memory wake-up`, `memory add-memory`, etc.)
-- **HTTP**: call the REST API at `http://localhost:8000` directly (see FastAPI docs at `/docs`)
-- **Python**: import `MemoryClient` from `memory_client.client`
-
-For remote access (non-localhost), see WP-010 (Tailscale + TLS) in BACKLOG.md.
+For remote (non-localhost) access, see WP-010 in BACKLOG.md.
