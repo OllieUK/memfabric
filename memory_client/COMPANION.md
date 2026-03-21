@@ -1,3 +1,11 @@
+> **MCP integration (preferred):** When running in a Claude Desktop or MCP-enabled Claude Code session, use the MCP tools directly:
+> `memory_wake_up`, `memory_add`, `memory_search`, `memory_list_strands`, `memory_close_session`
+>
+> These are the preferred path — lower latency, structured returns, no shell subprocess.
+> The CLI commands documented below remain valid as a fallback for CLI-only environments.
+
+---
+
 # Companion Session Protocol
 
 This document defines how a companion agent (Claude Code or other) should open and close a session using the Graph Memory Fabric.
