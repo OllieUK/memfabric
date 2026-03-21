@@ -18,20 +18,23 @@ class MemoryClient:
 
     def add_memory(
         self,
-        text: str,
+        fact: str,
         type: str,
         agent_id: str,
         *,
+        so_what: str | None = None,
+        cause_ids: list[str] | None = None,
+        effect_ids: list[str] | None = None,
         tags: list[str] | None = None,
         importance: int = 3,
-        project_id: Optional[str] = None,
+        project_id: str | None = None,
         person_ids: list[str] | None = None,
         strand_ids: list[str] | None = None,
-        related_ids: Optional[list[str]] = None,
+        related_ids: list[str] | None = None,
     ) -> str:
         """POST /memory. Returns memory_id string."""
         body: dict = {
-            "text": text,
+            "fact": fact,
             "type": type,
             "agent_id": agent_id,
             "tags": tags or [],
@@ -39,6 +42,12 @@ class MemoryClient:
             "person_ids": person_ids or [],
             "strand_ids": strand_ids or [],
         }
+        if so_what is not None:
+            body["so_what"] = so_what
+        if cause_ids is not None:
+            body["cause_ids"] = cause_ids
+        if effect_ids is not None:
+            body["effect_ids"] = effect_ids
         if project_id is not None:
             body["project_id"] = project_id
         if related_ids is not None:
@@ -51,17 +60,19 @@ class MemoryClient:
         self,
         query: str,
         *,
-        tags: Optional[list[str]] = None,
-        agent_ids: Optional[list[str]] = None,
-        project_ids: Optional[list[str]] = None,
+        tags: list[str] | None = None,
+        agent_ids: list[str] | None = None,
+        project_ids: list[str] | None = None,
         limit: int = 10,
         max_hops: int = 1,
+        traversal_direction: str = "none",
     ) -> list[dict]:
         """POST /memory/search. Returns list of MemoryHit dicts."""
         body: dict = {
             "query": query,
             "limit": limit,
             "max_hops": max_hops,
+            "traversal_direction": traversal_direction,
         }
         if tags is not None:
             body["tags"] = tags

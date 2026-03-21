@@ -34,7 +34,7 @@ def test_u1_memory_add_resolves_agent_id():
     mock_client.add_memory.return_value = "uuid-1234"
 
     with patch("mcp_server.server.MemoryClient", return_value=mock_client):
-        result = memory_add(text="hello", type="fact")
+        result = memory_add(fact="hello", type="fact")
 
     # agent_id is the third positional arg (index 2 after self is excluded)
     call_args = mock_client.add_memory.call_args
@@ -173,7 +173,7 @@ def test_i2_memory_add_returns_uuid():
     from mcp_server.server import memory_add
 
     result = memory_add(
-        text="WP-033 integration test memory",
+        fact="WP-033 integration test memory",
         type="fact",
         importance=1,
     )

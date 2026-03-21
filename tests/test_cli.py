@@ -102,7 +102,7 @@ class TestAddMemory:
         )
         assert result.exit_code == 0
         sent = json.loads(route.calls.last.request.content)
-        assert sent["text"] == "minimal body"
+        assert sent["fact"] == "minimal body"
         assert sent["type"] == "decision"
         assert sent["importance"] == 3  # CLI default
 

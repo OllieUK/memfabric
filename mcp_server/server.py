@@ -16,20 +16,26 @@ mcp = FastMCP("graph-memory-fabric")
 
 @mcp.tool
 def memory_add(
-    text: str,
+    fact: str,
     type: str = "fact",
     strand_ids: list[str] | None = None,
     tags: list[str] | None = None,
     importance: int = 3,
     agent_id: str | None = None,
+    so_what: str | None = None,
+    cause_ids: list[str] | None = None,
+    effect_ids: list[str] | None = None,
 ) -> str:
     """Add a memory to the fabric. Returns the created memory ID."""
     resolved_agent_id = agent_id or settings.agent_id
     with MemoryClient(base_url=settings.api_base_url) as client:
         mid = client.add_memory(
-            text,
+            fact,
             type,
             resolved_agent_id,
+            so_what=so_what,
+            cause_ids=cause_ids,
+            effect_ids=effect_ids,
             tags=tags,
             importance=importance,
             strand_ids=strand_ids,

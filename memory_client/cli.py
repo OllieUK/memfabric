@@ -23,23 +23,29 @@ def _make_client() -> MemoryClient:
 
 @app.command("add-memory")
 def add_memory(
-    text: str = typer.Argument(..., help="Memory text content"),
+    fact: str = typer.Argument(..., help="Memory fact (the raw statement)"),
     type: str = typer.Option(..., "--type", "-t", help="fact|decision|insight|todo|event|observation"),
     agent_id: str = typer.Option(settings.agent_id, "--agent-id", "-a", help="Agent ID producing this memory"),
+    so_what: Optional[str] = typer.Option(None, "--so-what", help="Impact or meaning of this fact"),
     tags: Optional[list[str]] = typer.Option(None, "--tag", help="Tag (repeatable: --tag a --tag b)"),
     importance: int = typer.Option(3, "--importance", "-i", min=1, max=5, help="Importance 1-5"),
     project_id: Optional[str] = typer.Option(None, "--project-id", help="Project node ID"),
     person_ids: Optional[list[str]] = typer.Option(None, "--person-id", help="Person ID (repeatable)"),
     strand_ids: Optional[list[str]] = typer.Option(None, "--strand-id", help="Strand ID (repeatable)"),
     related_ids: Optional[list[str]] = typer.Option(None, "--related-id", help="Explicit related memory ID (repeatable)"),
+    cause_ids: Optional[list[str]] = typer.Option(None, "--cause-id", help="Memory IDs that causally led to this one (repeatable)"),
+    effect_ids: Optional[list[str]] = typer.Option(None, "--effect-id", help="Memory IDs that this one causally leads to (repeatable)"),
 ) -> None:
     """Add a new memory to the graph."""
     try:
         with _make_client() as client:
             memory_id = client.add_memory(
-                text=text,
-                type=type,
-                agent_id=agent_id,
+                fact,
+                type,
+                agent_id,
+                so_what=so_what,
+                cause_ids=cause_ids,
+                effect_ids=effect_ids,
                 tags=tags,
                 importance=importance,
                 project_id=project_id,
