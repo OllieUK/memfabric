@@ -73,7 +73,7 @@ Adds `GET /strands` to the API and `memory list-strands` to the CLI.
 Produces a structured context briefing for session start. Runs two searches:
 
 1. **Primary memories** — top N memories ordered by importance descending then recency. Default N: 20. Configurable via `--limit N`. No static importance threshold — the limit is the tuning knob, so the briefing stays manageable as the memory fabric grows.
-2. **Topic-relevant memories** — semantic search on the `--topic` string (if provided), pulling the top 10 most relevant results.
+2. **Topic-relevant memories** — semantic search on the `--topic` string (if provided), pulling the top N most relevant results (same `--limit N` as primary memories).
 
 Output format:
 
