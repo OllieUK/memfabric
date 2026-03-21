@@ -107,6 +107,27 @@ class TestWakeUpClient:
 # ---------------------------------------------------------------------------
 
 
+class TestWakeUpSplitClient:
+    @respx.mock
+    def test_returns_core_and_topic_lists(self):
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json={
+                "memories": [{"id": "mem-aaa", "text": "core memory", "type": "fact",
+                               "tags": [], "strand_id": "strand-core-health",
+                               "importance": 5, "created_at": "2026-01-01T00:00:00+00:00"}],
+                "topic_memories": [{"id": "mem-bbb", "text": "topic memory", "type": "fact",
+                                    "tags": [], "strand_id": "strand-companion-gmf",
+                                    "importance": 3, "created_at": "2026-01-02T00:00:00+00:00"}],
+            })
+        )
+        with MemoryClient(base_url=BASE) as client:
+            core, topic = client.wake_up_split(limit=10, topic="graph memory")
+        assert len(core) == 1
+        assert core[0]["id"] == "mem-aaa"
+        assert len(topic) == 1
+        assert topic[0]["id"] == "mem-bbb"
+
+
 class TestWakeUpCLI:
     @respx.mock
     def test_exits_zero_and_shows_memories(self):
