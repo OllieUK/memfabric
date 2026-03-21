@@ -4,7 +4,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from neo4j.exceptions import ServiceUnavailable
@@ -103,6 +103,7 @@ class SearchMemoryRequest(BaseModel):
     project_ids: Optional[List[str]] = None
     limit: int = Field(default=10, ge=1, le=100)
     max_hops: int = Field(default=1, ge=0, le=3)
+    traversal_direction: Literal["none", "causes", "effects", "both"] = "none"
 
 
 class MemoryHit(BaseModel):

@@ -179,21 +179,48 @@ def search_memories(session, req, query_embedding: list) -> list:
 
     Args:
         session: open neo4j Session
-        req: SearchMemoryRequest (query, tags, agent_ids, project_ids, limit, max_hops)
+        req: SearchMemoryRequest (query, tags, agent_ids, project_ids, limit, max_hops,
+             traversal_direction)
         query_embedding: pre-computed embedding for req.query
 
     Returns:
         List of dicts with keys: id, text, type, tags, importance, neighbours
     """
-    if req.max_hops == 0:
-        neighbour_clause = ""
-        neighbour_return = "[] AS neighbours"
+    direction = getattr(req, "traversal_direction", "none")
+    hops = req.max_hops
+
+    # Build RELATED_TO clause (existing logic)
+    related_clause = f"OPTIONAL MATCH (m)-[:RELATED_TO*1..{hops}]->(n:Memory)" if hops > 0 else ""
+
+    # Build LEADS_TO clause(s) based on traversal_direction
+    causes_clause = ""
+    effects_clause = ""
+    hop_depth = max(hops, 1)  # when max_hops=0, LEADS_TO still traverses 1 hop
+    if direction in ("causes", "both"):
+        causes_clause = f"OPTIONAL MATCH (m)<-[:LEADS_TO*1..{hop_depth}]-(c:Memory)"
+    if direction in ("effects", "both"):
+        effects_clause = f"OPTIONAL MATCH (m)-[:LEADS_TO*1..{hop_depth}]->(e:Memory)"
+
+    # Combine neighbour clauses and collect expressions
+    neighbour_clauses = "\n".join(
+        c for c in [related_clause, causes_clause, effects_clause] if c
+    )
+
+    collect_parts = []
+    if hops > 0:
+        collect_parts.append("collect(DISTINCT n.id)")
+    if direction in ("causes", "both"):
+        collect_parts.append("collect(DISTINCT c.id)")
+    if direction in ("effects", "both"):
+        collect_parts.append("collect(DISTINCT e.id)")
+
+    if collect_parts:
+        neighbour_return = " + ".join(collect_parts) + " AS neighbours"
     else:
-        neighbour_clause = f"OPTIONAL MATCH (m)-[:RELATED_TO*1..{req.max_hops}]->(n:Memory)"
-        neighbour_return = "collect(DISTINCT n.id) AS neighbours"
+        neighbour_return = "[] AS neighbours"
 
     query = _SEARCH_QUERY_TEMPLATE.format(
-        neighbour_clause=neighbour_clause,
+        neighbour_clause=neighbour_clauses,
         neighbour_return=neighbour_return,
     )
 

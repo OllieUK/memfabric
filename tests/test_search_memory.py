@@ -5,6 +5,7 @@ Requires Memgraph running with schema initialised (run scripts/init_schema.py fi
 All tests clean up their own nodes.
 """
 
+import pytest
 from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
@@ -218,3 +219,140 @@ class TestSearchDbUnavailable:
             assert response.status_code == 503
         finally:
             app.state.driver = original_driver
+
+
+@pytest.mark.integration
+class TestSearchTraversalDirection:
+    """Integration: LEADS_TO traversal via traversal_direction parameter."""
+
+    def test_traversal_direction_none_is_default_behaviour(self, client, test_driver):
+        r = client.post("/memory/search", json={
+            "query": "test query",
+            "traversal_direction": "none",
+            "max_hops": 0,
+        })
+        assert r.status_code == 200
+        # Just verify the field is accepted and response is valid
+        data = r.json()
+        assert "memories" in data
+
+    def test_traversal_direction_causes_returns_upstream(self, client, test_driver):
+        # Create cause → effect chain and verify cause appears in neighbours when
+        # searching for the effect with traversal_direction="causes"
+        r_cause = client.post("/memory", json={
+            "fact": "ADHD affects focus.",
+            "type": "fact",
+            "agent_id": "test-agent-traversal",
+        })
+        cause_id = r_cause.json()["memory_id"]
+
+        r_effect = client.post("/memory", json={
+            "fact": "Oliver needs structure to stay productive.",
+            "type": "insight",
+            "agent_id": "test-agent-traversal",
+            "cause_ids": [cause_id],
+        })
+        effect_id = r_effect.json()["memory_id"]
+
+        # Search for the effect; with direction=causes, the cause should appear in neighbours
+        r_search = client.post("/memory/search", json={
+            "query": "Oliver needs structure",
+            "traversal_direction": "causes",
+            "max_hops": 1,
+            "limit": 5,
+        })
+        assert r_search.status_code == 200
+        hits = r_search.json()["memories"]
+        # Find the effect hit and check cause is in its neighbours
+        effect_hit = next((h for h in hits if h["id"] == effect_id), None)
+        assert effect_hit is not None, "Effect memory should appear in search results"
+        assert cause_id in effect_hit["neighbours"]
+
+        # Cleanup
+        with test_driver.session() as s:
+            s.run("MATCH (a:Agent {id: 'test-agent-traversal'}) DETACH DELETE a")
+        with test_driver.session() as s:
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=cause_id)
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=effect_id)
+
+    def test_traversal_direction_effects_returns_downstream(self, client, test_driver):
+        """Search for the cause with direction=effects; the effect must appear in its neighbours."""
+        r_cause = client.post("/memory", json={
+            "fact": "Oliver trained as an engineer.",
+            "type": "fact",
+            "agent_id": "test-agent-traversal",
+        })
+        cause_id = r_cause.json()["memory_id"]
+
+        r_effect = client.post("/memory", json={
+            "fact": "Oliver enjoys systematic problem-solving.",
+            "type": "insight",
+            "agent_id": "test-agent-traversal",
+            "cause_ids": [cause_id],
+        })
+        effect_id = r_effect.json()["memory_id"]
+
+        # Filter by agent_id so only our test nodes can appear; retrieve both
+        r_search = client.post("/memory/search", json={
+            "query": "Oliver engineer training",
+            "agent_ids": ["test-agent-traversal"],
+            "traversal_direction": "effects",
+            "max_hops": 1,
+            "limit": 10,
+        })
+        assert r_search.status_code == 200
+        hits = r_search.json()["memories"]
+        cause_hit = next((h for h in hits if h["id"] == cause_id), None)
+        assert cause_hit is not None, "Cause memory must appear in results (agent_ids filter used)"
+        assert effect_id in cause_hit["neighbours"], \
+            "Effect memory must appear in cause's neighbours when traversal_direction='effects'"
+
+        with test_driver.session() as s:
+            s.run("MATCH (a:Agent {id: 'test-agent-traversal'}) DETACH DELETE a")
+        with test_driver.session() as s:
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=cause_id)
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=effect_id)
+
+    def test_causes_with_max_hops_zero_still_returns_upstream(self, client, test_driver):
+        """traversal_direction works independently of max_hops — even max_hops=0 traverses LEADS_TO."""
+        r_cause = client.post("/memory", json={
+            "fact": "ADHD impairs working memory.",
+            "type": "fact",
+            "agent_id": "test-agent-traversal",
+        })
+        cause_id = r_cause.json()["memory_id"]
+
+        r_effect = client.post("/memory", json={
+            "fact": "Oliver forgets tasks unless written down.",
+            "type": "insight",
+            "agent_id": "test-agent-traversal",
+            "cause_ids": [cause_id],
+        })
+        effect_id = r_effect.json()["memory_id"]
+
+        r_search = client.post("/memory/search", json={
+            "query": "Oliver forgets tasks",
+            "agent_ids": ["test-agent-traversal"],
+            "traversal_direction": "causes",
+            "max_hops": 0,   # RELATED_TO suppressed; LEADS_TO must still work
+            "limit": 10,
+        })
+        assert r_search.status_code == 200
+        hits = r_search.json()["memories"]
+        effect_hit = next((h for h in hits if h["id"] == effect_id), None)
+        assert effect_hit is not None, "Effect memory must appear in results"
+        assert cause_id in effect_hit["neighbours"], \
+            "Cause must appear in neighbours even when max_hops=0"
+
+        with test_driver.session() as s:
+            s.run("MATCH (a:Agent {id: 'test-agent-traversal'}) DETACH DELETE a")
+        with test_driver.session() as s:
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=cause_id)
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=effect_id)
+
+    def test_unknown_traversal_direction_returns_422(self, client, test_driver):
+        r = client.post("/memory/search", json={
+            "query": "test",
+            "traversal_direction": "invalid_value",
+        })
+        assert r.status_code == 422
