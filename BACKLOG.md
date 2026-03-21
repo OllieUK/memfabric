@@ -7,9 +7,7 @@
 
 ## Currently In Progress
 
-| ID | Title |
-|----|-------|
-| — | *(none)* |
+*(none)*
 
 ---
 
@@ -28,8 +26,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| ~~WP-027~~ | ~~`memory list-strands` CLI command~~ | 5 | H | S | WP-007 | **Done.** |
-| WP-030 | `memory wake-up` + `memory close-session` CLI commands | 5 | H | S | WP-027 | New commands the companion session protocol depends on. `wake-up [--topic "..."] [--limit N]`: top-N memories by importance desc then recency (default N=20, no static threshold), plus optional topic search (also capped at N). `close-session`: prints structured scaffold for end-of-session memory storage. See spec: `docs/superpowers/specs/2026-03-21-companion-integration-design.md`. |
 | WP-031 | `memory_client` companion package: COMPANION.md + WIRING.md + docs | 5 | H | S | WP-030 | No code. Delivers: `memory_client/COMPANION.md` (companion session protocol), `memory_client/WIRING.md` (Claude Code wiring instructions; Claude Desktop + MCP placeholders), `docs/companion-integration.md` (high-level overview). Package is then drop-in ready for any companion environment. |
 | WP-032 | End-to-end companion validation | 5 | H | S | WP-031, seeds in DB | Run a real companion session wake-up → work → close-out with real memories. All five validation criteria must pass (see spec). Findings fed back to backlog before WP-028 starts. **No code produced — evidence and gap list produced.** |
 | WP-033 | Memory MCP server + Claude Desktop wiring | 6 | H | M | WP-032 | Wrap REST API as MCP server. Tools: `memory_add`, `memory_search`, `memory_wake_up`, `memory_list_strands`, `memory_close_session`. Complete WIRING.md Claude Desktop + MCP sections. COMPANION.md updated to prefer MCP tools over CLI where available. |
@@ -286,6 +282,23 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-030 — `memory wake-up` + `memory close-session` CLI commands
+**Completed:** 2026-03-21
+
+**What was done:**
+- Added `wake_up(session, limit, topic_embedding)` to `memory_service/memory_repo.py`: importance-ranked query merged with optional vector search, deduplicated, capped at limit. Extracted `_record_to_memory_dict()` helper to avoid duplicate comprehensions.
+- Added `WakeUpMemoryItem`, `WakeUpResponse` Pydantic models and `GET /memory/wake-up` endpoint to `memory_service/main.py` with `Query()` params.
+- Added `MemoryClient.wake_up()` to `memory_client/client.py`: single `GET /memory/wake-up` call; server handles merge.
+- Added `memory wake-up` and `memory close-session` CLI commands to `memory_client/cli.py`. `wake-up` renders grouped by first tag; `close-session` is fully local (no API call).
+- Created `tests/test_wake_up_close_session.py`: 15 tests (U1–U11 unit, I1–I3 integration against live stack).
+- Seeded 12 active memories from Notion Memory Vault into live Memgraph.
+
+**DoS result:** 15/15 WP-030 tests passing (12 unit, 3 integration against live stack). All 5 smoke tests green: `GET /memory/wake-up` (with and without topic), `memory wake-up` (with and without topic), `memory close-session`.
+
+**Retrospective:** `/simplify` caught a two-HTTP-call design flaw in the CLI (server already handles merge server-side — one call is correct). Also caught duplicate record-to-dict comprehensions, extracted to `_record_to_memory_dict()`. `Field()` vs `Query()` for FastAPI query params is a subtle footgun — always use `Query()` in endpoint function signatures.
+
+---
 
 ### WP-027 — `memory list-strands` CLI command
 **Completed:** 2026-03-21

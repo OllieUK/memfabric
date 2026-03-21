@@ -1,5 +1,6 @@
 # memory_client/cli.py
 import json
+from datetime import datetime, timezone
 from itertools import groupby
 from typing import Optional
 
@@ -126,6 +127,60 @@ def list_strands() -> None:
         for strand in group:
             console.print(f"  [dim]{strand['id']}[/dim]")
             console.print(f"  [bold]{strand['name']}[/bold] — {strand['description']}")
+
+
+@app.command("wake-up")
+def wake_up(
+    topic: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic to focus the session on"),
+    limit: int = typer.Option(20, "--limit", "-n", min=1, max=100, help="Max memories to return"),
+) -> None:
+    """Print a memory briefing for session start."""
+    try:
+        with _make_client() as client:
+            memories = client.wake_up(limit=limit, topic=topic)
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    heading = f"[bold]## Memory briefing — {topic if topic else 'general session'}[/bold]"
+    console.print(heading)
+
+    console.print("\n[bold cyan]### Core context[/bold cyan]")
+    if not memories:
+        console.print("  No memories found.")
+    else:
+        for strand_id, group in groupby(memories, key=lambda m: (m.get("tags") or ["(untagged)"])[0]):
+            console.print(f"\n[dim]{strand_id}[/dim]")
+            for mem in group:
+                imp = str(mem.get("importance") or "")
+                console.print(f"  [{imp}] [bold]{mem['type']}[/bold] — {mem['text']}")
+
+
+@app.command("close-session")
+def close_session() -> None:
+    """Print a structured scaffold for end-of-session memory storage."""
+    now = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    console.print(f"\n[bold]## Session close-out[/bold] — {now}")
+    console.print("""
+Review this session and answer the following before ending:
+
+1. What decisions were made? (store as type: decision)
+   → memory add-memory --text "..." --type decision --strand-id <strand-id>
+
+2. What was learned or observed about the user? (store as type: insight or observation)
+   → memory add-memory --text "..." --type insight --strand-id <strand-id>
+
+3. What actions were committed to? (store as type: todo)
+   → memory add-memory --text "..." --type todo --strand-id <strand-id>
+
+4. What context should a future session know that isn't already in the fabric?
+   → memory add-memory --text "..." --type fact --strand-id <strand-id>
+
+Run `memory list-strands` if strand IDs are uncertain.
+Do not end the session without running at least one `memory add-memory` if any of the above apply.""")
 
 
 @app.command("dump-graph")

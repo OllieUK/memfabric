@@ -187,6 +187,69 @@ def search_memories(session, req, query_embedding: list) -> list:
     ]
 
 
+def _record_to_memory_dict(record) -> dict:
+    """Extract the standard Memory field set from a neo4j Record."""
+    return {
+        "id": record["id"],
+        "text": record["text"],
+        "type": record["type"],
+        "tags": record["tags"],
+        "importance": record["importance"],
+        "created_at": record["created_at"],
+    }
+
+
+def wake_up(session, limit: int, topic_embedding: list | None = None) -> list:
+    """Return top-N memories for session start.
+
+    If topic_embedding is provided, runs a vector search capped at `limit` and
+    merges with the importance-ranked list, deduplicating by id. The combined
+    result is still capped at `limit`.
+
+    Returns:
+        List of dicts: id, text, type, tags, importance, created_at
+    """
+    # Importance-ranked list (always fetched)
+    result = session.run(
+        """
+        MATCH (m:Memory)
+        RETURN m.id AS id, m.text AS text, m.type AS type,
+               m.tags AS tags, m.importance AS importance, m.created_at AS created_at
+        ORDER BY m.importance DESC, m.created_at DESC
+        LIMIT $limit
+        """,
+        limit=limit,
+    )
+    ranked = [_record_to_memory_dict(r) for r in result]
+
+    if topic_embedding is None:
+        return ranked
+
+    # Topic search — vector search capped at limit
+    topic_result = session.run(
+        """
+        CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
+        YIELD node AS m, distance
+        RETURN m.id AS id, m.text AS text, m.type AS type,
+               m.tags AS tags, m.importance AS importance, m.created_at AS created_at
+        """,
+        limit=limit,
+        query_vec=topic_embedding,
+    )
+    topic_hits = [_record_to_memory_dict(r) for r in topic_result]
+
+    # Merge: ranked first, then topic hits not already present, cap at limit
+    seen: set[str] = set()
+    merged = []
+    for item in ranked + topic_hits:
+        if item["id"] not in seen:
+            seen.add(item["id"])
+            merged.append(item)
+        if len(merged) == limit:
+            break
+    return merged
+
+
 def list_strands(session) -> list:
     """Return all Strand nodes ordered by category then name.
 

@@ -73,6 +73,15 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["memories"]
 
+    def wake_up(self, *, limit: int = 20, topic: str | None = None) -> list[dict]:
+        """GET /memory/wake-up. Returns list of memory dicts for session start."""
+        params: dict = {"limit": limit}
+        if topic is not None:
+            params["topic"] = topic
+        response = self._http.get("/memory/wake-up", params=params)
+        response.raise_for_status()
+        return response.json()["memories"]
+
     def list_strands(self) -> list[dict]:
         """GET /strands. Returns list of strand dicts with id, name, description, category."""
         response = self._http.get("/strands")

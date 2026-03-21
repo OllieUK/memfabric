@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, Field
 
@@ -119,6 +119,36 @@ async def search_memory(req: SearchMemoryRequest, request: Request) -> SearchMem
             )
             for r in results
         ]
+    )
+
+
+class WakeUpMemoryItem(BaseModel):
+    id: str
+    text: str
+    type: MemoryType
+    tags: List[str]
+    importance: Optional[int] = None
+    created_at: Optional[str] = None
+
+
+class WakeUpResponse(BaseModel):
+    memories: List[WakeUpMemoryItem]
+
+
+@app.get("/memory/wake-up", response_model=WakeUpResponse)
+async def wake_up(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+    topic: Optional[str] = Query(default=None),
+) -> WakeUpResponse:
+    topic_embedding = get_embedding(topic) if topic else None
+    try:
+        with request.app.state.driver.session() as session:
+            results = memory_repo.wake_up(session, limit=limit, topic_embedding=topic_embedding)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return WakeUpResponse(
+        memories=[WakeUpMemoryItem(**r) for r in results]
     )
 
 
