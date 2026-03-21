@@ -26,7 +26,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-033 | Memory MCP server + Claude Desktop wiring | 6 | H | M | WP-032 | Wrap REST API as MCP server. Tools: `memory_add`, `memory_search`, `memory_wake_up`, `memory_list_strands`, `memory_close_session`. Complete WIRING.md Claude Desktop + MCP sections. COMPANION.md updated to prefer MCP tools over CLI where available. |
 
 ### Post-MVP — Complete v1 feature set
 
@@ -283,6 +282,21 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-033 — MCP server + Claude Code/Desktop wiring
+
+**Date:** 2026-03-21
+
+- FastMCP-based server in `mcp_server/` exposing 5 tools via STDIO: `memory_add`, `memory_search`, `memory_wake_up`, `memory_list_strands`, `memory_close_session`
+- `pyproject.toml` consolidated (removed `setup.cfg`), `memory-mcp` entry point registered
+- `.mcp.json` created at repo root for Claude Code auto-discovery
+- `WIRING.md` fully updated: Claude Code MCP + CLI wiring, Claude Desktop entry-point + fallback configs
+- `COMPANION.md` updated: MCP tools as preferred path, CLI as fallback
+- 7 unit tests + 5 integration tests all passing
+
+**Retrospective:** FastMCP decorator syntax is clean; fresh-client-per-call pattern safe for concurrent requests; plain-text briefing assembly avoids Rich dependency in server; `.mcp.json` auto-discovery in Claude Code works out of the box. Setup.cfg/pyproject.toml conflict required removing setup.cfg and using `--no-build-isolation` for editable installs in this environment.
+
+---
 
 ### WP-032 — End-to-end companion validation
 **Completed:** 2026-03-21
