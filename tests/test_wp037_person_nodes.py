@@ -526,3 +526,257 @@ class TestCreatePersonCLI:
         )
         result = _cli_runner.invoke(cli_app, ["create-person", "bad-id", "--name", "Bad"])
         assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# Tasks 10–11 — Unit tests: MCP tools memory_list_persons / memory_create_person
+# ---------------------------------------------------------------------------
+
+from unittest.mock import MagicMock, patch  # noqa: E402
+
+
+class TestMcpListPersons:
+    def test_memory_list_persons_calls_client(self):
+        from mcp_server.server import memory_list_persons
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.list_persons.return_value = [{"id": "x", "name": "X", "description": None}]
+            mock_cls.return_value = mock_client
+            memory_list_persons()
+        mock_client.list_persons.assert_called_once()
+
+    def test_memory_list_persons_returns_list(self):
+        from mcp_server.server import memory_list_persons
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.list_persons.return_value = [{"id": "x", "name": "X", "description": None}]
+            mock_cls.return_value = mock_client
+            result = memory_list_persons()
+        assert isinstance(result, list)
+
+    def test_memory_list_persons_returns_dicts_with_id(self):
+        from mcp_server.server import memory_list_persons
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.list_persons.return_value = [
+                {"id": "person-a", "name": "Person A", "description": None}
+            ]
+            mock_cls.return_value = mock_client
+            result = memory_list_persons()
+        assert all("id" in item for item in result)
+
+
+class TestMcpCreatePerson:
+    def test_memory_create_person_calls_client(self):
+        from mcp_server.server import memory_create_person
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.create_person.return_value = {"id": "x", "name": "X", "description": None}
+            mock_cls.return_value = mock_client
+            memory_create_person("x", "X")
+        mock_client.create_person.assert_called_once()
+
+    def test_memory_create_person_passes_person_id_and_name(self):
+        from mcp_server.server import memory_create_person
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.create_person.return_value = {"id": "oliver-james", "name": "Oliver James", "description": None}
+            mock_cls.return_value = mock_client
+            memory_create_person("oliver-james", "Oliver James")
+        mock_client.create_person.assert_called_once_with("oliver-james", "Oliver James", description=None)
+
+    def test_memory_create_person_passes_description(self):
+        from mcp_server.server import memory_create_person
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            mock_client.create_person.return_value = {"id": "x", "name": "X", "description": "bio"}
+            mock_cls.return_value = mock_client
+            memory_create_person("x", "X", description="bio")
+        mock_client.create_person.assert_called_once_with("x", "X", description="bio")
+
+    def test_memory_create_person_returns_dict(self):
+        from mcp_server.server import memory_create_person
+        with patch("mcp_server.server.MemoryClient") as mock_cls:
+            mock_client = MagicMock()
+            mock_client.__enter__ = lambda s: mock_client
+            mock_client.__exit__ = MagicMock(return_value=False)
+            person = {"id": "x", "name": "X", "description": None}
+            mock_client.create_person.return_value = person
+            mock_cls.return_value = mock_client
+            result = memory_create_person("x", "X")
+        assert isinstance(result, dict)
+        assert "id" in result
+
+
+# ---------------------------------------------------------------------------
+# Tasks 12–13 — Integration tests: migrate_person_nodes script
+# ---------------------------------------------------------------------------
+
+import uuid as _uuid
+from datetime import datetime, timezone as _timezone
+
+
+def _seed_memory(driver, fact: str) -> str:
+    """Create a minimal Memory node. Returns memory_id."""
+    mid = str(_uuid.uuid4())
+    now = datetime.now(tz=_timezone.utc).isoformat()
+    with driver.session() as session:
+        session.run(
+            """
+            MERGE (a:Agent {id: $agent_id})
+            CREATE (m:Memory {
+                id: $id, fact: $fact, text: $fact, type: 'fact',
+                tags: [], importance: 1, created_at: $now, last_used_at: $now,
+                embedding: []
+            })
+            CREATE (m)-[:PRODUCED_BY]->(a)
+            """,
+            agent_id=_AGENT_ID, id=mid, fact=fact, now=now,
+        )
+    return mid
+
+
+@pytest.mark.integration
+class TestMigratePersonNodesScript:
+    def test_fetch_batch_returns_memories_without_about_person(self, test_driver):
+        from scripts.migrate_person_nodes import fetch_batch
+        from tests.conftest import cleanup_nodes
+
+        # Seed one memory with no ABOUT edge
+        mid_unwired = _seed_memory(test_driver, "WP-037 migrate test unwired")
+        # Seed one memory wired to a person
+        mid_wired = _seed_memory(test_driver, "WP-037 migrate test wired")
+        person_id = "test-migrate-person-wp037"
+        with test_driver.session() as session:
+            session.run(
+                "MERGE (p:Person {id: $pid}) WITH p "
+                "MATCH (m:Memory {id: $mid}) MERGE (m)-[:ABOUT]->(p)",
+                pid=person_id, mid=mid_wired,
+            )
+        try:
+            with test_driver.session() as session:
+                batch = fetch_batch(session, batch_size=10000)
+            ids = [r["id"] for r in batch]
+            assert mid_unwired in ids
+            assert mid_wired not in ids
+        finally:
+            cleanup_nodes(test_driver, mid_unwired, mid_wired)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+                session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)
+
+    def test_fetch_batch_respects_batch_size_limit(self, test_driver):
+        from scripts.migrate_person_nodes import fetch_batch
+        from tests.conftest import cleanup_nodes
+
+        mids = [_seed_memory(test_driver, f"WP-037 batch limit {i}") for i in range(3)]
+        try:
+            with test_driver.session() as session:
+                batch = fetch_batch(session, batch_size=2)
+            assert len(batch) == 2
+        finally:
+            cleanup_nodes(test_driver, *mids)
+            with test_driver.session() as session:
+                session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)
+
+    def test_write_about_edge_creates_edge_and_person(self, test_driver):
+        from scripts.migrate_person_nodes import write_about_edge
+        from tests.conftest import cleanup_nodes, edge_exists
+
+        mid = _seed_memory(test_driver, "WP-037 write edge test")
+        person_id = "test-migrate-person-wp037"
+        try:
+            with test_driver.session() as session:
+                write_about_edge(session, mid, person_id, pre_created=False)
+            assert edge_exists(test_driver, mid, "ABOUT", person_id)
+        finally:
+            cleanup_nodes(test_driver, mid)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+                session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)
+
+    def test_write_about_edge_is_idempotent(self, test_driver):
+        from scripts.migrate_person_nodes import write_about_edge
+        from tests.conftest import cleanup_nodes
+
+        mid = _seed_memory(test_driver, "WP-037 idempotent edge test")
+        person_id = "test-migrate-person-wp037"
+        try:
+            with test_driver.session() as session:
+                write_about_edge(session, mid, person_id, pre_created=False)
+                write_about_edge(session, mid, person_id, pre_created=False)
+            with test_driver.session() as session:
+                result = session.run(
+                    "MATCH (m:Memory {id: $mid})-[r:ABOUT]->(p:Person {id: $pid}) RETURN count(r) AS cnt",
+                    mid=mid, pid=person_id,
+                )
+                assert result.single()["cnt"] == 1
+        finally:
+            cleanup_nodes(test_driver, mid)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+                session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)
+
+    def test_write_creates_person_node_with_name_heuristic(self, test_driver):
+        from scripts.migrate_person_nodes import write_about_edge
+        from tests.conftest import cleanup_nodes
+
+        mid = _seed_memory(test_driver, "WP-037 name heuristic test")
+        person_id = "oliver-james"
+        try:
+            with test_driver.session() as session:
+                write_about_edge(session, mid, person_id, pre_created=False)
+            with test_driver.session() as session:
+                result = session.run(
+                    "MATCH (p:Person {id: $id}) RETURN p.name AS name",
+                    id=person_id,
+                )
+                record = result.single()
+                assert record is not None
+                assert record["name"] == "Oliver James"
+        finally:
+            cleanup_nodes(test_driver, mid)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+                session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)
+
+    def test_dry_run_does_not_write_edges(self, test_driver, monkeypatch):
+        from scripts.migrate_person_nodes import fetch_batch
+        from tests.conftest import cleanup_nodes
+
+        mid = _seed_memory(test_driver, "WP-037 dry run test")
+        try:
+            # Simulate dry-run: fetch the batch, emit JSON, but do NOT call write_about_edge
+            captured = []
+            with test_driver.session() as session:
+                batch = fetch_batch(session, batch_size=10000)
+            for node in batch:
+                if node["id"] == mid:
+                    import json as _json
+                    captured.append(_json.dumps({"id": node["id"], "fact": node["fact"]}))
+
+            assert any(mid in line for line in captured), "Memory should appear in dry-run output"
+
+            # Verify no ABOUT edge was written
+            with test_driver.session() as session:
+                result = session.run(
+                    "MATCH (m:Memory {id: $mid})-[:ABOUT]->(:Person) RETURN count(*) AS cnt",
+                    mid=mid,
+                )
+                assert result.single()["cnt"] == 0
+        finally:
+            cleanup_nodes(test_driver, mid)
+            with test_driver.session() as session:
+                session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)

@@ -114,6 +114,20 @@ def memory_list_strands() -> list[dict]:
         return client.list_strands()
 
 
+@mcp.tool
+def memory_list_persons() -> list[dict]:
+    """Return all Person nodes. Use person IDs when calling memory_add."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.list_persons()
+
+
+@mcp.tool
+def memory_create_person(person_id: str, name: str, description: str | None = None) -> dict:
+    """Create or merge a Person node. Returns the person dict."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.create_person(person_id, name, description=description)
+
+
 _CLOSE_SESSION_SCAFFOLD = """\
 ## Session close-out
 
