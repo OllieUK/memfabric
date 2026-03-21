@@ -24,6 +24,8 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
         MERGE (a:Agent {id: $agent_id})
         CREATE (m:Memory {
             id: $id,
+            fact: $fact,
+            so_what: $so_what,
             text: $text,
             type: $type,
             tags: $tags,
@@ -36,6 +38,8 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
         """,
         agent_id=req.agent_id,
         id=memory_id,
+        fact=req.fact,
+        so_what=req.so_what,
         text=req.text,
         type=req.type.value,
         tags=req.tags,

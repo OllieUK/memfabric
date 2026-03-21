@@ -81,6 +81,62 @@ class TestAddMemoryRequestValidator:
         assert req.text == "Oliver has ADHD."
 
 
+@pytest.mark.integration
+class TestPostMemoryFactSoWhat:
+    """Integration: fact/so_what storage on Memory node."""
+
+    def test_fact_and_so_what_stored_on_node(self, client, test_driver):
+        response = client.post("/memory", json={
+            "fact": "Oliver has ADHD.",
+            "so_what": "Structure and short feedback loops matter more than motivation.",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+        })
+        assert response.status_code == 200
+        memory_id = response.json()["memory_id"]
+        node = get_memory_node(test_driver, memory_id)
+        assert node["fact"] == "Oliver has ADHD."
+        assert node["so_what"] == "Structure and short feedback loops matter more than motivation."
+        assert node["text"] == "Oliver has ADHD. Structure and short feedback loops matter more than motivation."
+        assert isinstance(node["embedding"], list)
+        _cleanup(test_driver, memory_id)
+
+    def test_fact_only_stores_correctly(self, client, test_driver):
+        response = client.post("/memory", json={
+            "fact": "Oliver prefers async communication.",
+            "type": "observation",
+            "agent_id": _AGENT_ID,
+        })
+        assert response.status_code == 200
+        memory_id = response.json()["memory_id"]
+        node = get_memory_node(test_driver, memory_id)
+        assert node["fact"] == "Oliver prefers async communication."
+        assert node.get("so_what") is None
+        assert node["text"] == "Oliver prefers async communication."
+        _cleanup(test_driver, memory_id)
+
+    def test_deprecated_text_alias_stores_fact(self, client, test_driver):
+        response = client.post("/memory", json={
+            "text": "legacy text field",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+        })
+        assert response.status_code == 200
+        memory_id = response.json()["memory_id"]
+        node = get_memory_node(test_driver, memory_id)
+        assert node["fact"] == "legacy text field"
+        assert node.get("so_what") is None
+        assert node["text"] == "legacy text field"
+        _cleanup(test_driver, memory_id)
+
+    def test_neither_fact_nor_text_returns_422(self, client, test_driver):
+        response = client.post("/memory", json={
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+        })
+        assert response.status_code == 422
+
+
 class TestPostMemoryMinimal:
     def test_returns_200_with_memory_id(self, client, test_driver):
         response = client.post("/memory", json={
