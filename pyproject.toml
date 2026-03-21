@@ -6,6 +6,18 @@ build-backend = "setuptools.build_meta"
 name = "graph-memory-fabric"
 version = "0.1.0"
 requires-python = ">=3.10"
+dependencies = [
+    "httpx",
+    "typer",
+    "rich",
+    "pydantic-settings",
+    "fastmcp>=2.0",
+]
 
 [project.scripts]
-memory = "memory_client.cli:app"
+memory     = "memory_client.cli:app"
+memory-mcp = "mcp_server.server:main"
+
+[tool.setuptools.entry-points."console_scripts"]
+memory     = "memory_client.cli:app"
+memory-mcp = "mcp_server.server:main"
