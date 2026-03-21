@@ -8,9 +8,12 @@ All tests clean up their own nodes.
 import uuid
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi.testclient import TestClient
 from neo4j.exceptions import ServiceUnavailable
+from pydantic import ValidationError
 
+from memory_service.main import AddMemoryRequest
 from tests.conftest import cleanup_nodes, edge_exists, get_memory_node, node_exists
 
 
@@ -38,6 +41,45 @@ def _cleanup(driver, *memory_ids):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+class TestAddMemoryRequestValidator:
+    """Unit tests — no live stack required."""
+
+    def _base(self, **kwargs):
+        defaults = {"type": "fact", "agent_id": "agent-1"}
+        return {**defaults, **kwargs}
+
+    def test_fact_only_accepted(self):
+        req = AddMemoryRequest(**self._base(fact="Oliver has ADHD."))
+        assert req.fact == "Oliver has ADHD."
+        assert req.so_what is None
+
+    def test_text_alias_sets_fact(self):
+        req = AddMemoryRequest(**self._base(text="legacy text"))
+        assert req.fact == "legacy text"
+        assert req.so_what is None
+        assert req.text == "legacy text"
+
+    def test_fact_wins_when_both_provided(self):
+        req = AddMemoryRequest(**self._base(fact="new fact", text="old text"))
+        assert req.fact == "new fact"
+        assert req.text == "new fact"
+
+    def test_neither_fact_nor_text_raises(self):
+        with pytest.raises(ValidationError):
+            AddMemoryRequest(**self._base())
+
+    def test_text_derived_from_fact_and_so_what(self):
+        req = AddMemoryRequest(**self._base(
+            fact="Oliver has ADHD.",
+            so_what="Structure and short feedback loops matter more than motivation.",
+        ))
+        assert req.text == "Oliver has ADHD. Structure and short feedback loops matter more than motivation."
+
+    def test_text_derived_from_fact_alone_when_no_so_what(self):
+        req = AddMemoryRequest(**self._base(fact="Oliver has ADHD."))
+        assert req.text == "Oliver has ADHD."
+
 
 class TestPostMemoryMinimal:
     def test_returns_200_with_memory_id(self, client, test_driver):

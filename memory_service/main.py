@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from neo4j.exceptions import ServiceUnavailable
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from memory_service import memory_repo
 from memory_service.config import get_driver, settings
@@ -49,7 +49,9 @@ async def health_check() -> HealthResponse:
 
 
 class AddMemoryRequest(BaseModel):
-    text: str
+    fact: Optional[str] = None   # populated by validator; None means "not yet provided"
+    so_what: Optional[str] = None
+    text: Optional[str] = None   # deprecated alias for fact
     type: MemoryType
     tags: List[str] = []
     agent_id: str
@@ -58,6 +60,23 @@ class AddMemoryRequest(BaseModel):
     strand_ids: List[str] = []
     importance: int = Field(default=3, ge=1, le=5)
     related_ids: Optional[List[str]] = None
+    cause_ids: List[str] = []
+    effect_ids: List[str] = []
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_fact_and_text(cls, values: dict) -> dict:
+        fact = values.get("fact")
+        text = values.get("text")
+        if not fact and not text:
+            raise ValueError("Either 'fact' or 'text' must be provided")
+        if not fact and text:
+            values["fact"] = text
+        # Derive text from fact + so_what
+        resolved_fact = values.get("fact") or ""
+        so_what = values.get("so_what")
+        values["text"] = resolved_fact + (" " + so_what if so_what else "")
+        return values
 
 
 class AddMemoryResponse(BaseModel):
