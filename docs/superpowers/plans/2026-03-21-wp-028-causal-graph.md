@@ -613,6 +613,43 @@ class TestSearchTraversalDirection:
             s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=cause_id)
             s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=effect_id)
 
+    def test_causes_with_max_hops_zero_still_returns_upstream(self, client, test_driver):
+        """traversal_direction works independently of max_hops — even max_hops=0 traverses LEADS_TO."""
+        r_cause = client.post("/memory", json={
+            "fact": "ADHD impairs working memory.",
+            "type": "fact",
+            "agent_id": "test-agent-traversal",
+        })
+        cause_id = r_cause.json()["memory_id"]
+
+        r_effect = client.post("/memory", json={
+            "fact": "Oliver forgets tasks unless written down.",
+            "type": "insight",
+            "agent_id": "test-agent-traversal",
+            "cause_ids": [cause_id],
+        })
+        effect_id = r_effect.json()["memory_id"]
+
+        r_search = client.post("/memory/search", json={
+            "query": "Oliver forgets tasks",
+            "agent_ids": ["test-agent-traversal"],
+            "traversal_direction": "causes",
+            "max_hops": 0,   # RELATED_TO suppressed; LEADS_TO must still work
+            "limit": 10,
+        })
+        assert r_search.status_code == 200
+        hits = r_search.json()["memories"]
+        effect_hit = next((h for h in hits if h["id"] == effect_id), None)
+        assert effect_hit is not None, "Effect memory must appear in results"
+        assert cause_id in effect_hit["neighbours"], \
+            "Cause must appear in neighbours even when max_hops=0"
+
+        with test_driver.session() as s:
+            s.run("MATCH (a:Agent {id: 'test-agent-traversal'}) DETACH DELETE a")
+        with test_driver.session() as s:
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=cause_id)
+            s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=effect_id)
+
     def test_unknown_traversal_direction_returns_422(self, client, test_driver):
         r = client.post("/memory/search", json={
             "query": "test",
@@ -649,6 +686,8 @@ class SearchMemoryRequest(BaseModel):
 Add `Literal` to the imports from `typing` at line 7.
 
 - [ ] **Step 23: Update `search_memories()` in `memory_repo.py` to build LEADS_TO clauses**
+
+First, read `memory_service/memory_repo.py` lines 127–142 (`_SEARCH_QUERY_TEMPLATE`) and lines 145–187 (`search_memories`). Confirm that the template does **not** already use `c` or `e` as Cypher aliases — the new LEADS_TO clauses introduce `c` (cause nodes) and `e` (effect nodes) and these must not collide with existing aliases in the template. The current template uses `m`, `a`, `p`, `n` — so `c` and `e` are safe.
 
 Replace the `search_memories` function body (lines 145–187) with:
 
