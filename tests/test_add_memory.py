@@ -340,6 +340,103 @@ class TestPostMemoryValidation:
         assert response.status_code == 422
 
 
+@pytest.mark.integration
+class TestPostMemoryLeadsTo:
+    """Integration: LEADS_TO edge creation via cause_ids and effect_ids."""
+
+    def test_cause_ids_creates_leads_to_edge(self, client, test_driver):
+        # Create cause memory first
+        r1 = client.post("/memory", json={"fact": "Cause memory", "type": "fact", "agent_id": _AGENT_ID})
+        cause_id = r1.json()["memory_id"]
+
+        # Create effect memory referencing cause
+        r2 = client.post("/memory", json={
+            "fact": "Effect memory",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "cause_ids": [cause_id],
+        })
+        effect_id = r2.json()["memory_id"]
+
+        # LEADS_TO should go cause → effect
+        assert edge_exists(test_driver, cause_id, "LEADS_TO", effect_id)
+        _cleanup(test_driver, cause_id, effect_id)
+
+    def test_effect_ids_creates_leads_to_edge(self, client, test_driver):
+        # Create effect memory first
+        r1 = client.post("/memory", json={"fact": "Effect memory", "type": "fact", "agent_id": _AGENT_ID})
+        effect_id = r1.json()["memory_id"]
+
+        # Create cause memory referencing effect
+        r2 = client.post("/memory", json={
+            "fact": "Cause memory",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "effect_ids": [effect_id],
+        })
+        cause_id = r2.json()["memory_id"]
+
+        # LEADS_TO should go cause → effect
+        assert edge_exists(test_driver, cause_id, "LEADS_TO", effect_id)
+        _cleanup(test_driver, cause_id, effect_id)
+
+    def test_missing_uuid_in_cause_ids_skipped_silently(self, client, test_driver):
+        r = client.post("/memory", json={
+            "fact": "New memory with missing cause",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "cause_ids": ["00000000-0000-0000-0000-000000000000"],
+        })
+        assert r.status_code == 200
+        memory_id = r.json()["memory_id"]
+        # No LEADS_TO edge created, but write succeeded
+        node = get_memory_node(test_driver, memory_id)
+        assert node is not None
+        _cleanup(test_driver, memory_id)
+
+    def test_missing_uuid_in_effect_ids_skipped_silently(self, client, test_driver):
+        r = client.post("/memory", json={
+            "fact": "New memory with missing effect",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "effect_ids": ["00000000-0000-0000-0000-000000000000"],
+        })
+        assert r.status_code == 200
+        memory_id = r.json()["memory_id"]
+        node = get_memory_node(test_driver, memory_id)
+        assert node is not None
+        _cleanup(test_driver, memory_id)
+
+    def test_leads_to_edge_is_idempotent(self, client, test_driver):
+        """MERGE ensures the same directed edge is not duplicated."""
+        r1 = client.post("/memory", json={"fact": "Cause", "type": "fact", "agent_id": _AGENT_ID})
+        cause_id = r1.json()["memory_id"]
+        r2 = client.post("/memory", json={
+            "fact": "Effect",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "cause_ids": [cause_id],
+        })
+        effect_id = r2.json()["memory_id"]
+
+        # Manually create the same LEADS_TO edge a second time (simulating a re-run)
+        with test_driver.session() as s:
+            s.run(
+                "MATCH (c:Memory {id: $c}), (e:Memory {id: $e}) MERGE (c)-[:LEADS_TO]->(e)",
+                c=cause_id, e=effect_id,
+            )
+
+        # Verify exactly one LEADS_TO edge exists between the pair
+        with test_driver.session() as s:
+            result = s.run(
+                "MATCH (c:Memory {id: $c})-[r:LEADS_TO]->(e:Memory {id: $e}) RETURN count(r) AS cnt",
+                c=cause_id, e=effect_id,
+            )
+            count = result.single()["cnt"]
+        assert count == 1, f"Expected exactly 1 LEADS_TO edge, got {count}"
+        _cleanup(test_driver, cause_id, effect_id)
+
+
 class TestPostMemoryDbUnavailable:
     def test_returns_503_when_db_down(self, test_driver):
         """Inject a driver that raises ServiceUnavailable; expect 503."""

@@ -119,6 +119,34 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
             max_distance=_AUTO_RELATED_MAX_DISTANCE,
         )
 
+    # Step 6 — LEADS_TO edges: cause_ids → this memory (this memory is the effect)
+    for cause_id in req.cause_ids:
+        session.run(
+            """
+            OPTIONAL MATCH (cause:Memory {id: $cause_id})
+            WITH cause
+            WHERE cause IS NOT NULL
+            MATCH (effect:Memory {id: $new_memory_id})
+            MERGE (cause)-[:LEADS_TO]->(effect)
+            """,
+            cause_id=cause_id,
+            new_memory_id=memory_id,
+        )
+
+    # Step 7 — LEADS_TO edges: this memory → effect_ids (this memory is the cause)
+    for effect_id in req.effect_ids:
+        session.run(
+            """
+            OPTIONAL MATCH (effect:Memory {id: $effect_id})
+            WITH effect
+            WHERE effect IS NOT NULL
+            MATCH (cause:Memory {id: $new_memory_id})
+            MERGE (cause)-[:LEADS_TO]->(effect)
+            """,
+            effect_id=effect_id,
+            new_memory_id=memory_id,
+        )
+
 
 # Query template — {neighbour_clause} and {neighbour_return} are filled in at call time.
 # max_hops is interpolated as an integer (Pydantic-validated ge=0, le=3); all other
