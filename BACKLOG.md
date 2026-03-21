@@ -26,7 +26,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-031 | `memory_client` companion package: COMPANION.md + WIRING.md + docs | 5 | H | S | WP-030 | No code. Delivers: `memory_client/COMPANION.md` (companion session protocol), `memory_client/WIRING.md` (Claude Code wiring instructions; Claude Desktop + MCP placeholders), `docs/companion-integration.md` (high-level overview). Package is then drop-in ready for any companion environment. |
 | WP-032 | End-to-end companion validation | 5 | H | S | WP-031, seeds in DB | Run a real companion session wake-up → work → close-out with real memories. All five validation criteria must pass (see spec). Findings fed back to backlog before WP-028 starts. **No code produced — evidence and gap list produced.** |
 | WP-033 | Memory MCP server + Claude Desktop wiring | 6 | H | M | WP-032 | Wrap REST API as MCP server. Tools: `memory_add`, `memory_search`, `memory_wake_up`, `memory_list_strands`, `memory_close_session`. Complete WIRING.md Claude Desktop + MCP sections. COMPANION.md updated to prefer MCP tools over CLI where available. |
 
@@ -282,6 +281,19 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-031 — `memory_client` companion package: COMPANION.md + WIRING.md + docs
+**Completed:** 2026-03-21
+
+**What was done:**
+- Created `memory_client/COMPANION.md` — full session protocol: wake-up, add-memory, close-session; type/importance reference; minimal session pattern
+- Created `memory_client/WIRING.md` — Claude Code wiring (active), Claude Desktop + MCP placeholder (WP-033), generic HTTP/Python fallback
+- Created `docs/companion-integration.md` — high-level overview, current capability status table, quick-start snippet
+- Updated BACKLOG.md: WP-031 deleted from backlog, moved to Completed
+
+**Retrospective:** Pure docs WP — fast to execute. Placeholder MCP section in WIRING.md will need updating when WP-033 lands. COMPANION.md will also need updating when WP-028 lands (--text → --fact / --so-what).
+
+---
 
 ### WP-030 — `memory wake-up` + `memory close-session` CLI commands
 **Completed:** 2026-03-21
