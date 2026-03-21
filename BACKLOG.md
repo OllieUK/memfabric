@@ -22,14 +22,25 @@
 
 *(MVP complete — all items delivered)*
 
+### Post-MVP — Companion integration (expanded MVP)
+
+> Companion access is the priority gate. Nothing in "Complete v1 feature set" below starts until WP-032 (end-to-end validation) is done.
+
+| ID | Title | Phase | Value | Effort | Depends on | Notes |
+|----|-------|-------|-------|--------|------------|-------|
+| WP-027 | `memory list-strands` CLI command | 5 | H | S | WP-007 | **First.** Strand visibility needed for all memory ingestion and for wake-up briefing. Adds `GET /strands` + `memory list-strands`. **Language note:** all strand descriptions must use "the user" as subject (not "you", not a specific name) — fix any existing descriptions that don't comply. |
+| WP-030 | `memory wake-up` + `memory close-session` CLI commands | 5 | H | S | WP-027 | New commands the companion session protocol depends on. `wake-up [--topic "..."] [--limit N]`: top-N memories by importance desc then recency (default N=20, no static threshold), plus optional topic search. `close-session`: prints structured scaffold for end-of-session memory storage. See spec: `docs/superpowers/specs/2026-03-21-companion-integration-design.md`. |
+| WP-031 | `memory_client` companion package: COMPANION.md + WIRING.md + docs | 5 | H | S | WP-030 | No code. Delivers: `memory_client/COMPANION.md` (companion session protocol), `memory_client/WIRING.md` (Claude Code wiring instructions; Claude Desktop + MCP placeholders), `docs/companion-integration.md` (high-level overview). Package is then drop-in ready for any companion environment. |
+| WP-032 | End-to-end companion validation | 5 | H | S | WP-031, seeds in DB | Run a real companion session wake-up → work → close-out with real memories. All five validation criteria must pass (see spec). Findings fed back to backlog before WP-028 starts. **No code produced — evidence and gap list produced.** |
+| WP-033 | Memory MCP server + Claude Desktop wiring | 6 | H | M | WP-032 | Wrap REST API as MCP server. Tools: `memory_add`, `memory_search`, `memory_wake_up`, `memory_list_strands`, `memory_close_session`. Complete WIRING.md Claude Desktop + MCP sections. COMPANION.md updated to prefer MCP tools over CLI where available. |
+
 ### Post-MVP — Complete v1 feature set
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-028 | Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge | 4 | H | M | WP-004 | **Do before WP-006/WP-029** — establishes the core Memory schema shape. See detailed description below. |
+| WP-028 | Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge | 4 | H | M | WP-004, WP-032 | **Do before WP-006/WP-029** — establishes the core Memory schema shape. Also update `memory add-memory` CLI: `--text` becomes `--fact` (+ `--so-what`), and update `memory close-session` scaffold in COMPANION.md. See detailed description below. |
 | WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
 | WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
-| WP-027 | `memory list-strands` CLI command | 5 | M | S | WP-007 | **Immediately actionable** — 20 strand nodes are now seeded with kebab-case IDs. Any memory ingestion requires knowing strand IDs; without this command they are invisible at the CLI. Adds `GET /strands` endpoint + `memory list-strands` command. `/simplify` finding from WP-015. |
 | WP-012 | Pin dependency versions in requirements.txt | 1 | M | S | — | Use `>=x,<y` bounds for reproducibility; research compatible version matrix. Do before stack is considered stable. |
 | WP-013 | Pin Docker image tags (no `latest`) | 1 | M | S | WP-012 | Replace `memgraph/memgraph-mage:latest` + `memgraph/lab:latest` with specific versions. Do after stack stabilises (after WP-012). |
 | WP-014 | Docker resource limits | 1 | L | S | — | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use. |
@@ -265,6 +276,8 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
+| WP-034 | Subject/object schema on Memory nodes | 6 | H | L | WP-028 | v2+: Add explicit `subject` and `object` fields to Memory nodes. Currently "the user" is the implied subject of all memories. This makes the schema portable across multiple users and enables memories about third parties (e.g. "the user's manager said X"). Required before any multi-user or shared-memory scenario. Keep this in mind when designing ingestion APIs — avoid hard-coded subject assumptions. |
+| WP-035 | Self-contained `memory_client` packaging | 6 | M | S | WP-031 | v2+: Move `pyproject.toml` / `setup.cfg` into `memory_client/` so the package can be installed independently of the full repo. Currently the editable install targets the repo root. Needed for true portability when dropping the client into companion environments that don't have access to the full repo. |
 | WP-008 | LLMClient abstraction | 7 | M | M | WP-007 | v2+: `LLMClient.ask(system, prompt, model)` wrappers for Claude/OpenAI/Ollama |
 | WP-009 | Headless agent framework | 7 | M | L | WP-008 | v2+: `BaseAgent` using `memory_client` + `LLMClient`; scheduled/event-driven tasks |
 | WP-010 | Remote/mobile access | 8 | L | XL | WP-009 | v2+: Tailscale/VPS hosting + TLS + API key auth |

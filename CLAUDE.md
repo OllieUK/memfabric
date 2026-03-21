@@ -27,10 +27,12 @@ No server-side LLM calls. No external API dependencies.
 Run an **Explore agent** to read the relevant files first. Never propose changes to code you haven't read.
 
 ### Before each work package
-Run a **Plan agent** to validate the approach, identify reusable utilities, and consider alternatives. Capture the plan as a plan file.
+1. Run a **Plan agent** to validate the approach, identify reusable utilities, and consider alternatives. Capture the plan as a plan file.
+2. Run `engineering:testing-strategy` to produce a test plan for the WP — specifying which tests are unit, which are integration (live stack), and what the acceptance criteria are. Attach the test plan to the plan file. **This step is mandatory and must happen before writing any code.**
 
 ### After completing each work package
-Run `/simplify` to review the changed code for reuse, quality, and efficiency. Act on findings immediately if high-value / low-effort; otherwise add to BACKLOG.md with priority.
+1. Run `/simplify` to review the changed code for reuse, quality, and efficiency. Act on findings immediately if high-value / low-effort; otherwise add to BACKLOG.md with priority.
+2. Run `engineering:deploy-checklist` for the WP to confirm all verification gates are met before marking Done.
 
 ### Parallelism
 Where a work package has independent sub-tasks, launch **parallel agents** in a single message to reduce wall-clock time.
@@ -39,11 +41,17 @@ Where a work package has independent sub-tasks, launch **parallel agents** in a 
 
 **Before starting:** Move the WP to "Currently In Progress" in BACKLOG.md.
 
-1. All DoS checklist items verified — commands run, outputs match expected
-2. `/simplify` run; findings acted on or explicitly deferred to BACKLOG.md with ID
-3. BACKLOG.md updated: WP moved to Completed, any new items added with priority
-4. Retrospective note added to BACKLOG.md (what went well, what to improve)
-5. Git commit created: `WP-NNN: <title>`
+1. Test plan produced (`engineering:testing-strategy`) and attached to the plan file — unit tests, integration tests against live Memgraph + running FastAPI service, and acceptance criteria all specified upfront
+2. All unit tests written and passing (`pytest`)
+3. All integration tests written and run against the **live stack** (Memgraph + FastAPI service must be running) — not mocked
+4. Acceptance criteria verified manually or via smoke test script against the live service
+5. `/simplify` run; findings acted on or explicitly deferred to BACKLOG.md with ID
+6. `engineering:deploy-checklist` completed — all gates green
+7. BACKLOG.md updated: WP moved to Completed, any new items added with priority
+8. Retrospective note added to BACKLOG.md (what went well, what to improve)
+9. Git commit created: `WP-NNN: <title>`
+
+> **Rule:** Never claim a WP is Done if integration tests have not been run against the live stack. "Tests written" ≠ "tests run". Evidence before assertions.
 
 ## Naming conventions
 
