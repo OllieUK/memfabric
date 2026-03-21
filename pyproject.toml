@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,6 +18,6 @@ dependencies = [
 memory     = "memory_client.cli:app"
 memory-mcp = "mcp_server.server:main"
 
-[tool.setuptools.entry-points."console_scripts"]
-memory     = "memory_client.cli:app"
-memory-mcp = "mcp_server.server:main"
+[tool.setuptools.packages.find]
+include = ["memory_client*", "memory_service*", "mcp_server*"]
+
