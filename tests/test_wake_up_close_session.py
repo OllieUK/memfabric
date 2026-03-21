@@ -111,7 +111,7 @@ class TestWakeUpClient:
 
 
 # ---------------------------------------------------------------------------
-# U4–U8: CLI wake-up
+# U13: MemoryClient.wake_up_split()
 # ---------------------------------------------------------------------------
 
 
@@ -134,6 +134,11 @@ class TestWakeUpSplitClient:
         assert core[0]["id"] == "mem-aaa"
         assert len(topic) == 1
         assert topic[0]["id"] == "mem-bbb"
+
+
+# ---------------------------------------------------------------------------
+# U4–U8: CLI wake-up
+# ---------------------------------------------------------------------------
 
 
 class TestWakeUpCLI:
@@ -372,6 +377,7 @@ class TestWakeUpCLIOutput:
 
 class TestWakeUpIntegration:
     # I1: returns 200 with memories list, each item has required fields
+    @pytest.mark.integration
     def test_returns_memories_with_required_fields(self, client):
         response = client.get("/memory/wake-up")
         assert response.status_code == 200
@@ -385,6 +391,7 @@ class TestWakeUpIntegration:
             assert "importance" in mem
 
     # I2: limit enforced and results ordered by importance desc
+    @pytest.mark.integration
     def test_limit_and_ordering(self, client):
         response = client.get("/memory/wake-up", params={"limit": 3})
         assert response.status_code == 200
@@ -396,6 +403,7 @@ class TestWakeUpIntegration:
         )
 
     # I3: topic search returns core + topic_memories with no ID overlap
+    @pytest.mark.integration
     def test_topic_search_merges_and_caps(self, client):
         """I3 — Topic search returns core + topic_memories with no ID overlap."""
         resp = client.get(

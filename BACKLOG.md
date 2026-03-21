@@ -7,9 +7,6 @@
 
 ## Currently In Progress
 
-| ID | Title |
-|----|-------|
-
 *(none)*
 
 ---
