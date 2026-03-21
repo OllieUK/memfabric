@@ -7,7 +7,8 @@
 
 ## Currently In Progress
 
-*(none)*
+| ID | Title | Phase | Value | Effort | Depends on | Notes |
+|----|-------|-------|-------|--------|------------|-------|
 
 ---
 
@@ -31,7 +32,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-028 | Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge | 4 | H | M | WP-004, WP-032 | **Do before WP-006/WP-029** — establishes the core Memory schema shape. Also update `memory add-memory` CLI: `--text` becomes `--fact` (+ `--so-what`), and update `memory close-session` scaffold in COMPANION.md. See detailed description below. |
+| WP-037 | Person nodes + `ABOUT` edges — schema, API, migration | 4 | H | M | WP-028 | Wire `Person` nodes and `ABOUT (Memory→Person)` edges. Add `person_ids: list[str]` to `POST /memory` request body and `memory_repo.add_memory`. Add `GET /person` list endpoint. Write migration script to scan existing memories and create ABOUT edges for named individuals (~15–20 memories). Do immediately after WP-028 (shares the migration pass). See detailed description below. |
 | WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
 | WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
 | WP-012 | Pin dependency versions in requirements.txt | 1 | M | S | — | Use `>=x,<y` bounds for reproducibility; research compatible version matrix. Do before stack is considered stable. |
@@ -139,6 +140,72 @@ Multiple causes can converge on a single consequence node. A consequence can its
 - [ ] At least one round-trip test: insert cause + effect, search for effect, traverse back to cause
 - [ ] Existing tests pass (backwards compat via `text`→`fact` alias)
 - [ ] `scripts/seed_strands.py` unchanged — no Strand schema impact
+
+---
+
+### WP-037 Detail — Person nodes + `ABOUT` edges
+
+#### Motivation
+
+As the memory fabric fills up, many memories refer to named individuals (Oliver, colleagues, family, etc.). Without Person nodes, these memories are isolated text blobs — there is no way to:
+
+- Ask "what do I know about person X?"
+- Traverse from a person to all related memories
+- Search within a person context (e.g. `agent_ids` equivalent for people)
+
+The Person node makes named individuals first-class citizens in the graph, mirroring how Strand nodes organise memories by topic.
+
+#### Data model
+
+**New node:**
+
+| Label | Properties |
+|-------|-----------|
+| `Person` | `id` (kebab-case string, e.g. `oliver-james`), `name` (display name), `description` (optional, free-text bio) |
+
+**New edge:**
+
+| Edge | Direction | Meaning |
+|------|-----------|---------|
+| `ABOUT` | Memory → Person | This memory is about (or directly involves) this person |
+
+`ABOUT` is similar in role to `IN_STRAND` — a memory can be ABOUT multiple people.
+
+#### API changes
+
+`POST /memory` request body gains:
+
+```json
+{
+  "person_ids": ["oliver-james", "sarah-chen"]
+}
+```
+
+`GET /person` — new list endpoint, returns all Person nodes (id, name, description).
+
+`POST /person` — create or merge a Person node by id.
+
+#### Migration
+
+After WP-028 runs its migration pass, run a second pass for Person nodes:
+
+1. Script scans all existing Memory nodes
+2. For each memory whose `text` (or `fact`) mentions a named individual, create the Person node (MERGE on id) and wire an `ABOUT` edge
+3. Estimated scope: ~15–20 memories out of current ~82 require wiring
+4. Script is idempotent (MERGE semantics) — safe to re-run
+
+This migration runs immediately after the WP-028 migration pass, in the same maintenance window (avoid running the service twice across users during a single batch).
+
+#### Definition of Success
+
+- [ ] `Person` nodes exist in the schema (init_schema updated)
+- [ ] `POST /memory` accepts `person_ids` and creates `ABOUT` edges
+- [ ] `POST /person` creates/merges a Person node
+- [ ] `GET /person` returns all Person nodes
+- [ ] `memory_client` CLI: `memory list-persons` subcommand
+- [ ] Migration script: `scripts/migrate_person_nodes.py` — idempotent, MERGE-based, scans all memories, logs each ABOUT edge created
+- [ ] Integration test: add memory with `person_ids`, verify ABOUT edge exists in graph
+- [ ] Migration script run against live graph; ABOUT edges verified in Memgraph Lab
 
 ---
 
@@ -282,6 +349,21 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-028 — Causal graph: `fact`/`so_what` fields + `LEADS_TO` edge
+
+**Date:** 2026-03-21
+
+- `AddMemoryRequest` split into `fact` + `so_what`; `text` deprecated as alias via `model_validator(mode="before")`; `text` derived as `fact + " " + so_what` and used for embeddings
+- `cause_ids`/`effect_ids` on `AddMemoryRequest`; steps 6 & 7 in `memory_repo.add_memory()` create `LEADS_TO` edges using `OPTIONAL MATCH + WHERE IS NOT NULL + MERGE` (missing UUIDs silently skipped)
+- `traversal_direction` on `SearchMemoryRequest` (`none|causes|effects|both`); `search_memories()` builds LEADS_TO clauses independently of `max_hops`; `hop_depth = max(hops, 1)` ensures traversal even when `max_hops=0`
+- `memory_client/client.py`, `cli.py`, `mcp_server/server.py` all updated; `close-session` scaffolds updated to use `fact=`/`so_what=` and include causal link step
+- `scripts/migrate_fact_so_what.py`: JSON-line stdin/stdout protocol, `--dry-run`, idempotent (WHERE m.fact IS NULL, always fetches from SKIP 0)
+- 6 unit tests + 9 integration tests; 117 passing, 3 pre-existing mock failures
+
+**Retrospective:** Three rounds of plan review were needed — each caught real bugs: Pydantic v2 `Optional[str] = None` vs `str = ""` sentinel, migration pagination bug (SKIP 0 not offset), vacuous test assertions. The subagent for Tasks 6–8 went beyond scope and did all three in one pass, requiring a separate fix pass for cli.py and server.py gaps. Spec reviewer caught this cleanly. Two-stage review (spec then quality) paid off — quality review caught the `not fact` vs `is None` issue which was a genuine correctness hazard.
+
+---
 
 ### WP-033 — MCP server + Claude Code/Desktop wiring
 
