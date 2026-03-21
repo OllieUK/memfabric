@@ -68,12 +68,12 @@ class AddMemoryRequest(BaseModel):
     def resolve_fact_and_text(cls, values: dict) -> dict:
         fact = values.get("fact")
         text = values.get("text")
-        if not fact and not text:
+        if fact is None and text is None:
             raise ValueError("Either 'fact' or 'text' must be provided")
-        if not fact and text:
+        if fact is None and text is not None:
             values["fact"] = text
         # Derive text from fact + so_what
-        resolved_fact = values.get("fact") or ""
+        resolved_fact = values["fact"]  # guaranteed non-None by guard above
         so_what = values.get("so_what")
         values["text"] = resolved_fact + (" " + so_what if so_what else "")
         return values
