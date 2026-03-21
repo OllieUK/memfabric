@@ -1,0 +1,140 @@
+"""MCP server for graph-memory-fabric.
+
+Exposes 5 tools via FastMCP over STDIO transport:
+  memory_add, memory_search, memory_wake_up, memory_list_strands, memory_close_session
+"""
+from itertools import groupby
+
+from fastmcp import FastMCP
+
+from memory_client.client import MemoryClient
+from mcp_server.config import settings
+
+
+mcp = FastMCP("graph-memory-fabric")
+
+
+@mcp.tool
+def memory_add(
+    text: str,
+    type: str = "fact",
+    strand_ids: list[str] | None = None,
+    tags: list[str] | None = None,
+    importance: int = 3,
+    agent_id: str | None = None,
+) -> str:
+    """Add a memory to the fabric. Returns the created memory ID."""
+    resolved_agent_id = agent_id or settings.agent_id
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        mid = client.add_memory(
+            text,
+            type,
+            resolved_agent_id,
+            tags=tags,
+            importance=importance,
+            strand_ids=strand_ids,
+        )
+    return mid
+
+
+@mcp.tool
+def memory_search(
+    query: str,
+    tags: list[str] | None = None,
+    agent_ids: list[str] | None = None,
+    limit: int = 10,
+) -> list[dict]:
+    """Search the memory fabric by semantic similarity."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.search_memory(
+            query,
+            tags=tags,
+            agent_ids=agent_ids,
+            limit=limit,
+        )
+
+
+@mcp.tool
+def memory_wake_up(
+    topic: str | None = None,
+    limit: int = 20,
+) -> str:
+    """Return the session wake-up briefing as plain text. Read fully before responding to the user."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        core, topic_memories = client.wake_up_split(limit=limit, topic=topic)
+
+    heading = f"## Memory briefing — {topic if topic else 'general session'}"
+    lines = [heading, "", "### Core context", ""]
+    lines.extend(_render_section(core))
+
+    if topic and topic_memories:
+        lines += ["", "### Relevant to today", ""]
+        lines.extend(_render_section(topic_memories))
+
+    return "\n".join(lines)
+
+
+def _render_section(memories: list[dict]) -> list[str]:
+    """Render a flat list of memory dicts as grouped plain-text lines."""
+    if not memories:
+        return ["  No memories found."]
+
+    lines = []
+    sorted_mems = sorted(memories, key=lambda m: m.get("strand_id") or "(no strand)")
+    for strand_id, group in groupby(
+        sorted_mems, key=lambda m: m.get("strand_id") or "(no strand)"
+    ):
+        lines.append(strand_id)
+        for mem in group:
+            imp = mem.get("importance", "")
+            lines.append(f"  [{imp}] {mem['type']} — {mem['text']}")
+        lines.append("")  # blank line between strand groups
+
+    # Remove trailing blank line
+    if lines and lines[-1] == "":
+        lines.pop()
+
+    return lines
+
+
+@mcp.tool
+def memory_list_strands() -> list[dict]:
+    """Return all strands. Use strand IDs when calling memory_add."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.list_strands()
+
+
+_CLOSE_SESSION_SCAFFOLD = """\
+## Session close-out
+
+Review this session and answer the following before ending:
+
+1. What decisions were made? (store as type: decision)
+   → memory_add(text="...", type="decision", strand_ids=["<strand-id>"])
+
+2. What was learned or observed about the user? (store as type: insight or observation)
+   → memory_add(text="...", type="insight", strand_ids=["<strand-id>"])
+
+3. What actions were committed to? (store as type: todo)
+   → memory_add(text="...", type="todo", strand_ids=["<strand-id>"])
+
+4. What context should a future session know that isn't already in the fabric?
+   → memory_add(text="...", type="fact", strand_ids=["<strand-id>"])
+
+Run memory_list_strands() if strand IDs are uncertain.
+Do not end the session without calling memory_add at least once if any of the above apply.\
+"""
+
+
+@mcp.tool
+def memory_close_session() -> str:
+    """Return the session close-out scaffold as plain text. Work through it before ending the session."""
+    return _CLOSE_SESSION_SCAFFOLD
+
+
+def main() -> None:
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
