@@ -30,26 +30,30 @@
 
 ### Post-MVP — Complete v1 feature set
 
-| ID | Title | Phase | Value | Effort | Depends on | Notes |
-|----|-------|-------|-------|--------|------------|-------|
-| WP-037 | Person nodes + `ABOUT` edges — schema, API, migration | 4 | H | M | WP-028 | Wire `Person` nodes and `ABOUT (Memory→Person)` edges. Add `person_ids: list[str]` to `POST /memory` request body and `memory_repo.add_memory`. Add `GET /person` list endpoint. Write migration script to scan existing memories and create ABOUT edges for named individuals (~15–20 memories). Do immediately after WP-028 (shares the migration pass). See detailed description below. |
-| WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
-| WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
-| WP-012 | Pin dependency versions in requirements.txt | 1 | M | S | — | Use `>=x,<y` bounds for reproducibility; research compatible version matrix. Do before stack is considered stable. |
-| WP-013 | Pin Docker image tags (no `latest`) | 1 | M | S | WP-012 | Replace `memgraph/memgraph-mage:latest` + `memgraph/lab:latest` with specific versions. Do after stack stabilises (after WP-012). |
-| WP-014 | Docker resource limits | 1 | L | S | — | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use. |
-| WP-017 | Embedding cache eviction / size cap | 3 | L | S | WP-003 | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap before long-running deployments. `/simplify` finding from WP-003. |
-| WP-019 | Expose vector index `capacity` as config | 3 | L | S | WP-016 | `capacity: 1000` is hardcoded in `init_schema.py`'s index query. Add `vector_index_capacity: int = 1000` to `Settings` and use it in `create_vector_index`. `/simplify` finding from WP-018. |
-| WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. `/simplify` finding from WP-005. |
-| WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper. WP-006 creates the 3rd copy; WP-029 adds further endpoints — do after either. `/simplify` finding from WP-005. |
-| WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
-| WP-021 | Non-blocking embedding in async endpoints | 4 | L | S | WP-004, WP-005 | `get_embedding()` is synchronous and blocks the event loop in both `/memory` and `/memory/search`. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
-| WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | — | `add-memory`, `search-memory`, `dump-graph`, `list-strands` all repeat identical `except httpx.HTTPStatusError / ConnectError` blocks — **4 copies, trigger condition met.** Extract a shared error handler. `/simplify` finding from WP-007 and WP-027. |
-| WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
-| WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
-| WP-034 | Add version/build hash to `/health` response | 5 | L | S | — | Detect stale service during companion session startup. Gap found in WP-032 validation: service ran stale code silently. |
-| WP-035 | Return strand_ids in `add-memory` API response | 5 | L | S | — | Reduce friction when adding chains of related memories. Gap found in WP-032 validation. |
-| WP-036 | Document `### Relevant to today` suppression behaviour in COMPANION.md | 5 | L | S | — | Avoid companion confusion when topic section is absent on small DBs. Gap found in WP-032 validation. |
+> Items ordered by priority: dependency-unblocked H-value work first, then quick wins (S effort), then infrastructure. Do not start a row if its "Depends on" is not in Completed.
+
+| Priority | ID | Title | Phase | Value | Effort | Depends on | Notes |
+|----------|----|-------|-------|-------|--------|------------|-------|
+| 1 | WP-037 | Person nodes + `ABOUT` edges — schema, API, migration | 4 | H | M | WP-028 ✅ | Wire `Person` nodes and `ABOUT (Memory→Person)` edges. Add `person_ids: list[str]` to `POST /memory` request body and `memory_repo.add_memory`. Add `GET /person` list endpoint. Write migration script to scan existing memories and create ABOUT edges for named individuals (~15–20 memories). Do immediately after WP-028 (shares the migration pass). See detailed description below. |
+| 2 | WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 ✅ | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
+| 3 | WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028 ✅, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
+| 4 | WP-034 | Add version/build hash to `/health` response | 5 | L | S | — | Detect stale service during companion session startup. Gap found in WP-032 validation: service ran stale code silently. Batch with WP-035/036 — all three are small companion-polish items. |
+| 4 | WP-035 | Return strand_ids in `add-memory` API response | 5 | L | S | — | Reduce friction when adding chains of related memories. Gap found in WP-032 validation. |
+| 4 | WP-036 | Document `### Relevant to today` suppression behaviour in COMPANION.md | 5 | L | S | — | Avoid companion confusion when topic section is absent on small DBs. Gap found in WP-032 validation. |
+| 5 | WP-022 | Cap neighbour count in search results | 4 | M | S | WP-005 ✅ | `collect(DISTINCT n.id)` in search query is unbounded; with `max_hops=3` on a dense graph this can return thousands of UUIDs per result row. Add a slice cap (e.g. `[..50]`) in `_SEARCH_QUERY_TEMPLATE`. Correctness risk as graph grows — do before graph is dense. `/simplify` finding from WP-005. |
+| 6 | WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | — | `add-memory`, `search-memory`, `dump-graph`, `list-strands` all repeat identical `except httpx.HTTPStatusError / ConnectError` blocks — **4 copies, trigger condition met.** Extract a shared error handler. `/simplify` finding from WP-007 and WP-027. |
+| 6 | WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 ✅ | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
+| 6 | WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
+| 7 | WP-038 | Memory lifecycle operations — update, merge, archive | 4 | H | L | WP-006, WP-037 | Add first-class memory maintenance flows so companions can correct, consolidate, and retire memories without raw graph edits. Cover API, client, CLI, graph semantics, and migration-safe archive behaviour. See detailed description below. |
+| 8 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | 4 | H | M | WP-038 | Prevent integration and validation artefacts from polluting live companion context. Add explicit ephemeral/test semantics so test memories and agents are excluded from normal retrieval and can be auto-cleaned once no longer needed. See detailed description below. |
+| 9 | WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper. WP-006 creates the 3rd copy; WP-029 adds further endpoints — do after either. `/simplify` finding from WP-005. |
+| 9 | WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 ✅ | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
+| 9 | WP-021 | Non-blocking embedding in async endpoints | 4 | L | S | WP-004 ✅, WP-005 ✅ | `get_embedding()` is synchronous and blocks the event loop in both `/memory` and `/memory/search`. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
+| 10 | WP-017 | Embedding cache eviction / size cap | 3 | L | S | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap before long-running deployments. `/simplify` finding from WP-003. |
+| 10 | WP-019 | Expose vector index `capacity` as config | 3 | L | S | WP-016 ✅ | `capacity: 1000` is hardcoded in `init_schema.py`'s index query. Add `vector_index_capacity: int = 1000` to `Settings` and use it in `create_vector_index`. `/simplify` finding from WP-018. |
+| 11 | WP-012 | Pin dependency versions in requirements.txt | 1 | M | S | — | Use `>=x,<y` bounds for reproducibility; research compatible version matrix. Do before stack is considered stable. |
+| 11 | WP-013 | Pin Docker image tags (no `latest`) | 1 | M | S | WP-012 | Replace `memgraph/memgraph-mage:latest` + `memgraph/lab:latest` with specific versions. Do after stack stabilises (after WP-012). |
+| 11 | WP-014 | Docker resource limits | 1 | L | S | — | Add `mem_limit`/`cpus` to docker-compose to prevent runaway resource use. |
 
 ---
 
@@ -206,6 +210,205 @@ This migration runs immediately after the WP-028 migration pass, in the same mai
 - [ ] Migration script: `scripts/migrate_person_nodes.py` — idempotent, MERGE-based, scans all memories, logs each ABOUT edge created
 - [ ] Integration test: add memory with `person_ids`, verify ABOUT edge exists in graph
 - [ ] Migration script run against live graph; ABOUT edges verified in Memgraph Lab
+
+---
+
+### WP-038 Detail — Memory lifecycle operations: update, merge, archive
+
+#### Motivation
+
+The fabric can currently add and search memories, but it cannot maintain them cleanly once the graph evolves. In real companion use, three lifecycle operations are essential:
+
+- **Update** a memory when better wording, sharper scope, or corrected facts become available
+- **Merge** duplicate or overlapping memories without losing provenance or graph continuity
+- **Archive** memories that should no longer surface normally but should still remain historically recoverable
+
+Without these operations, companions are forced into unsafe workarounds:
+
+- writing duplicate nodes instead of improving an existing one
+- deleting nodes manually at graph level, which risks losing useful links
+- keeping stale memories active because there is no supported way to retire them
+
+This work package turns memory maintenance into a supported product behaviour instead of an operator-only intervention.
+
+#### Data model changes
+
+**New Memory node properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `status` | `str` | `active` (default), `archived`, or `merged` |
+| `superseded_by` | `str \| None` | UUID of the active Memory that replaces this one |
+| `archived_at` | `datetime \| None` | Timestamp when the memory was archived |
+| `updated_at` | `datetime \| None` | Timestamp of last in-place content update |
+
+**New edge type:**
+
+| Edge | Direction | Meaning |
+|------|-----------|---------|
+| `MERGED_INTO` | Memory → Memory | This memory has been consolidated into another active memory |
+
+Rules:
+
+- `active` memories participate in normal wake-up and search results
+- `archived` memories are excluded from normal wake-up and search unless explicitly requested
+- `merged` memories are excluded from normal wake-up and search and point to their replacement via `MERGED_INTO` and `superseded_by`
+- merge must preserve provenance by rewiring meaningful relationships where appropriate, not by blind deletion
+
+#### API changes
+
+**New endpoints:**
+
+```http
+PATCH /memory/{id}
+POST /memory/{id}/merge
+POST /memory/{id}/archive
+POST /memory/{id}/restore
+```
+
+**PATCH `/memory/{id}`**
+
+- allows updating `fact`, `so_what`, `tags`, `importance`, `person_ids`, `strand_ids`, and related explicit links
+- recomputes `text` and embedding whenever semantic content changes
+- sets `updated_at`
+
+**POST `/memory/{id}/merge`**
+
+```json
+{
+  "target_id": "<memory-uuid>",
+  "strategy": "append_source_links"
+}
+```
+
+- marks the source memory as `merged`
+- records `superseded_by=target_id`
+- creates `MERGED_INTO`
+- rewires or copies relevant edges (`ABOUT`, `IN_STRAND`, explicit `LEADS_TO`, explicit `RELATED_TO`) to the target
+- does not delete the source node
+
+**POST `/memory/{id}/archive`**
+
+- sets `status=archived`
+- sets `archived_at`
+- excludes the memory from default search and wake-up flows
+
+**POST `/memory/{id}/restore`**
+
+- returns archived memory to `active`
+- clears `archived_at`
+
+#### Client and CLI changes
+
+`memory_client` gains:
+
+- `update_memory(...)`
+- `merge_memory(source_id, target_id, strategy=...)`
+- `archive_memory(memory_id)`
+- `restore_memory(memory_id)`
+
+CLI gains:
+
+- `memory update-memory <id> ...`
+- `memory merge-memory <source-id> <target-id>`
+- `memory archive-memory <id>`
+- `memory restore-memory <id>`
+
+#### Search and wake-up changes
+
+- `POST /memory/search` excludes `status in ('archived', 'merged')` by default
+- `GET /memory/wake-up` excludes `status in ('archived', 'merged')`
+- optional include flags can be added later, but default behaviour must keep companion context clean
+
+#### Migration
+
+Existing memories should migrate with:
+
+- `status='active'`
+- `superseded_by=null`
+- `archived_at=null`
+- `updated_at=null`
+
+No content migration is required beyond backfilling defaults.
+
+#### Definition of Success
+
+- [ ] Memory schema supports `status`, `superseded_by`, `archived_at`, and `updated_at`
+- [ ] `PATCH /memory/{id}` updates memory content and refreshes embedding
+- [ ] `POST /memory/{id}/merge` preserves provenance and marks source memory as merged
+- [ ] `POST /memory/{id}/archive` and `POST /memory/{id}/restore` work end to end
+- [ ] Default wake-up and search flows exclude archived and merged memories
+- [ ] `memory_client` exposes update, merge, archive, and restore helpers
+- [ ] CLI supports update, merge, archive, and restore commands
+- [ ] Integration tests cover update, merge, archive, restore, and search exclusion semantics
+- [ ] Migration script backfills lifecycle properties on all existing Memory nodes
+
+---
+
+### WP-039 Detail — Ephemeral test-memory handling: TTL, tagging, cleanup
+
+#### Motivation
+
+Validation and integration tests currently write directly into the live memory fabric. That creates three problems:
+
+- test memories can surface in `wake-up` and distract the Companion
+- test agents and test memories can remain long after the test run is over
+- operators are forced into manual graph cleanup for artefacts that should have been temporary by design
+
+The fabric needs a first-class notion of **ephemeral test data** so tests can exercise the real stack without polluting durable companion memory.
+
+#### Data model and behaviour
+
+Test or ephemeral memories should support:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `is_ephemeral` | `bool` | Marks memories or agents as temporary |
+| `expires_at` | `datetime \| None` | Optional expiry timestamp for automatic cleanup |
+| `purpose` | `str \| None` | Optional machine-readable reason such as `integration-test`, `validation-smoke`, or `manual-debug` |
+
+Rules:
+
+- ephemeral memories and agents are excluded from normal `wake-up` and default search
+- ephemeral writes may still be searchable when explicitly requested for diagnostics
+- expired ephemeral data is eligible for automatic cleanup
+- CLI or test harnesses should not need direct graph deletes for routine test cleanup
+
+#### API and client changes
+
+`POST /memory` gains optional fields:
+
+```json
+{
+  "is_ephemeral": true,
+  "expires_at": "2026-03-21T12:00:00Z",
+  "purpose": "integration-test"
+}
+```
+
+Likewise, agent creation or upsert flow should support ephemeral metadata for test agents.
+
+`memory_client` and CLI should expose the same controls so integration tests can declare temporary intent at write time.
+
+#### Cleanup mechanisms
+
+At least one supported cleanup path is required:
+
+1. explicit cleanup command for test harnesses, for example `memory cleanup-ephemeral`
+2. scheduled cleanup script that removes expired ephemeral data
+3. retrieval-layer exclusion so stale ephemeral data never reaches wake-up even before cleanup runs
+
+The key requirement is that test data must stop affecting live companion context immediately, not only after manual deletion.
+
+#### Definition of Success
+
+- [ ] Memory schema supports `is_ephemeral`, `expires_at`, and `purpose`
+- [ ] Default `wake-up` excludes ephemeral memories
+- [ ] Default search excludes ephemeral memories unless explicitly included
+- [ ] Test harnesses can create ephemeral memories and agents through supported API fields
+- [ ] Cleanup command or script removes expired ephemeral memories and orphaned ephemeral agents
+- [ ] Integration tests cover write, exclusion from retrieval, and cleanup of ephemeral test data
+- [ ] Existing WP-032/WP-033 style tests are updated to use ephemeral writes instead of durable live memories
 
 ---
 
