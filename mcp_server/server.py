@@ -86,8 +86,10 @@ def _render_section(memories: list[dict]) -> list[str]:
     ):
         lines.append(strand_id)
         for mem in group:
-            imp = mem.get("importance", "")
-            lines.append(f"  [{imp}] {mem['type']} — {mem['text']}")
+            imp = mem.get("importance", "-")
+            mem_type = mem.get("type", "")
+            mem_text = mem.get("text", "")
+            lines.append(f"  [{imp}] {mem_type} — {mem_text}")
         lines.append("")  # blank line between strand groups
 
     # Remove trailing blank line
