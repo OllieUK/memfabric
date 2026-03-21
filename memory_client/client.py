@@ -73,6 +73,12 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["memories"]
 
+    def list_strands(self) -> list[dict]:
+        """GET /strands. Returns list of strand dicts with id, name, description, category."""
+        response = self._http.get("/strands")
+        response.raise_for_status()
+        return response.json()["strands"]
+
     def get_graph(
         self,
         *,

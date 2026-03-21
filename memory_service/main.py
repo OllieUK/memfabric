@@ -122,6 +122,27 @@ async def search_memory(req: SearchMemoryRequest, request: Request) -> SearchMem
     )
 
 
+class StrandItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str
+
+
+class StrandsResponse(BaseModel):
+    strands: List[StrandItem]
+
+
+@app.get("/strands", response_model=StrandsResponse)
+async def list_strands(request: Request) -> StrandsResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            strands = memory_repo.list_strands(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return StrandsResponse(strands=[StrandItem(**s) for s in strands])
+
+
 class NodeLabel(str, Enum):
     memory = "Memory"
     strand = "Strand"

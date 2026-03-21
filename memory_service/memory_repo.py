@@ -185,3 +185,25 @@ def search_memories(session, req, query_embedding: list) -> list:
         }
         for record in result
     ]
+
+
+def list_strands(session) -> list:
+    """Return all Strand nodes ordered by category then name.
+
+    Returns:
+        List of dicts with keys: id, name, description, category
+    """
+    result = session.run(
+        "MATCH (s:Strand) RETURN s.id AS id, s.name AS name, "
+        "s.description AS description, s.category AS category "
+        "ORDER BY s.category, s.name"
+    )
+    return [
+        {
+            "id": record["id"],
+            "name": record["name"],
+            "description": record["description"],
+            "category": record["category"],
+        }
+        for record in result
+    ]

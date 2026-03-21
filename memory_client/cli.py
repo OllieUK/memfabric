@@ -1,5 +1,6 @@
 # memory_client/cli.py
 import json
+from itertools import groupby
 from typing import Optional
 
 import httpx
@@ -101,6 +102,30 @@ def search_memory(
         table.add_row(short_id, hit["type"], imp, tags_str, hit["text"], neighbours_count)
 
     console.print(table)
+
+
+@app.command("list-strands")
+def list_strands() -> None:
+    """List all strands in the memory fabric."""
+    try:
+        with _make_client() as client:
+            strands = client.list_strands()
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    if not strands:
+        console.print("No strands found.")
+        return
+
+    for category, group in groupby(strands, key=lambda s: s["category"]):
+        console.print(f"\n[bold cyan]{category}[/bold cyan]")
+        for strand in group:
+            console.print(f"  [dim]{strand['id']}[/dim]")
+            console.print(f"  [bold]{strand['name']}[/bold] — {strand['description']}")
 
 
 @app.command("dump-graph")

@@ -28,7 +28,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-027 | `memory list-strands` CLI command | 5 | H | S | WP-007 | **First.** Strand visibility needed for all memory ingestion and for wake-up briefing. Adds `GET /strands` + `memory list-strands`. **Language note:** all strand descriptions must use "the user" as subject (not "you", not a specific name) — fix any existing descriptions that don't comply. |
+| ~~WP-027~~ | ~~`memory list-strands` CLI command~~ | 5 | H | S | WP-007 | **Done.** |
 | WP-030 | `memory wake-up` + `memory close-session` CLI commands | 5 | H | S | WP-027 | New commands the companion session protocol depends on. `wake-up [--topic "..."] [--limit N]`: top-N memories by importance desc then recency (default N=20, no static threshold), plus optional topic search (also capped at N). `close-session`: prints structured scaffold for end-of-session memory storage. See spec: `docs/superpowers/specs/2026-03-21-companion-integration-design.md`. |
 | WP-031 | `memory_client` companion package: COMPANION.md + WIRING.md + docs | 5 | H | S | WP-030 | No code. Delivers: `memory_client/COMPANION.md` (companion session protocol), `memory_client/WIRING.md` (Claude Code wiring instructions; Claude Desktop + MCP placeholders), `docs/companion-integration.md` (high-level overview). Package is then drop-in ready for any companion environment. |
 | WP-032 | End-to-end companion validation | 5 | H | S | WP-031, seeds in DB | Run a real companion session wake-up → work → close-out with real memories. All five validation criteria must pass (see spec). Findings fed back to backlog before WP-028 starts. **No code produced — evidence and gap list produced.** |
@@ -50,7 +50,7 @@
 | WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper. WP-006 creates the 3rd copy; WP-029 adds further endpoints — do after either. `/simplify` finding from WP-005. |
 | WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
 | WP-021 | Non-blocking embedding in async endpoints | 4 | L | S | WP-004, WP-005 | `get_embedding()` is synchronous and blocks the event loop in both `/memory` and `/memory/search`. Wrap with `run_in_executor` when concurrent usage makes this a real problem. `/simplify` finding from WP-004. |
-| WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | WP-029 | `add-memory`, `search-memory`, `dump-graph` each repeat identical `except httpx.HTTPStatusError / ConnectError` blocks. WP-029 adds `run-decay` as the 4th CLI command — **trigger condition now met**. Extract at that point. `/simplify` finding from WP-007. |
+| WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | — | `add-memory`, `search-memory`, `dump-graph`, `list-strands` all repeat identical `except httpx.HTTPStatusError / ConnectError` blocks — **4 copies, trigger condition met.** Extract a shared error handler. `/simplify` finding from WP-007 and WP-027. |
 | WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
 | WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
 
@@ -286,6 +286,24 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-027 — `memory list-strands` CLI command
+**Completed:** 2026-03-21
+
+**What was done:**
+- Fixed all 20 strand descriptions in `scripts/seed_strands.py` to use "the user" as subject (not "you") and "the Companion" instead of "your AI" — language convention now enforced end-to-end.
+- Re-seeded live Memgraph DB via `seed_strands.py`.
+- Added `list_strands(session)` to `memory_service/memory_repo.py`: single `MATCH (s:Strand)` query ordered by category then name.
+- Added `StrandItem`, `StrandsResponse` Pydantic models and `GET /strands` endpoint to `memory_service/main.py`.
+- Added `MemoryClient.list_strands()` to `memory_client/client.py`.
+- Added `memory list-strands` CLI command to `memory_client/cli.py` using `itertools.groupby` for category grouping.
+- Created `tests/test_list_strands.py`: 15 tests (U1–U3 unit/static, I1–I3 integration against live stack, plus CLI tests).
+
+**DoS result:** 15/15 tests passing including 3 integration tests against live Memgraph + FastAPI. `GET /strands` smoke-tested via curl (200, 20 strands). `memory list-strands` smoke-tested against live service — all 20 strands displayed, grouped by category, with correct language throughout.
+
+**Retrospective:** Editable install (`pip install -e .`) not available without a venv; ran all commands with `PYTHONPATH=.`. This is the current workaround until WP-035 resolves packaging. `/simplify` identified CLI error handler duplication now at 4 copies — WP-025 trigger condition met (updated WP-025 note, dependency removed).
+
+---
 
 ### WP-015 — In-session LLM workflow patterns
 **Completed:** 2026-03-20
