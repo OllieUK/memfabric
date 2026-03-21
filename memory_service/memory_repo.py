@@ -188,7 +188,11 @@ def search_memories(session, req, query_embedding: list) -> list:
 
 
 def _record_to_memory_dict(record) -> dict:
-    """Extract the standard Memory field set from a neo4j Record."""
+    """Extract the standard Memory field set from a neo4j Record.
+
+    Caller MUST select: id, text, type, tags, importance, created_at, strand_id
+    in the Cypher query. strand_id may be None (from OPTIONAL MATCH).
+    """
     return {
         "id": record["id"],
         "text": record["text"],
@@ -196,58 +200,56 @@ def _record_to_memory_dict(record) -> dict:
         "tags": record["tags"],
         "importance": record["importance"],
         "created_at": record["created_at"],
+        "strand_id": record["strand_id"],  # always present: OPTIONAL MATCH returns None if no strand
     }
 
 
-def wake_up(session, limit: int, topic_embedding: list | None = None) -> list:
-    """Return top-N memories for session start.
-
-    If topic_embedding is provided, runs a vector search capped at `limit` and
-    merges with the importance-ranked list, deduplicating by id. The combined
-    result is still capped at `limit`.
+def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
+    """Return memories for session start as two separate lists.
 
     Returns:
-        List of dicts: id, text, type, tags, importance, created_at
+        dict with keys:
+          "core"  — importance-ranked list, up to `limit` items
+          "topic" — topic-only items (not in core), up to `limit` items;
+                    empty list when topic_embedding is None
+        Each item dict: id, text, type, tags, importance, created_at, strand_id
     """
-    # Importance-ranked list (always fetched)
     result = session.run(
         """
         MATCH (m:Memory)
+        OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+        WITH m, collect(s.id)[0] AS strand_id
         RETURN m.id AS id, m.text AS text, m.type AS type,
-               m.tags AS tags, m.importance AS importance, m.created_at AS created_at
+               m.tags AS tags, m.importance AS importance,
+               m.created_at AS created_at, strand_id
         ORDER BY m.importance DESC, m.created_at DESC
         LIMIT $limit
         """,
         limit=limit,
     )
-    ranked = [_record_to_memory_dict(r) for r in result]
+    core = [_record_to_memory_dict(r) for r in result]
 
     if topic_embedding is None:
-        return ranked
+        return {"core": core, "topic": []}
 
-    # Topic search — vector search capped at limit
+    core_ids = {item["id"] for item in core}
+
     topic_result = session.run(
         """
         CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
         YIELD node AS m, distance
+        OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+        WITH m, collect(s.id)[0] AS strand_id
         RETURN m.id AS id, m.text AS text, m.type AS type,
-               m.tags AS tags, m.importance AS importance, m.created_at AS created_at
+               m.tags AS tags, m.importance AS importance,
+               m.created_at AS created_at, strand_id
         """,
         limit=limit,
         query_vec=topic_embedding,
     )
-    topic_hits = [_record_to_memory_dict(r) for r in topic_result]
+    topic = [_record_to_memory_dict(r) for r in topic_result if r["id"] not in core_ids]
 
-    # Merge: ranked first, then topic hits not already present, cap at limit
-    seen: set[str] = set()
-    merged = []
-    for item in ranked + topic_hits:
-        if item["id"] not in seen:
-            seen.add(item["id"])
-            merged.append(item)
-        if len(merged) == limit:
-            break
-    return merged
+    return {"core": core, "topic": topic}
 
 
 def list_strands(session) -> list:

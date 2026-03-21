@@ -242,3 +242,23 @@ class TestWakeUpIntegration:
     # I4: DB unavailable → 503 (tested via mock driver in conftest pattern)
     # This is best tested by bringing Memgraph down; skip here as it requires
     # infrastructure teardown. Covered by unit-level mock in TestWakeUpCLI.
+
+    @pytest.mark.integration
+    def test_wake_up_response_has_strand_id(self, client):
+        """I5 — Each memory item includes a strand_id field (may be None for unseeded memories)."""
+        resp = client.get("/memory/wake-up", params={"limit": 5})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "memories" in data
+        for mem in data["memories"]:
+            assert "strand_id" in mem  # field present; None is acceptable
+
+    @pytest.mark.integration
+    def test_wake_up_with_topic_returns_topic_memories(self, client):
+        """I6 — With --topic, response has both 'memories' (core) and 'topic_memories' fields."""
+        resp = client.get("/memory/wake-up", params={"limit": 5, "topic": "graph memory"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "memories" in data
+        assert "topic_memories" in data
+        assert isinstance(data["topic_memories"], list)

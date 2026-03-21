@@ -129,10 +129,12 @@ class WakeUpMemoryItem(BaseModel):
     tags: List[str]
     importance: Optional[int] = None
     created_at: Optional[str] = None
+    strand_id: Optional[str] = None
 
 
 class WakeUpResponse(BaseModel):
-    memories: List[WakeUpMemoryItem]
+    memories: List[WakeUpMemoryItem]          # core (importance-ranked)
+    topic_memories: List[WakeUpMemoryItem]    # topic-only; empty when no --topic
 
 
 @app.get("/memory/wake-up", response_model=WakeUpResponse)
@@ -144,11 +146,12 @@ async def wake_up(
     topic_embedding = get_embedding(topic) if topic else None
     try:
         with request.app.state.driver.session() as session:
-            results = memory_repo.wake_up(session, limit=limit, topic_embedding=topic_embedding)
+            result = memory_repo.wake_up(session, limit=limit, topic_embedding=topic_embedding)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return WakeUpResponse(
-        memories=[WakeUpMemoryItem(**r) for r in results]
+        memories=[WakeUpMemoryItem(**r) for r in result["core"]],
+        topic_memories=[WakeUpMemoryItem(**r) for r in result["topic"]],
     )
 
 
