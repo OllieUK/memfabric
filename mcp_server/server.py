@@ -49,6 +49,7 @@ def memory_search(
     tags: list[str] | None = None,
     agent_ids: list[str] | None = None,
     limit: int = 10,
+    traversal_direction: str = "none",
 ) -> list[dict]:
     """Search the memory fabric by semantic similarity."""
     with MemoryClient(base_url=settings.api_base_url) as client:
@@ -57,6 +58,7 @@ def memory_search(
             tags=tags,
             agent_ids=agent_ids,
             limit=limit,
+            traversal_direction=traversal_direction,
         )
 
 
@@ -118,16 +120,19 @@ _CLOSE_SESSION_SCAFFOLD = """\
 Review this session and answer the following before ending:
 
 1. What decisions were made? (store as type: decision)
-   → memory_add(text="...", type="decision", strand_ids=["<strand-id>"])
+   → memory_add(fact="...", type="decision", strand_ids=["<strand-id>"])
 
 2. What was learned or observed about the user? (store as type: insight or observation)
-   → memory_add(text="...", type="insight", strand_ids=["<strand-id>"])
+   → memory_add(fact="...", so_what="...", type="insight", strand_ids=["<strand-id>"])
 
 3. What actions were committed to? (store as type: todo)
-   → memory_add(text="...", type="todo", strand_ids=["<strand-id>"])
+   → memory_add(fact="...", type="todo", strand_ids=["<strand-id>"])
 
 4. What context should a future session know that isn't already in the fabric?
-   → memory_add(text="...", type="fact", strand_ids=["<strand-id>"])
+   → memory_add(fact="...", so_what="...", type="fact", strand_ids=["<strand-id>"])
+
+5. Are there causal links between memories? Link them explicitly.
+   → memory_add(fact="...", type="fact", cause_ids=["<uuid>"], effect_ids=["<uuid>"])
 
 Run memory_list_strands() if strand IDs are uncertain.
 Do not end the session without calling memory_add at least once if any of the above apply.\

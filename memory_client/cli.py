@@ -70,6 +70,10 @@ def search_memory(
     project_ids: Optional[list[str]] = typer.Option(None, "--project-id", help="Filter by project ID (repeatable)"),
     limit: int = typer.Option(10, "--limit", "-n", min=1, max=100, help="Maximum results"),
     max_hops: int = typer.Option(1, "--max-hops", min=0, max=3, help="Neighbour expansion depth"),
+    traversal_direction: str = typer.Option(
+        "none", "--traversal-direction",
+        help="LEADS_TO traversal: none|causes|effects|both",
+    ),
 ) -> None:
     """Search memories by semantic similarity."""
     try:
@@ -81,6 +85,7 @@ def search_memory(
                 project_ids=project_ids,
                 limit=limit,
                 max_hops=max_hops,
+                traversal_direction=traversal_direction,
             )
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
@@ -184,16 +189,20 @@ def close_session() -> None:
 Review this session and answer the following before ending:
 
 1. What decisions were made? (store as type: decision)
-   → memory add-memory --text "..." --type decision --strand-id <strand-id>
+   → memory add-memory "..." --type decision --strand-id <strand-id>
 
 2. What was learned or observed about the user? (store as type: insight or observation)
-   → memory add-memory --text "..." --type insight --strand-id <strand-id>
+   → memory add-memory "..." --type insight --strand-id <strand-id>
+   → Use --so-what "..." to capture the impact or meaning
 
 3. What actions were committed to? (store as type: todo)
-   → memory add-memory --text "..." --type todo --strand-id <strand-id>
+   → memory add-memory "..." --type todo --strand-id <strand-id>
 
 4. What context should a future session know that isn't already in the fabric?
-   → memory add-memory --text "..." --type fact --strand-id <strand-id>
+   → memory add-memory "..." --type fact --strand-id <strand-id>
+
+5. Are there causal links between memories? (use --cause-id / --effect-id)
+   → memory add-memory "..." --type fact --cause-id <uuid> --effect-id <uuid>
 
 Run `memory list-strands` if strand IDs are uncertain.
 Do not end the session without running at least one `memory add-memory` if any of the above apply.""")
