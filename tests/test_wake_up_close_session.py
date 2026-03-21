@@ -9,6 +9,7 @@ Unit tests (no live stack required):
   U5  — CLI memory wake-up --limit 5 --topic "health" forwards both params
   U6  — CLI memory wake-up with empty response prints "No memories found."
   U7  — CLI memory wake-up with HTTP 503 exits 1
+  U8  — CLI memory wake-up with connect error exits 1 (respx-injected ConnectError)
   U9  — CLI memory close-session exits 0
   U10 — CLI memory close-session output contains required scaffold sections + datetime
   U11 — CLI memory close-session output contains markdown headers and prompt lines
@@ -22,7 +23,7 @@ Unit tests (no live stack required):
 Integration tests (live Memgraph + running FastAPI required):
   I1  — GET /memory/wake-up returns 200 with memories list, each with required fields
   I2  — GET /memory/wake-up?limit=5 returns ≤5 results ordered by importance desc
-  I3  — GET /memory/wake-up?topic=health&limit=10 returns ≤10 core results
+  I3  — GET /memory/wake-up?topic=...&limit=10 returns core + topic lists with no ID overlap
   I4  — GET /memory/wake-up with Memgraph unavailable returns 503
   I5  — GET /memory/wake-up response includes strand_id on each memory item
   I6  — GET /memory/wake-up?topic=... response includes topic_memories list
@@ -356,6 +357,13 @@ class TestWakeUpCLIOutput:
         assert health_pos < adhd_pos, "Strand header must precede first memory"
         assert health_pos < exercise_pos, "Strand header must precede second memory"
 
+    @respx.mock
+    def test_connect_error_exits_nonzero(self):
+        respx.get(f"{BASE}/memory/wake-up").mock(side_effect=httpx.ConnectError("connection refused"))
+        result = runner.invoke(app, ["wake-up"])
+        assert result.exit_code == 1
+        assert "Could not connect" in result.output
+
 
 # ---------------------------------------------------------------------------
 # I1–I4: Integration tests (live Memgraph + running FastAPI required)
@@ -387,15 +395,26 @@ class TestWakeUpIntegration:
             "Memories should be ordered by importance descending"
         )
 
-    # I3: topic search merges and deduplicates, total ≤ limit
+    # I3: topic search returns core + topic_memories with no ID overlap
     def test_topic_search_merges_and_caps(self, client):
-        response = client.get("/memory/wake-up", params={"limit": 10, "topic": "health"})
-        assert response.status_code == 200
-        memories = response.json()["memories"]
-        assert len(memories) <= 10
-        # No duplicate ids
-        ids = [m["id"] for m in memories]
-        assert len(ids) == len(set(ids)), "Merged results must be deduplicated"
+        """I3 — Topic search returns core + topic_memories with no ID overlap."""
+        resp = client.get(
+            "/memory/wake-up",
+            params={"topic": "health ADHD focus", "limit": 10},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "memories" in data
+        assert "topic_memories" in data
+        core_ids = {m["id"] for m in data["memories"]}
+        topic_ids = {m["id"] for m in data["topic_memories"]}
+        # No ID should appear in both lists
+        assert not core_ids.intersection(topic_ids), (
+            f"IDs appear in both core and topic: {core_ids & topic_ids}"
+        )
+        # Each list independently capped at limit
+        assert len(data["memories"]) <= 10
+        assert len(data["topic_memories"]) <= 10
 
     # I4: DB unavailable → 503 (tested via mock driver in conftest pattern)
     # This is best tested by bringing Memgraph down; skip here as it requires
