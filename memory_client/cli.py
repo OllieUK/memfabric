@@ -140,6 +140,51 @@ def list_strands() -> None:
             console.print(f"  [bold]{strand['name']}[/bold] — {strand['description']}")
 
 
+@app.command("list-persons")
+def list_persons() -> None:
+    """List all Person nodes in the memory fabric."""
+    try:
+        with _make_client() as client:
+            persons = client.list_persons()
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    if not persons:
+        console.print("No persons found.")
+        return
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("ID", style="dim")
+    table.add_column("Name")
+    table.add_column("Description")
+    for p in persons:
+        table.add_row(p["id"], p["name"], p.get("description") or "")
+    console.print(table)
+
+
+@app.command("create-person")
+def create_person(
+    person_id: str = typer.Argument(..., help="Kebab-case person ID, e.g. oliver-james"),
+    name: str = typer.Option(..., "--name", "-n", help="Display name"),
+    description: Optional[str] = typer.Option(None, "--description", "-d", help="Optional bio"),
+) -> None:
+    """Create or update a Person node."""
+    try:
+        with _make_client() as client:
+            person = client.create_person(person_id, name, description=description)
+        console.print(person["id"])
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("wake-up")
 def wake_up(
     topic: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic to focus the session on"),

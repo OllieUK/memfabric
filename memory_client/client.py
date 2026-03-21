@@ -115,6 +115,21 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["strands"]
 
+    def list_persons(self) -> list[dict]:
+        """GET /person. Returns list of person dicts: id, name, description."""
+        response = self._http.get("/person")
+        response.raise_for_status()
+        return response.json()["persons"]
+
+    def create_person(self, person_id: str, name: str, description: str | None = None) -> dict:
+        """POST /person. Creates or merges a Person node. Returns person dict."""
+        body: dict = {"id": person_id, "name": name}
+        if description is not None:
+            body["description"] = description
+        response = self._http.post("/person", json=body)
+        response.raise_for_status()
+        return response.json()
+
     def get_graph(
         self,
         *,

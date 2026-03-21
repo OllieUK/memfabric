@@ -1,6 +1,25 @@
 # tests/test_wp037_person_nodes.py
+import json
+
+import httpx
 import pytest
+import respx
 from pydantic import ValidationError
+from typer.testing import CliRunner
+
+from memory_client.cli import app as cli_app
+from memory_client.client import MemoryClient
+
+_BASE_URL = "http://localhost:8000"
+_PERSONS_RESPONSE = {
+    "persons": [
+        {"id": "test-person-wp037-a", "name": "Test Person A", "description": None},
+        {"id": "test-person-wp037-b", "name": "Test Person B", "description": "Bio B"},
+    ]
+}
+_CREATE_PERSON_RESPONSE = {"id": "test-person-wp037-a", "name": "Test Person A", "description": None}
+
+_cli_runner = CliRunner()
 
 # Shared constants
 _PERSON_ID_A = "test-person-wp037-a"
@@ -300,3 +319,210 @@ class TestAboutEdgeViaPostPerson:
             assert edge_exists(test_driver, mid2, "ABOUT", _PERSON_ID_A)
         finally:
             _cleanup_persons(test_driver, _PERSON_ID_A, memory_ids=(mid1, mid2))
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — Unit tests: MemoryClient.list_persons and MemoryClient.create_person
+# ---------------------------------------------------------------------------
+
+
+class TestMemoryClientListPersons:
+    @respx.mock
+    def test_calls_get_person_endpoint(self):
+        route = respx.get(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json=_PERSONS_RESPONSE)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.list_persons()
+        assert route.called
+
+    @respx.mock
+    def test_returns_list_of_person_dicts(self):
+        respx.get(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json=_PERSONS_RESPONSE)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            result = client.list_persons()
+        assert isinstance(result, list)
+        assert len(result) == 2
+        assert result[0]["id"] == "test-person-wp037-a"
+
+    @respx.mock
+    def test_returns_empty_list_when_no_persons(self):
+        respx.get(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json={"persons": []})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            result = client.list_persons()
+        assert result == []
+
+    @respx.mock
+    def test_raises_on_503(self):
+        respx.get(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(503, text="Service Unavailable")
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            with pytest.raises(httpx.HTTPStatusError):
+                client.list_persons()
+
+
+class TestMemoryClientCreatePerson:
+    @respx.mock
+    def test_calls_post_person_endpoint(self):
+        route = respx.post(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json={"id": "test-person-wp037-a", "name": "Test Person A", "description": None})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.create_person("test-person-wp037-a", "Test Person A")
+        assert route.called
+
+    @respx.mock
+    def test_body_contains_id_and_name(self):
+        route = respx.post(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json={"id": "test-person-wp037-a", "name": "Test Person A", "description": None})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.create_person("test-person-wp037-a", "Test Person A")
+        body = route.calls[0].request.content
+        parsed = json.loads(body)
+        assert parsed["id"] == "test-person-wp037-a"
+        assert parsed["name"] == "Test Person A"
+
+    @respx.mock
+    def test_description_omitted_when_none(self):
+        route = respx.post(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json={"id": "x", "name": "X", "description": None})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.create_person("x", "X")
+        body = json.loads(route.calls[0].request.content)
+        assert "description" not in body
+
+    @respx.mock
+    def test_description_sent_when_provided(self):
+        route = respx.post(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json={"id": "x", "name": "X", "description": "bio"})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.create_person("x", "X", description="bio")
+        body = json.loads(route.calls[0].request.content)
+        assert body["description"] == "bio"
+
+    @respx.mock
+    def test_returns_person_dict_from_response(self):
+        person = {"id": "test-person-wp037-a", "name": "Test Person A", "description": "Bio"}
+        respx.post(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(200, json=person)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            result = client.create_person("test-person-wp037-a", "Test Person A", description="Bio")
+        assert result == person
+
+    @respx.mock
+    def test_raises_on_422(self):
+        respx.post(f"{_BASE_URL}/person").mock(
+            return_value=httpx.Response(422, json={"detail": "Validation error"})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            with pytest.raises(httpx.HTTPStatusError):
+                client.create_person("", "")
+
+
+# ---------------------------------------------------------------------------
+# Task 8 — Unit tests: CLI list-persons and create-person commands
+# ---------------------------------------------------------------------------
+
+
+class TestListPersonsCLI:
+    @respx.mock
+    def test_exits_zero_on_success(self):
+        respx.get("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json=_PERSONS_RESPONSE)
+        )
+        result = _cli_runner.invoke(cli_app, ["list-persons"])
+        assert result.exit_code == 0
+
+    @respx.mock
+    def test_renders_person_id_in_output(self):
+        respx.get("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json=_PERSONS_RESPONSE)
+        )
+        result = _cli_runner.invoke(cli_app, ["list-persons"])
+        assert "test-person-wp037-a" in result.output
+
+    @respx.mock
+    def test_renders_person_name_in_output(self):
+        respx.get("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json=_PERSONS_RESPONSE)
+        )
+        result = _cli_runner.invoke(cli_app, ["list-persons"])
+        assert "Test Person A" in result.output
+
+    @respx.mock
+    def test_empty_persons_prints_no_persons_found(self):
+        respx.get("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json={"persons": []})
+        )
+        result = _cli_runner.invoke(cli_app, ["list-persons"])
+        assert "No persons found" in result.output
+
+    @respx.mock
+    def test_service_error_exits_nonzero(self):
+        respx.get("http://localhost:8000/person").mock(
+            return_value=httpx.Response(503, text="Service Unavailable")
+        )
+        result = _cli_runner.invoke(cli_app, ["list-persons"])
+        assert result.exit_code != 0
+
+    def test_connect_error_exits_nonzero(self):
+        result = _cli_runner.invoke(
+            cli_app,
+            ["list-persons"],
+            env={"API_BASE_URL": "http://localhost:19999"},
+        )
+        assert result.exit_code != 0
+
+
+class TestCreatePersonCLI:
+    @respx.mock
+    def test_exits_zero_and_prints_id(self):
+        respx.post("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json=_CREATE_PERSON_RESPONSE)
+        )
+        result = _cli_runner.invoke(cli_app, ["create-person", "test-person-wp037-a", "--name", "Test Person A"])
+        assert result.exit_code == 0
+        assert "test-person-wp037-a" in result.output
+
+    def test_name_option_is_required(self):
+        result = _cli_runner.invoke(cli_app, ["create-person", "test-person-wp037-a"])
+        assert result.exit_code != 0
+
+    @respx.mock
+    def test_sends_correct_body_without_description(self):
+        route = respx.post("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json=_CREATE_PERSON_RESPONSE)
+        )
+        _cli_runner.invoke(cli_app, ["create-person", "test-person-wp037-a", "--name", "Test Person A"])
+        body = json.loads(route.calls[0].request.content)
+        assert body["id"] == "test-person-wp037-a"
+        assert body["name"] == "Test Person A"
+        assert "description" not in body
+
+    @respx.mock
+    def test_sends_description_when_provided(self):
+        route = respx.post("http://localhost:8000/person").mock(
+            return_value=httpx.Response(200, json={**_CREATE_PERSON_RESPONSE, "description": "bio"})
+        )
+        _cli_runner.invoke(cli_app, [
+            "create-person", "test-person-wp037-a", "--name", "Test Person A", "--description", "bio"
+        ])
+        body = json.loads(route.calls[0].request.content)
+        assert body["description"] == "bio"
+
+    @respx.mock
+    def test_service_error_exits_nonzero(self):
+        respx.post("http://localhost:8000/person").mock(
+            return_value=httpx.Response(422, json={"detail": "Unprocessable"})
+        )
+        result = _cli_runner.invoke(cli_app, ["create-person", "bad-id", "--name", "Bad"])
+        assert result.exit_code != 0
