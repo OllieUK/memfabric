@@ -7,6 +7,9 @@
 
 ## Currently In Progress
 
+| ID | Title |
+|----|-------|
+
 *(none)*
 
 ---
@@ -26,7 +29,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-032 | End-to-end companion validation | 5 | H | S | WP-031, seeds in DB | Run a real companion session wake-up → work → close-out with real memories. All five validation criteria must pass (see spec). Findings fed back to backlog before WP-028 starts. **No code produced — evidence and gap list produced.** |
 | WP-033 | Memory MCP server + Claude Desktop wiring | 6 | H | M | WP-032 | Wrap REST API as MCP server. Tools: `memory_add`, `memory_search`, `memory_wake_up`, `memory_list_strands`, `memory_close_session`. Complete WIRING.md Claude Desktop + MCP sections. COMPANION.md updated to prefer MCP tools over CLI where available. |
 
 ### Post-MVP — Complete v1 feature set
@@ -48,6 +50,9 @@
 | WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | — | `add-memory`, `search-memory`, `dump-graph`, `list-strands` all repeat identical `except httpx.HTTPStatusError / ConnectError` blocks — **4 copies, trigger condition met.** Extract a shared error handler. `/simplify` finding from WP-007 and WP-027. |
 | WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
 | WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
+| WP-034 | Add version/build hash to `/health` response | 5 | L | S | — | Detect stale service during companion session startup. Gap found in WP-032 validation: service ran stale code silently. |
+| WP-035 | Return strand_ids in `add-memory` API response | 5 | L | S | — | Reduce friction when adding chains of related memories. Gap found in WP-032 validation. |
+| WP-036 | Document `### Relevant to today` suppression behaviour in COMPANION.md | 5 | L | S | — | Avoid companion confusion when topic section is absent on small DBs. Gap found in WP-032 validation. |
 
 ---
 
@@ -281,6 +286,15 @@ effective_weight = weight × exp(-decay_rate × days_since_last_activated)
 ---
 
 ## Completed
+
+### WP-032 — End-to-end companion validation
+**Completed:** 2026-03-21
+
+**Delivered:** Ran full companion validation session against live stack; all five criteria passed. Identified and resolved a pre-existing service-restart issue (stale uvicorn process) that caused strand_id to be absent from wake-up API responses. Created `docs/wp-032-validation-evidence.md` with PASS/FAIL evidence, gap analysis, and three new backlog items (WP-034, WP-035, WP-036).
+
+**Retrospective:** The audit against the spec (Section 4.2) before starting WP-032 caught two deviations from WP-030 that were not caught at the time: grouping by tag instead of strand_id, and missing the topic section. Including a compliance check against the spec as part of every WP's handoff would catch these earlier. The from_topic approach (initially planned) was correctly replaced with a two-list backend design during plan review, which was a better architectural decision. The stale-service bug (no `--reload` on uvicorn start) was invisible from the CLI — no error, just wrong grouping — which argues for a version hash in `/health` (WP-034).
+
+---
 
 ### WP-031 — `memory_client` companion package: COMPANION.md + WIRING.md + docs
 **Completed:** 2026-03-21
