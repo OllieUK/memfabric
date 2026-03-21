@@ -331,3 +331,33 @@ def list_strands(session) -> list:
         }
         for record in result
     ]
+
+
+def list_persons(session) -> list[dict]:
+    """Return all Person nodes ordered by id."""
+    result = session.run(
+        "MATCH (p:Person) RETURN p.id AS id, p.name AS name, "
+        "p.description AS description ORDER BY p.id"
+    )
+    return [
+        {"id": r["id"], "name": r["name"], "description": r["description"]}
+        for r in result
+    ]
+
+
+def upsert_person(session, req) -> dict:
+    """Create or update a Person node by id. Returns the stored values."""
+    result = session.run(
+        """
+        MERGE (p:Person {id: $id})
+        SET p.name = $name, p.description = $description
+        RETURN p.id AS id, p.name AS name, p.description AS description
+        """,
+        id=req.id,
+        name=req.name,
+        description=req.description,
+    )
+    record = result.single()
+    if record is None:
+        raise RuntimeError(f"upsert_person: MERGE returned no record for id={req.id!r}")
+    return {"id": record["id"], "name": record["name"], "description": record["description"]}

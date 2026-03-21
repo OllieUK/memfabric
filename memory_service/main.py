@@ -186,6 +186,22 @@ class StrandsResponse(BaseModel):
     strands: List[StrandItem]
 
 
+class PersonItem(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+
+class PersonsResponse(BaseModel):
+    persons: List[PersonItem]
+
+
+class CreatePersonRequest(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+
 @app.get("/strands", response_model=StrandsResponse)
 async def list_strands(request: Request) -> StrandsResponse:
     try:
@@ -194,6 +210,26 @@ async def list_strands(request: Request) -> StrandsResponse:
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return StrandsResponse(strands=[StrandItem(**s) for s in strands])
+
+
+@app.get("/person", response_model=PersonsResponse)
+async def list_persons(request: Request) -> PersonsResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            persons = memory_repo.list_persons(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return PersonsResponse(persons=[PersonItem(**p) for p in persons])
+
+
+@app.post("/person", response_model=PersonItem)
+async def create_person(req: CreatePersonRequest, request: Request) -> PersonItem:
+    try:
+        with request.app.state.driver.session() as session:
+            person = memory_repo.upsert_person(session, req)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return PersonItem(**person)
 
 
 class NodeLabel(str, Enum):
