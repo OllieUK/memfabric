@@ -9,6 +9,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
+| WP-037 | Person nodes + `ABOUT` edges — schema, API, migration | 4 | H | M | WP-028 ✅ | Wire `Person` nodes and `ABOUT (Memory→Person)` edges. Add `person_ids: list[str]` to `POST /memory` request body and `memory_repo.add_memory`. Add `GET /person` list endpoint. Write migration script to scan existing memories and create ABOUT edges for named individuals. |
 
 ---
 
@@ -34,7 +35,7 @@
 
 | Priority | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----------|----|-------|-------|-------|--------|------------|-------|
-| 1 | WP-037 | Person nodes + `ABOUT` edges — schema, API, migration | 4 | H | M | WP-028 ✅ | Wire `Person` nodes and `ABOUT (Memory→Person)` edges. Add `person_ids: list[str]` to `POST /memory` request body and `memory_repo.add_memory`. Add `GET /person` list endpoint. Write migration script to scan existing memories and create ABOUT edges for named individuals (~15–20 memories). Do immediately after WP-028 (shares the migration pass). See detailed description below. |
+| 1 | ~~WP-037~~ | ~~Person nodes + `ABOUT` edges~~ | — | — | — | — | **In Progress** |
 | 2 | WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | 4 | H | L | WP-028 ✅ | **Do before WP-006** — adds reinforcement properties to nodes and edges; WP-006 graph export should reflect the final schema. See detailed description below. |
 | 3 | WP-006 | Wire GET /memory/graph | 4 | M | M | WP-028 ✅, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. Do after WP-028/029 so exported schema is complete. |
 | 4 | WP-034 | Add version/build hash to `/health` response | 5 | L | S | — | Detect stale service during companion session startup. Gap found in WP-032 validation: service ran stale code silently. Batch with WP-035/036 — all three are small companion-polish items. |
