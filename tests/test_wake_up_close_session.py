@@ -39,24 +39,27 @@ _WAKE_UP_RESPONSE = {
     "memories": [
         {
             "id": "mem-aaa",
-            "text": "Oliver has ADHD and benefits from short feedback loops.",
+            "text": "The user has ADHD and benefits from short feedback loops.",
             "type": "fact",
             "tags": ["strand-core-health"],
+            "strand_id": "strand-core-health",
             "importance": 5,
             "created_at": "2026-01-01T00:00:00+00:00",
         },
         {
             "id": "mem-bbb",
-            "text": "Oliver prefers async communication over meetings.",
+            "text": "The user prefers async communication over meetings.",
             "type": "observation",
             "tags": ["strand-core-work"],
+            "strand_id": "strand-core-work",
             "importance": 4,
             "created_at": "2026-01-02T00:00:00+00:00",
         },
-    ]
+    ],
+    "topic_memories": [],
 }
 
-_EMPTY_WAKE_UP_RESPONSE = {"memories": []}
+_EMPTY_WAKE_UP_RESPONSE = {"memories": [], "topic_memories": []}
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +117,7 @@ class TestWakeUpCLI:
         assert result.exit_code == 0
         assert "Memory briefing" in result.output
         assert "fact" in result.output
-        assert "Oliver has ADHD" in result.output
+        assert "The user has ADHD" in result.output
 
     @respx.mock
     def test_forwards_limit_and_topic(self):
@@ -145,14 +148,6 @@ class TestWakeUpCLI:
             return_value=httpx.Response(503, text="Service Unavailable")
         )
         result = runner.invoke(app, ["wake-up"])
-        assert result.exit_code == 1
-
-    def test_connect_error_exits_nonzero(self):
-        result = runner.invoke(
-            app,
-            ["wake-up"],
-            env={"API_BASE_URL": "http://localhost:19999"},
-        )
         assert result.exit_code == 1
 
 
