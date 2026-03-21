@@ -137,7 +137,7 @@ def wake_up(
     """Print a memory briefing for session start."""
     try:
         with _make_client() as client:
-            memories = client.wake_up(limit=limit, topic=topic)
+            core, topic_memories = client.wake_up_split(limit=limit, topic=topic)
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)
@@ -148,15 +148,25 @@ def wake_up(
     heading = f"[bold]## Memory briefing — {topic if topic else 'general session'}[/bold]"
     console.print(heading)
 
-    console.print("\n[bold cyan]### Core context[/bold cyan]")
-    if not memories:
-        console.print("  No memories found.")
-    else:
-        for strand_id, group in groupby(memories, key=lambda m: (m.get("tags") or ["(untagged)"])[0]):
+    def _render_section(items: list) -> None:
+        if not items:
+            console.print("  No memories found.")
+            return
+        # Sort before groupby: itertools.groupby only groups consecutive equal-key items
+        sorted_items = sorted(items, key=lambda m: m.get("strand_id") or "(no strand)")
+        for strand_id, group in groupby(sorted_items, key=lambda m: m.get("strand_id") or "(no strand)"):
             console.print(f"\n[dim]{strand_id}[/dim]")
             for mem in group:
                 imp = str(mem.get("importance") or "")
                 console.print(f"  [{imp}] [bold]{mem['type']}[/bold] — {mem['text']}")
+
+    console.print("\n[bold cyan]### Core context[/bold cyan]")
+    _render_section(core)
+
+    # Render topic section only when topic was provided AND there are topic-only results
+    if topic and topic_memories:
+        console.print("\n[bold cyan]### Relevant to today[/bold cyan]")
+        _render_section(topic_memories)
 
 
 @app.command("close-session")

@@ -1,24 +1,31 @@
 """
-tests/test_wake_up_close_session.py — Tests for WP-030: GET /memory/wake-up + CLI commands.
+tests/test_wake_up_close_session.py — Tests for WP-030/WP-032: GET /memory/wake-up + CLI commands.
 
 Unit tests (no live stack required):
-  U1 — MemoryClient.wake_up() calls GET /memory/wake-up with correct limit param
-  U2 — MemoryClient.wake_up(topic=...) passes topic query param
-  U3 — MemoryClient.wake_up() raises HTTPStatusError on non-2xx
-  U4 — CLI memory wake-up exits 0 and outputs memory text/type
-  U5 — CLI memory wake-up --limit 5 --topic "health" forwards both params
-  U6 — CLI memory wake-up with empty response prints "No memories found."
-  U7 — CLI memory wake-up with HTTP 503 exits 1
-  U8 — CLI memory wake-up with connect error exits 1
-  U9 — CLI memory close-session exits 0
+  U1  — MemoryClient.wake_up() calls GET /memory/wake-up with correct limit param
+  U2  — MemoryClient.wake_up(topic=...) passes topic query param
+  U3  — MemoryClient.wake_up() raises HTTPStatusError on non-2xx
+  U4  — CLI memory wake-up exits 0 and outputs memory text/type
+  U5  — CLI memory wake-up --limit 5 --topic "health" forwards both params
+  U6  — CLI memory wake-up with empty response prints "No memories found."
+  U7  — CLI memory wake-up with HTTP 503 exits 1
+  U9  — CLI memory close-session exits 0
   U10 — CLI memory close-session output contains required scaffold sections + datetime
   U11 — CLI memory close-session output contains markdown headers and prompt lines
+  U12 — CLI memory close-session makes no API call
+  U13 — MemoryClient.wake_up_split() returns (core, topic) tuple from split response
+  U14 — CLI wake-up: Relevant to today section shown when topic_memories present
+  U15 — CLI wake-up: Relevant to today omitted when no --topic
+  U16 — CLI wake-up: Relevant to today omitted when topic_memories empty
+  U17 — CLI wake-up: non-consecutive same-strand items grouped under one header
 
 Integration tests (live Memgraph + running FastAPI required):
-  I1 — GET /memory/wake-up returns 200 with memories list, each with required fields
-  I2 — GET /memory/wake-up?limit=5 returns ≤5 results ordered by importance desc
-  I3 — GET /memory/wake-up?topic=health&limit=10 returns ≤10 results (merged, deduped)
-  I4 — GET /memory/wake-up with Memgraph unavailable returns 503
+  I1  — GET /memory/wake-up returns 200 with memories list, each with required fields
+  I2  — GET /memory/wake-up?limit=5 returns ≤5 results ordered by importance desc
+  I3  — GET /memory/wake-up?topic=health&limit=10 returns ≤10 core results
+  I4  — GET /memory/wake-up with Memgraph unavailable returns 503
+  I5  — GET /memory/wake-up response includes strand_id on each memory item
+  I6  — GET /memory/wake-up?topic=... response includes topic_memories list
 """
 
 import re
@@ -213,6 +220,141 @@ class TestCloseSessionCLI:
             env={"API_BASE_URL": "http://localhost:19999"},
         )
         assert result.exit_code == 0
+
+
+_SPLIT_WAKE_UP_RESPONSE = {
+    "memories": [
+        {
+            "id": "mem-aaa",
+            "text": "The user has ADHD and benefits from short feedback loops.",
+            "type": "fact",
+            "tags": ["strand-core-health"],
+            "strand_id": "strand-core-health",
+            "importance": 5,
+            "created_at": "2026-01-01T00:00:00+00:00",
+        },
+        {
+            "id": "mem-bbb",
+            "text": "The user prefers async communication over meetings.",
+            "type": "observation",
+            "tags": ["strand-core-work"],
+            "strand_id": "strand-core-work",
+            "importance": 4,
+            "created_at": "2026-01-02T00:00:00+00:00",
+        },
+    ],
+    "topic_memories": [
+        {
+            "id": "mem-ccc",
+            "text": "The user is building the graph-memory-fabric project.",
+            "type": "fact",
+            "tags": ["strand-companion-graph-memory-fabric"],
+            "strand_id": "strand-companion-graph-memory-fabric",
+            "importance": 3,
+            "created_at": "2026-01-03T00:00:00+00:00",
+        },
+    ],
+}
+
+_SPLIT_WAKE_UP_NO_TOPIC = {
+    "memories": [
+        # mem-aaa and mem-ddd share strand-core-health but are non-consecutive
+        # (mem-bbb from strand-core-work is between them).
+        # This verifies that _render_section sorts before groupby.
+        {
+            "id": "mem-aaa",
+            "text": "The user has ADHD and benefits from short feedback loops.",
+            "type": "fact",
+            "tags": ["strand-core-health"],
+            "strand_id": "strand-core-health",
+            "importance": 5,
+            "created_at": "2026-01-01T00:00:00+00:00",
+        },
+        {
+            "id": "mem-bbb",
+            "text": "The user prefers async communication over meetings.",
+            "type": "observation",
+            "tags": ["strand-core-work"],
+            "strand_id": "strand-core-work",
+            "importance": 4,
+            "created_at": "2026-01-02T00:00:00+00:00",
+        },
+        {
+            "id": "mem-ddd",
+            "text": "The user exercises regularly to manage energy levels.",
+            "type": "fact",
+            "tags": ["strand-core-health"],
+            "strand_id": "strand-core-health",
+            "importance": 3,
+            "created_at": "2026-01-04T00:00:00+00:00",
+        },
+    ],
+    "topic_memories": [],
+}
+
+
+class TestWakeUpCLIOutput:
+    @respx.mock
+    def test_topic_section_shown_when_topic_memories_present(self):
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_SPLIT_WAKE_UP_RESPONSE)
+        )
+        result = runner.invoke(app, ["wake-up", "--topic", "graph memory"])
+        assert result.exit_code == 0
+        assert "### Core context" in result.output
+        assert "### Relevant to today" in result.output
+        # Topic memory text appears
+        assert "graph-memory-fabric project" in result.output
+
+    @respx.mock
+    def test_topic_section_omitted_when_no_topic_provided(self):
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_SPLIT_WAKE_UP_NO_TOPIC)
+        )
+        result = runner.invoke(app, ["wake-up"])
+        assert result.exit_code == 0
+        assert "### Core context" in result.output
+        assert "### Relevant to today" not in result.output
+
+    @respx.mock
+    def test_topic_section_omitted_when_topic_memories_empty(self):
+        """--topic provided but all results already in core: Relevant to today omitted."""
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_SPLIT_WAKE_UP_NO_TOPIC)
+        )
+        result = runner.invoke(app, ["wake-up", "--topic", "health"])
+        assert result.exit_code == 0
+        assert "### Core context" in result.output
+        assert "### Relevant to today" not in result.output
+
+    @respx.mock
+    def test_core_groups_by_strand_id(self):
+        """Non-consecutive items sharing a strand_id must be grouped under one header.
+
+        _SPLIT_WAKE_UP_NO_TOPIC has mem-aaa and mem-ddd (both strand-core-health)
+        with mem-bbb (strand-core-work) between them. Without sort-before-groupby,
+        mem-ddd would appear under a second strand-core-health header. This test
+        verifies the header appears exactly once and both memories appear under it.
+        """
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_SPLIT_WAKE_UP_NO_TOPIC)
+        )
+        result = runner.invoke(app, ["wake-up"])
+        assert result.exit_code == 0
+        output = result.output
+        # strand-core-health header appears exactly once
+        assert output.count("strand-core-health") == 1, (
+            "strand-core-health header should appear exactly once (sort+groupby)"
+        )
+        # Both health memories appear in output
+        assert "ADHD" in output
+        assert "exercises regularly" in output
+        # Strand header appears before both memory texts
+        health_pos = output.find("strand-core-health")
+        adhd_pos = output.find("ADHD")
+        exercise_pos = output.find("exercises regularly")
+        assert health_pos < adhd_pos, "Strand header must precede first memory"
+        assert health_pos < exercise_pos, "Strand header must precede second memory"
 
 
 # ---------------------------------------------------------------------------
