@@ -123,3 +123,38 @@ class TestRecallIncrement:
             if memory_id:
                 with test_driver.session() as session:
                     session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_id)
+
+
+@pytest.mark.integration
+class TestMaintenanceEndpoints:
+    def test_decay_pass_returns_counts(self, client, test_driver):
+        """Decay pass returns valid node/edge counts."""
+        resp = client.post("/memory", json={
+            "fact": f"wp029-decay-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
+        })
+        memory_id = resp.json()["memory_id"]
+        try:
+            r = client.post("/memory/maintenance/decay")
+            assert r.status_code == 200
+            data = r.json()
+            assert "nodes_updated" in data
+            assert "edges_updated" in data
+            assert isinstance(data["nodes_updated"], int)
+            assert isinstance(data["edges_updated"], int)
+            assert data["nodes_updated"] >= 1
+        finally:
+            with test_driver.session() as session:
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_id)
+
+    def test_decay_pass_not_shadowed_by_reinforce_route(self, client):
+        """POST /memory/maintenance/decay must NOT return 422 (route ordering check)."""
+        r = client.post("/memory/maintenance/decay")
+        # 200 = decay ran, 503 = DB issue — anything but 422 (wrong route) or 404
+        assert r.status_code not in (404, 422)
+
+    def test_weak_edges_returns_list(self, client):
+        r = client.get("/memory/maintenance/weak-edges")
+        assert r.status_code == 200
+        data = r.json()
+        assert "edges" in data
+        assert isinstance(data["edges"], list)

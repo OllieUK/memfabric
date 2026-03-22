@@ -253,6 +253,45 @@ async def create_person(req: CreatePersonRequest, request: Request) -> PersonIte
     return PersonItem(**person)
 
 
+class DecayPassResponse(BaseModel):
+    nodes_updated: int
+    edges_updated: int
+
+
+class WeakEdgeItem(BaseModel):
+    source_id: str
+    target_id: str
+    relation: str
+    weight: float
+    activation_count: Optional[int] = None
+
+
+class WeakEdgesResponse(BaseModel):
+    edges: List[WeakEdgeItem]
+
+
+@app.post("/memory/maintenance/decay", response_model=DecayPassResponse)
+async def run_decay_pass(request: Request) -> DecayPassResponse:
+    now_naive = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    now_iso = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            result = memory_repo.decay_pass(session, now_naive, now_iso)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return DecayPassResponse(**result)
+
+
+@app.get("/memory/maintenance/weak-edges", response_model=WeakEdgesResponse)
+async def get_weak_edges(request: Request) -> WeakEdgesResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            edges = memory_repo.list_weak_edges(session, settings.edge_prune_threshold)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return WeakEdgesResponse(edges=[WeakEdgeItem(**e) for e in edges])
+
+
 class NodeLabel(str, Enum):
     memory = "Memory"
     strand = "Strand"

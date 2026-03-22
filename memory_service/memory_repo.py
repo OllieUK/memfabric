@@ -3,6 +3,7 @@
 # Repository layer: all Cypher operations for the /memory endpoint.
 # All functions receive an already-open neo4j.Session; callers own the session lifecycle.
 
+import math
 from datetime import datetime, timezone
 
 _AUTO_RELATED_K = 5
@@ -428,3 +429,137 @@ def recall_increment(
             edge_increment=edge_increment,
             now=now,
         )
+
+
+def _parse_iso(ts: str) -> datetime:
+    """Parse an ISO datetime string to a timezone-aware datetime.
+
+    Handles both offset-aware ('2026-03-22T10:00:00+00:00') and
+    naive ('2026-03-22T10:00:00') formats by assuming UTC for naive strings.
+    """
+    dt = datetime.fromisoformat(ts)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def _apply_decay(current: float, rate: float, days: float) -> float:
+    """Return decayed value clamped to [0, 1]."""
+    return max(0.0, min(1.0, current * math.exp(-rate * days)))
+
+
+def decay_pass(session, now_naive: str, now_iso: str) -> dict:
+    """Recompute and write strength for all Memory nodes and weight for all edges.
+
+    Formula: new_value = current_value * exp(-decay_rate * days_since_anchor)
+    Anchors: Memory.last_reinforced_at, edge.last_activated_at.
+    After writing, resets anchors to now_iso so future inline calcs stay numerically stable.
+
+    Memgraph does not support duration.between() or epochSeconds on datetime types, so
+    the days computation is performed in Python after fetching the anchor timestamps.
+
+    Args:
+        now_naive: unused (kept for API compatibility); computation uses now_iso
+        now_iso: full ISO string representing the current time, e.g. "2026-03-22T10:30:00+00:00"
+
+    Returns dict with keys: nodes_updated, edges_updated (int counts).
+    """
+    now = _parse_iso(now_iso)
+
+    # --- Node decay ---
+    node_rows = list(session.run(
+        """
+        MATCH (m:Memory)
+        WHERE m.strength IS NOT NULL AND m.last_reinforced_at IS NOT NULL AND m.decay_rate IS NOT NULL
+        RETURN m.id AS id, m.strength AS strength,
+               m.last_reinforced_at AS anchor, m.decay_rate AS rate
+        """
+    ))
+
+    node_updates = []
+    for row in node_rows:
+        try:
+            anchor = _parse_iso(row["anchor"])
+        except (ValueError, TypeError):
+            continue
+        days = (now - anchor).total_seconds() / 86400.0
+        node_updates.append({
+            "id": row["id"],
+            "new_val": _apply_decay(row["strength"], row["rate"], days),
+        })
+
+    if node_updates:
+        session.run(
+            """
+            UNWIND $updates AS upd
+            MATCH (m:Memory {id: upd.id})
+            SET m.strength = upd.new_val, m.last_reinforced_at = $now_iso
+            """,
+            updates=node_updates,
+            now_iso=now_iso,
+        )
+
+    # --- Edge decay ---
+    edge_rows = list(session.run(
+        """
+        MATCH (src:Memory)-[r:RELATED_TO|LEADS_TO]->(tgt:Memory)
+        WHERE r.weight IS NOT NULL AND r.last_activated_at IS NOT NULL AND r.decay_rate IS NOT NULL
+        RETURN id(r) AS rid, r.weight AS weight,
+               r.last_activated_at AS anchor, r.decay_rate AS rate
+        """
+    ))
+
+    edge_updates = []
+    for row in edge_rows:
+        try:
+            anchor = _parse_iso(row["anchor"])
+        except (ValueError, TypeError):
+            continue
+        days = (now - anchor).total_seconds() / 86400.0
+        edge_updates.append({
+            "rid": row["rid"],
+            "new_val": _apply_decay(row["weight"], row["rate"], days),
+        })
+
+    if edge_updates:
+        session.run(
+            """
+            UNWIND $updates AS upd
+            MATCH ()-[r:RELATED_TO|LEADS_TO]->()
+            WHERE id(r) = upd.rid
+            SET r.weight = upd.new_val, r.last_activated_at = $now_iso
+            """,
+            updates=edge_updates,
+            now_iso=now_iso,
+        )
+
+    return {"nodes_updated": len(node_updates), "edges_updated": len(edge_updates)}
+
+
+def list_weak_edges(session, threshold: float) -> list[dict]:
+    """Return edges whose stored weight is below threshold (up to 200 results).
+
+    Run a decay pass first for accurate results.
+    """
+    result = session.run(
+        """
+        MATCH (src:Memory)-[r:RELATED_TO|LEADS_TO]->(tgt:Memory)
+        WHERE r.weight IS NOT NULL AND r.weight < $threshold
+        RETURN src.id AS source_id, tgt.id AS target_id,
+               type(r) AS relation, r.weight AS weight,
+               r.activation_count AS activation_count
+        ORDER BY r.weight ASC
+        LIMIT 200
+        """,
+        threshold=threshold,
+    )
+    return [
+        {
+            "source_id": row["source_id"],
+            "target_id": row["target_id"],
+            "relation": row["relation"],
+            "weight": row["weight"],
+            "activation_count": row["activation_count"],
+        }
+        for row in result
+    ]
