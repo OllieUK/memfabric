@@ -345,9 +345,10 @@ def list_strands(session) -> list:
 
 
 def list_persons(session) -> list[dict]:
-    """Return all Person nodes ordered by id."""
+    """Return all Person nodes with a non-null name, ordered by id."""
     result = session.run(
-        "MATCH (p:Person) RETURN p.id AS id, p.name AS name, "
+        "MATCH (p:Person) WHERE p.name IS NOT NULL "
+        "RETURN p.id AS id, p.name AS name, "
         "p.description AS description ORDER BY p.id"
     )
     return [
