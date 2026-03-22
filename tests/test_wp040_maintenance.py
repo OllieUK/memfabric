@@ -227,3 +227,55 @@ class TestLongRest:
                 if mid:
                     with test_driver.session() as session:
                         session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
+
+
+@pytest.mark.integration
+class TestDumpRestoreScript:
+    def test_dump_produces_valid_json(self, tmp_path, test_driver):
+        """dump_db() writes a JSON file with nodes, edges, and created_at keys."""
+        import json
+        from scripts.dump_db import dump_db
+        out_path = tmp_path / "test_dump.json"
+        with test_driver.session() as session:
+            dump_db(session, str(out_path))
+        assert out_path.exists()
+        data = json.loads(out_path.read_text())
+        assert "nodes" in data
+        assert "edges" in data
+        assert "created_at" in data
+        assert isinstance(data["nodes"], list)
+        assert isinstance(data["edges"], list)
+
+
+@pytest.mark.integration
+class TestMaintenanceStats:
+    def test_stats_endpoint_returns_correct_shape(self, client):
+        """GET /memory/maintenance/stats returns correct nested shape."""
+        r = client.get("/memory/maintenance/stats")
+        assert r.status_code == 200
+        data = r.json()
+        assert "nodes" in data
+        assert "edges" in data
+        assert "maintenance" in data
+        for field in ["total", "mean_strength", "median_strength", "below_prune_floor", "at_max_strength"]:
+            assert field in data["nodes"], f"Missing nodes.{field}"
+        for field in ["total", "mean_weight", "weak_count"]:
+            assert field in data["edges"], f"Missing edges.{field}"
+        for field in ["last_short_rest_at", "last_long_rest_at", "short_rest_overdue", "long_rest_overdue"]:
+            assert field in data["maintenance"], f"Missing maintenance.{field}"
+        assert isinstance(data["maintenance"]["short_rest_overdue"], bool)
+        assert isinstance(data["maintenance"]["long_rest_overdue"], bool)
+
+
+class TestWakeUpMaintenanceWarning:
+    def test_wake_up_response_model_has_maintenance_warning(self):
+        """WakeUpResponse model should include maintenance_warning field."""
+        from memory_service.main import WakeUpResponse
+        fields = WakeUpResponse.model_fields
+        assert "maintenance_warning" in fields
+
+    def test_wake_up_response_maintenance_warning_is_optional(self):
+        """maintenance_warning can be None."""
+        from memory_service.main import WakeUpResponse
+        r = WakeUpResponse(memories=[], topic_memories=[], maintenance_warning=None)
+        assert r.maintenance_warning is None
