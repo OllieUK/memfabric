@@ -4,6 +4,29 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-040 — Memory maintenance orchestration: Short Rest & Long Rest
+
+**Date:** 2026-03-22
+
+- 7 new Settings fields: `short_rest_recency_days`, `long_rest_recency_days`, `rediscovery_strength_threshold`, `edge_hard_prune_floor`, `edge_hard_prune_min_days`, `edge_modulation_factor`, `edge_modulation_cap`
+- `System` singleton node created by `init_schema.py` (MERGE, idempotent); stores `last_short_rest_at` / `last_long_rest_at`
+- `_apply_decay_modulated()` — edge-modulated decay: `effective_rate = base_rate / min(1 + factor * incoming_weight_sum, cap)` — well-connected nodes decay slower (elaborative encoding)
+- `decay_pass()` extended with `node_ids`, `edge_modulation_factor`, `edge_modulation_cap`, `dry_run` kwargs; UNWIND writes gated on `if not dry_run`; incoming edge weights fetched via `OPTIONAL MATCH`
+- `short_rest()` — scoped decay: Python-side recency filtering (`recall_count > 0 OR last_used_at within recency window`); updates `last_short_rest_at`
+- `long_rest()` — 4-step: full decay_pass + per-node vector rediscovery + prune candidates + system node update
+- `maintenance_stats()` — node/edge health snapshot + overdue flags vs. `short_rest_recency_days` / `long_rest_recency_days`
+- `POST /memory/maintenance/short-rest[?dry_run=true]` / `POST /memory/maintenance/long-rest[?dry_run=true][&prune=true]` / `GET /memory/maintenance/stats` — all registered before `POST /memory/{memory_id}/reinforce` (route ordering)
+- `GET /memory/wake-up` extended: `maintenance_warning` field surfaced when `last_long_rest_at` is stale (best-effort, never fails wake-up)
+- `MemoryClient.short_rest()`, `.long_rest()`, `.maintenance_stats()` + CLI `memory short-rest`, `memory long-rest`, `memory status`
+- MCP `memory_short_rest`, `memory_long_rest`, `memory_maintenance_stats` tools
+- `scripts/dump_db.py` + `scripts/restore_db.py` — pre-maintenance snapshot + MERGE-based restore with edge-type allowlist
+- 23 new tests (unit + integration); 220 passing; 4 pre-existing failures unchanged
+- **Key finding:** `edge_modulation_cap` default of `1.0` makes modulation inert — plan review caught and corrected to `10.0` before implementation. Division-by-zero guard (`max(..., 1e-9)`) added to `_apply_decay_modulated`. Plan review also caught WHERE clause operator precedence bug in `short_rest` Cypher.
+
+**Retrospective:** Three plan-review catches before a line of code was written saved at least one full debug cycle each. Quality review on Task 7 (CLI) surfaced output-placement inconsistency (`console.print` outside try block) and a false-positive dry-run test — both fixed before Task 10. Subagent-driven development worked cleanly across 10 tasks with no regressions. The per-node rediscovery loop in `long_rest` is O(k) vector queries — noted as a known scalability limit for large graphs; deferred to v2.
+
+---
+
 ## WP-029 — Memory + edge reinforcement (strength, decay, Hebbian activation)
 
 **Date:** 2026-03-22
