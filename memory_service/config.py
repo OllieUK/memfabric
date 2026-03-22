@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     edge_explicit_increment: float = 0.10
     edge_prune_threshold: float = 0.05
     min_memory_strength: float = 0.0
+    short_rest_recency_days: int = 7
+    long_rest_recency_days: int = 1
+    rediscovery_strength_threshold: float = 0.3
+    edge_hard_prune_floor: float = 0.01
+    edge_hard_prune_min_days: int = 90
+    edge_modulation_factor: float = 0.5
+    edge_modulation_cap: float = 10.0
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
