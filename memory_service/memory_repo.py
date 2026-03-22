@@ -3,6 +3,8 @@
 # Repository layer: all Cypher operations for the /memory endpoint.
 # All functions receive an already-open neo4j.Session; callers own the session lifecycle.
 
+from datetime import datetime, timezone
+
 _AUTO_RELATED_K = 5
 _AUTO_RELATED_MAX_DISTANCE = 0.5
 
@@ -369,3 +371,60 @@ def upsert_person(session, req) -> dict:
     if record is None:
         raise RuntimeError(f"upsert_person: MERGE returned no record for id={req.id!r}")
     return {"id": record["id"], "name": record["name"], "description": record["description"]}
+
+
+def recall_increment(
+    session,
+    memory_ids: list[str],
+    strength_increment: float,
+    edge_increment: float,
+) -> None:
+    """Increment recall_count and strength on recalled memories; activate traversed edges.
+
+    Called in a background task after search — does not block the response.
+    Strength is capped at 1.0. last_reinforced_at is NOT updated (recall != explicit reinforcement).
+    Edge activation covers RELATED_TO and LEADS_TO edges between members of the result set.
+    """
+    if not memory_ids:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Node increment
+    session.run(
+        """
+        UNWIND $ids AS mid
+        MATCH (m:Memory {id: mid})
+        SET m.recall_count = coalesce(m.recall_count, 0) + 1,
+            m.strength = CASE
+                WHEN coalesce(m.strength, m.importance / 5.0) + $increment >= 1.0
+                THEN 1.0
+                ELSE coalesce(m.strength, m.importance / 5.0) + $increment
+            END
+        """,
+        ids=memory_ids,
+        increment=strength_increment,
+    )
+
+    # Edge activation — RELATED_TO and LEADS_TO edges within the result set
+    if len(memory_ids) > 1:
+        session.run(
+            """
+            UNWIND $ids AS src
+            UNWIND $ids AS tgt
+            WITH src, tgt
+            WHERE src <> tgt
+            OPTIONAL MATCH (a:Memory {id: src})-[r:RELATED_TO|LEADS_TO]->(b:Memory {id: tgt})
+            WITH r, $edge_increment AS inc, $now AS ts
+            WHERE r IS NOT NULL
+            SET r.activation_count = coalesce(r.activation_count, 0) + 1,
+                r.last_activated_at = ts,
+                r.weight = CASE
+                    WHEN coalesce(r.weight, 0.5) + inc >= 1.0 THEN 1.0
+                    ELSE coalesce(r.weight, 0.5) + inc
+                END
+            """,
+            ids=memory_ids,
+            edge_increment=edge_increment,
+            now=now,
+        )

@@ -1,5 +1,6 @@
 import uuid
 import pytest
+from memory_service import memory_repo
 
 
 @pytest.mark.integration
@@ -69,3 +70,56 @@ class TestReinforcementSettings:
         assert s.edge_explicit_increment == 0.10
         assert s.edge_prune_threshold == 0.05
         assert s.min_memory_strength == 0.0
+
+
+@pytest.mark.integration
+class TestRecallIncrement:
+    def test_search_increments_recall_count(self, client, test_driver):
+        """Searching twice should give recall_count >= 2 and strength > initial."""
+        memory_id = None
+        fact = f"wp029-recall-test-{uuid.uuid4()}"
+        try:
+            resp = client.post("/memory", json={
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 3,
+            })
+            assert resp.status_code == 200
+            memory_id = resp.json()["memory_id"]
+            initial_strength = 3 / 5.0  # 0.6
+
+            # Search twice — TestClient runs background tasks synchronously
+            for _ in range(2):
+                client.post("/memory/search", json={"query": fact, "limit": 5})
+
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.recall_count AS rc, m.strength AS s",
+                    id=memory_id,
+                ).single()
+                assert row["rc"] >= 2
+                assert row["s"] > initial_strength
+        finally:
+            if memory_id:
+                with test_driver.session() as session:
+                    session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_id)
+
+    def test_strength_capped_at_1(self, test_driver):
+        """Strength must never exceed 1.0 regardless of how many increments."""
+        memory_id = None
+        try:
+            with test_driver.session() as session:
+                memory_id = f"wp029-cap-{uuid.uuid4()}"
+                session.run(
+                    "CREATE (m:Memory {id: $id, importance: 5, strength: 0.95, "
+                    "recall_count: 0, type: 'fact', tags: [], text: 'x', fact: 'x', "
+                    "embedding: [], created_at: '2026-01-01', last_used_at: '2026-01-01'})",
+                    id=memory_id,
+                )
+                memory_repo.recall_increment(session, [memory_id], 0.5, 0.0)
+                row = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.strength AS s", id=memory_id
+                ).single()
+                assert row["s"] <= 1.0
+        finally:
+            if memory_id:
+                with test_driver.session() as session:
+                    session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_id)

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, Field, model_validator
 
@@ -119,14 +119,35 @@ class SearchMemoryResponse(BaseModel):
     memories: List[MemoryHit]
 
 
+def _do_recall_increment(driver, memory_ids: list[str]) -> None:
+    """Background task: fire recall increment for searched memories."""
+    try:
+        with driver.session() as session:
+            memory_repo.recall_increment(
+                session,
+                memory_ids,
+                strength_increment=settings.recall_strength_increment,
+                edge_increment=settings.edge_recall_increment,
+            )
+    except Exception:
+        pass  # best-effort; do not surface errors to the search response
+
+
 @app.post("/memory/search", response_model=SearchMemoryResponse)
-async def search_memory(req: SearchMemoryRequest, request: Request) -> SearchMemoryResponse:
+async def search_memory(
+    req: SearchMemoryRequest, request: Request, background_tasks: BackgroundTasks
+) -> SearchMemoryResponse:
     query_embedding = get_embedding(req.query)
     try:
         with request.app.state.driver.session() as session:
             results = memory_repo.search_memories(session, req, query_embedding)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+
+    memory_ids = [r["id"] for r in results]
+    if memory_ids:
+        background_tasks.add_task(_do_recall_increment, request.app.state.driver, memory_ids)
+
     return SearchMemoryResponse(
         memories=[
             MemoryHit(
