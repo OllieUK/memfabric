@@ -90,6 +90,20 @@ WP-029 adds the mechanics of decay/reinforcement but leaves triggering entirely 
 
 **Trigger:** `POST /memory/maintenance/long-rest` · CLI `memory long-rest` · MCP `memory_long_rest` · OS cron / Claude Code `/cron`
 
+#### Edge-modulated decay (elaborative encoding)
+
+Nodes that are richly cross-referenced should decay slower — mirroring how elaborative encoding in human memory makes well-connected facts more resistant to forgetting. Each associative pathway provides an independent retrieval route; the memory survives because its neighbours keep priming it.
+
+**Design:** During `decay_pass`, modulate each node's effective decay rate by the weight of its incoming edges:
+
+```
+effective_decay_rate = base_decay_rate / (1 + k * sum(incoming_edge_weights))
+```
+
+Where `k = EDGE_MODULATION_FACTOR` (default 0.5). A node with total incoming weight 2.0 decays at `base / 2.0`; an isolated node decays at `base`. Cap the divisor to prevent indestructible super-nodes (e.g. max 10× reduction).
+
+This is computed in Python during the existing fetch → compute → UNWIND cycle in `decay_pass` — no schema changes required; one extra Cypher clause to fetch incoming edge weights per node.
+
 #### New config variables
 
 | Variable | Default | Description |
@@ -98,6 +112,8 @@ WP-029 adds the mechanics of decay/reinforcement but leaves triggering entirely 
 | `REDISCOVERY_STRENGTH_THRESHOLD` | 0.3 | Min strength to participate in edge rediscovery |
 | `EDGE_HARD_PRUNE_FLOOR` | 0.01 | Effective weight below which edges are hard-prune candidates |
 | `EDGE_HARD_PRUNE_MIN_DAYS` | 90 | Min days of no activation before eligible for hard pruning |
+| `EDGE_MODULATION_FACTOR` | 0.5 | How strongly incoming edge weight reduces a node's decay rate |
+| `EDGE_MODULATION_CAP` | 10.0 | Maximum decay rate reduction factor (prevents indestructible nodes) |
 
 #### Definition of Success
 
@@ -106,6 +122,7 @@ WP-029 adds the mechanics of decay/reinforcement but leaves triggering entirely 
 - [ ] `?prune=true` hard-deletes edges below floor after min-days
 - [ ] CLI `memory short-rest` / `memory long-rest`; MCP `memory_short_rest` / `memory_long_rest`
 - [ ] Edge rediscovery bounded to `strength >= REDISCOVERY_STRENGTH_THRESHOLD` anchors
+- [ ] Decay pass applies edge-modulated decay rate per node (isolated nodes decay faster than well-connected nodes)
 - [ ] Short Rest completes in < 1s on graphs up to 1000 nodes
 - [ ] Integration test: two similar memories → long-rest → new `RELATED_TO` edge discovered
 - [ ] All config vars in `Settings` + `.env.example`

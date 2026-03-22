@@ -184,6 +184,13 @@ async def wake_up(
     limit: int = Query(default=20, ge=1, le=100),
     topic: Optional[str] = Query(default=None),
 ) -> WakeUpResponse:
+    # NOTE: wake-up intentionally does NOT call recall_increment.
+    # Wake-up is passive context priming, not active recall. Strengthening nodes here
+    # would create a feedback loop where frequently-loaded memories self-reinforce
+    # regardless of whether they were actually used in the session.
+    # Strength signals come from: search (automatic) and explicit reinforce at close-session
+    # (companion-driven, for memories that genuinely shaped the session).
+    # Do NOT add recall_increment here without revisiting this design decision.
     topic_embedding = get_embedding(topic) if topic else None
     try:
         with request.app.state.driver.session() as session:
