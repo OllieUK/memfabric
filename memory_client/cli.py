@@ -228,18 +228,17 @@ def short_rest(
     try:
         with _make_client() as client:
             result = client.short_rest(dry_run=dry_run)
+        dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
+        console.print(
+            f"Nodes decayed: {result['nodes_decayed']}, "
+            f"Edges decayed: {result['edges_decayed']}{dr_label}"
+        )
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)
     except httpx.ConnectError:
         err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
         raise typer.Exit(1)
-
-    dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
-    console.print(
-        f"Nodes decayed: {result['nodes_decayed']}, "
-        f"Edges decayed: {result['edges_decayed']}{dr_label}"
-    )
 
 
 @app.command("long-rest")
@@ -251,20 +250,19 @@ def long_rest(
     try:
         with _make_client() as client:
             result = client.long_rest(dry_run=dry_run, prune=prune)
+        dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
+        console.print(
+            f"Nodes decayed: {result['nodes_decayed']}, "
+            f"Edges decayed: {result['edges_decayed']}, "
+            f"Edges discovered: {result['edges_discovered']}, "
+            f"Edges pruned: {result['edges_pruned']}{dr_label}"
+        )
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)
     except httpx.ConnectError:
         err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
         raise typer.Exit(1)
-
-    dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
-    console.print(
-        f"Nodes decayed: {result['nodes_decayed']}, "
-        f"Edges decayed: {result['edges_decayed']}, "
-        f"Edges discovered: {result['edges_discovered']}, "
-        f"Edges pruned: {result['edges_pruned']}{dr_label}"
-    )
 
 
 @app.command("status")

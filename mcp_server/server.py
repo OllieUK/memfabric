@@ -1,7 +1,9 @@
 """MCP server for graph-memory-fabric.
 
-Exposes 5 tools via FastMCP over STDIO transport:
-  memory_add, memory_search, memory_wake_up, memory_list_strands, memory_close_session
+Exposes tools via FastMCP over STDIO transport:
+  memory_add, memory_search, memory_wake_up, memory_list_strands, memory_close_session,
+  memory_list_persons, memory_create_person,
+  memory_short_rest, memory_long_rest, memory_maintenance_stats
 """
 from itertools import groupby
 

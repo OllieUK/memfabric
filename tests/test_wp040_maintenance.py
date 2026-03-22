@@ -410,19 +410,20 @@ class TestMaintenanceCLI:
         assert "50" in result.output
 
     def test_short_rest_dry_run_cli(self):
-        """memory short-rest --dry-run calls endpoint with dry_run=true."""
+        """memory short-rest --dry-run forwards dry_run=true query param to the endpoint."""
         import respx
         import httpx
         from typer.testing import CliRunner
         from memory_client.cli import app as cli_app
         runner = CliRunner()
         with respx.mock:
-            respx.post("http://localhost:8000/memory/maintenance/short-rest").mock(
+            route = respx.post("http://localhost:8000/memory/maintenance/short-rest").mock(
                 return_value=httpx.Response(200, json={"nodes_decayed": 5, "edges_decayed": 2, "dry_run": True})
             )
             result = runner.invoke(cli_app, ["short-rest", "--dry-run"])
         assert result.exit_code == 0
         assert "5" in result.output
+        assert "dry_run=true" in str(route.calls.last.request.url)
 
     def test_long_rest_cli(self):
         """memory long-rest calls endpoint and prints summary."""
