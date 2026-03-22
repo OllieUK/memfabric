@@ -15,6 +15,15 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     agent_id: str = "claude-code"
 
+    memory_decay_rate: float = 0.01
+    edge_decay_rate: float = 0.005
+    recall_strength_increment: float = 0.05
+    explicit_strength_increment: float = 0.20
+    edge_recall_increment: float = 0.02
+    edge_explicit_increment: float = 0.10
+    edge_prune_threshold: float = 0.05
+    min_memory_strength: float = 0.0
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
