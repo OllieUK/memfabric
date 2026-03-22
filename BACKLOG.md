@@ -44,7 +44,8 @@
 | 6 | WP-025 | Extract shared CLI error handler in `cli.py` | 5 | L | S | — | `add-memory`, `search-memory`, `dump-graph`, `list-strands` all repeat identical `except httpx.HTTPStatusError / ConnectError` blocks — **4 copies, trigger condition met.** Extract a shared error handler. `/simplify` finding from WP-007 and WP-027. |
 | 6 | WP-026 | `MemoryType` mirror in `memory_client` | 5 | L | S | WP-007 ✅ | `add_memory(type: str)` accepts any string; mirror `MemoryType` enum from `memory_service/main.py` into `memory_client/` so callers get IDE completion without cross-package import. `/simplify` finding from WP-007. |
 | 6 | WP-024 | `cleanup_nodes` support multiple ids per label | 5 | L | S | — | `extra_ids: dict[str, str]` only supports one node per label; test modules that need to clean two Agent or Project nodes must open a second session. Change to `dict[str, str \| list[str]]`. `/simplify` finding from WP-005. |
-| 7 | WP-038 | Memory lifecycle operations — update, merge, archive | 4 | H | L | WP-006, WP-037 | Add first-class memory maintenance flows so companions can correct, consolidate, and retire memories without raw graph edits. Cover API, client, CLI, graph semantics, and migration-safe archive behaviour. See detailed description below. |
+| 7 | WP-040 | Memory maintenance orchestration — Short Rest & Long Rest | 4 | H | M | WP-029 | Scheduled/triggered maintenance: Short Rest (cheap, end-of-session decay on recently-active memories) + Long Rest (full decay + edge rediscovery + weak-edge pruning). API endpoints, CLI commands, MCP tools. Edge rediscovery scoped to `strength >= REDISCOVERY_STRENGTH_THRESHOLD` to keep it O(k·log n). See detailed description below. |
+| 8 | WP-038 | Memory lifecycle operations — update, merge, archive | 4 | H | L | WP-006, WP-037 | Add first-class memory maintenance flows so companions can correct, consolidate, and retire memories without raw graph edits. Cover API, client, CLI, graph semantics, and migration-safe archive behaviour. See detailed description below. |
 | 8 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | 4 | H | M | WP-038 | Prevent integration and validation artefacts from polluting live companion context. Add explicit ephemeral/test semantics so test memories and agents are excluded from normal retrieval and can be auto-cleaned once no longer needed. See detailed description below. |
 | 9 | WP-023 | Extract `get_session` context manager for 503 handling | 4 | L | S | WP-006 | The `try/with driver.session()/except ServiceUnavailable→503` block is copy-pasted across all endpoints. Extract to a context manager or dependency helper. WP-006 creates the 3rd copy; WP-029 adds further endpoints — do after either. `/simplify` finding from WP-005. |
 | 9 | WP-020 | UNWIND for person/strand/related_ids writes | 4 | L | S | WP-004 ✅ | Steps 3/4/5a in `memory_repo.add_memory` loop with one `session.run()` per item. Replace with UNWIND queries for bulk-friendly writes. Negligible at v1 cardinality; add `related_ids` max-length cap (e.g. 20) at same time. `/simplify` finding from WP-004. |
@@ -210,6 +211,68 @@ This migration runs immediately after the WP-028 migration pass, in the same mai
 - [ ] Migration script: `scripts/migrate_person_nodes.py` — idempotent, MERGE-based, scans all memories, logs each ABOUT edge created
 - [ ] Integration test: add memory with `person_ids`, verify ABOUT edge exists in graph
 - [ ] Migration script run against live graph; ABOUT edges verified in Memgraph Lab
+
+---
+
+### WP-040 Detail — Memory maintenance orchestration: Short Rest & Long Rest
+
+#### Motivation
+
+WP-029 adds the mechanics of decay and reinforcement but leaves triggering entirely manual (`memory run-decay`). In practice the fabric needs to self-maintain on a schedule — decaying stale memories, discovering newly-relevant connections as the graph grows, and pruning edges that have never fired. Without orchestration, strength values drift and the graph never reorganises around what's actually been useful.
+
+The D&D framing captures the two operating modes cleanly:
+
+- **Short Rest** — cheap, safe to run at every session close. Targets only recently-active memories. Designed to be triggered by the companion (via MCP) or scheduled frequently.
+- **Long Rest** — thorough, run nightly or on demand. Full graph scan including edge rediscovery.
+
+#### Short Rest
+
+**Scope:** Memory nodes where `last_used_at` is within a configurable recency window (default: 7 days) OR `recall_count > 0`. Edges adjacent to those nodes.
+
+**Operations:**
+1. Decay pass on scoped nodes + adjacent edges (same formula as WP-029 `decay_pass`, filtered)
+2. Returns summary: `nodes_decayed`, `edges_decayed`
+
+**Trigger:** `POST /memory/maintenance/short-rest` · CLI `memory short-rest` · MCP `memory_short_rest`
+
+Suitable for calling at session close (companion calls `memory_short_rest()` before `memory_close_session()`).
+
+#### Long Rest
+
+**Scope:** All nodes and edges.
+
+**Operations:**
+1. Full decay pass (equivalent to WP-029 `POST /memory/maintenance/decay`)
+2. **Edge rediscovery:** For each Memory node where `strength >= REDISCOVERY_STRENGTH_THRESHOLD` (default 0.3), re-run vector search and MERGE any new `RELATED_TO` edges for pairs scoring within `_AUTO_RELATED_MAX_DISTANCE` that don't already exist. This catches memories that became semantically close after later additions.
+3. **Weak-edge pruning report:** List (and optionally hard-delete) edges where `effective_weight < EDGE_HARD_PRUNE_FLOOR` (default 0.01) after N days of no activation (default 90). Hard-delete is opt-in via `?prune=true` query param.
+4. Returns summary: `nodes_decayed`, `edges_decayed`, `edges_discovered`, `edges_pruned`
+
+**Trigger:** `POST /memory/maintenance/long-rest` · CLI `memory long-rest` · MCP `memory_long_rest` · OS cron / Claude Code `/cron` for nightly scheduling
+
+#### Edge rediscovery scope rule
+
+Only `strength >= REDISCOVERY_STRENGTH_THRESHOLD` memories participate as query anchors. This bounds the scan to O(k · log n) where k = active memories, rather than O(n²). As the graph grows and most memories decay below threshold, the scan automatically shrinks.
+
+#### New configuration variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SHORT_REST_RECENCY_DAYS` | `7` | Lookback window for Short Rest scope |
+| `REDISCOVERY_STRENGTH_THRESHOLD` | `0.3` | Minimum strength to participate in edge rediscovery |
+| `EDGE_HARD_PRUNE_FLOOR` | `0.01` | Effective weight below which edges are candidates for hard deletion |
+| `EDGE_HARD_PRUNE_MIN_DAYS` | `90` | Minimum days of no activation before an edge is eligible for hard pruning |
+
+#### Definition of Success
+
+- [ ] `POST /memory/maintenance/short-rest` runs decay on recently-active nodes/edges only; returns `{nodes_decayed, edges_decayed}`
+- [ ] `POST /memory/maintenance/long-rest` runs full decay + edge rediscovery + prune report; returns `{nodes_decayed, edges_decayed, edges_discovered, edges_pruned}`
+- [ ] `?prune=true` on long-rest hard-deletes edges below `EDGE_HARD_PRUNE_FLOOR` after `EDGE_HARD_PRUNE_MIN_DAYS`
+- [ ] CLI `memory short-rest` / `memory long-rest` commands
+- [ ] MCP `memory_short_rest` / `memory_long_rest` tools
+- [ ] Edge rediscovery limited to `strength >= REDISCOVERY_STRENGTH_THRESHOLD` anchors
+- [ ] Short Rest completes in < 1s on graphs up to 1000 nodes (acceptable for session-close trigger)
+- [ ] Long Rest integration test: insert two semantically similar memories, run long-rest, verify a new `RELATED_TO` edge is discovered
+- [ ] All new config vars in `Settings` + `.env.example`
 
 ---
 
