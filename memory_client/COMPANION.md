@@ -6,6 +6,91 @@
 
 ---
 
+# Memory Model
+
+Before following the session protocol, understand the three tiers of memory you are operating across. Each tier has a different scope, lifespan, and purpose.
+
+## Tier 1 — Context window (in-session, managed by the LLM runtime)
+
+Your active context window is your working memory. Everything currently visible to you — the conversation history, the system prompt, wake-up output, search results — lives here. It is fast, rich, and immediately accessible.
+
+**Key properties:**
+- Exists only for the duration of the current session
+- Has a fixed capacity; older content scrolls out of reach as the session grows
+- You cannot persist anything here — when the session ends, it is gone
+- You do not need to "manage" it explicitly; the runtime handles it
+
+**What belongs here:** The current conversation, retrieved memories (from wake-up and search), working hypotheses, in-progress reasoning, and anything that is only relevant to this session's immediate task.
+
+## Tier 2 — Session working set (in-session, curated by you)
+
+Within a session, not everything in the context window is equally important. The working set is the subset of retrieved memories and in-session observations that you are actively using to guide your responses. You manage this implicitly through what you attend to and how you weight it.
+
+**Key properties:**
+- Derived from Tier 1 — it is a cognitive selection, not a separate store
+- Grows as you search and retrieve memories mid-session
+- Should be refreshed (via `memory search`) when the conversation topic shifts significantly
+- In-session facts (things the user tells you now) live here until the session ends
+
+**What belongs here:** Retrieved fabric memories relevant to the current topic, user corrections or new facts stated this session, context that shapes your immediate recommendations.
+
+**Critical:** Do not confuse recency with importance. A memory surfaced by wake-up this morning and never referenced again carries less weight than a memory the user just explicitly confirmed. Your working set should reflect active relevance, not arrival order.
+
+## Tier 3 — The fabric (persistent, managed by the memory service)
+
+The Graph Memory Fabric (Memgraph) is your long-term memory. It persists across all sessions, accumulates over time, and is the only tier that survives when the context window closes.
+
+**Key properties:**
+- Persists indefinitely; decays gradually via the reinforcement model (see below)
+- Organised as a graph: Memory nodes connected by typed edges (`RELATED_TO`, `LEADS_TO`, `ABOUT`, `IN_STRAND`)
+- Retrieved via semantic vector search and graph traversal, not exact lookup
+- Strengthened by use (recall increments), weakened by disuse (decay), reinforced by explicit signal
+- **Wake-up does not strengthen memories** — it is passive priming, not recall. Only search and explicit reinforce produce strength signals.
+
+**What belongs here:** Durable facts, decisions, insights, and todos that would be useful to a future session with no knowledge of this conversation.
+
+---
+
+## The orchestration model
+
+The three tiers form a pipeline in both directions:
+
+### Inward (fabric → context): loading
+
+1. **Session start:** `wake-up` loads the highest-importance, most-recently-reinforced memories into Tier 1. This is your baseline context.
+2. **Mid-session:** `search` retrieves semantically relevant memories as the conversation evolves. Add retrieved memories to your active working set (Tier 2) when they are relevant to the current topic.
+3. **Eviction:** As the context window fills, older retrieved memories scroll out of reach. This is normal. Re-search if you need something you can no longer see.
+
+### Outward (context → fabric): persistence
+
+1. **As they arise:** When a durable fact, decision, or insight is established, write it to the fabric immediately via `memory add`. Do not defer to session end — mid-session writes ensure nothing is lost if the session is interrupted.
+2. **At session close:** `close-session` scaffolds a review of what happened. Add anything durable that was not already written.
+3. **Reinforce selectively:** After close-session, explicitly reinforce memories that genuinely shaped the session's decisions. These are the memories that should decay slowest. Do not reinforce everything — the signal has value only if it is selective.
+
+### What not to persist
+
+Not everything in Tier 1 or Tier 2 belongs in the fabric. Do not store:
+- Intermediate reasoning steps or working hypotheses that were superseded
+- Information the user stated this session but did not confirm as durable ("I'm thinking about X" is not a decision)
+- Ephemeral session logistics ("let's come back to that" — unless it becomes a committed todo)
+- Duplicates of things already in the fabric (search before writing)
+
+The test: *would a future session with no knowledge of this conversation benefit from knowing this?* If yes, store it. If it only makes sense in the current context, let it stay in Tier 1 and expire.
+
+---
+
+## Reinforcement and decay — what this means for you
+
+The fabric is not an inert store. Memories have `strength` (0–1) that decays over time and grows with use:
+
+- **Search hits** automatically increment strength (background task, no action needed from you)
+- **Explicit reinforce** (`memory reinforce-memory`) applies a stronger signal — use this for memories that genuinely drove a decision or insight this session
+- **Decay** runs periodically (nightly Long Rest, end-of-session Short Rest when WP-040 is implemented) — unused memories gradually fade
+
+**Implication for you:** You do not need to manage decay or strength directly. But you should call explicit reinforce at close-session for the 2–4 memories most central to what happened. Over time this shapes the fabric toward what is actually useful, not just what was stored most recently.
+
+---
+
 # Companion Session Protocol
 
 This document defines how a companion agent (Claude Code or other) should open and close a session using the Graph Memory Fabric.
