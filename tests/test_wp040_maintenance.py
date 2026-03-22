@@ -336,3 +336,108 @@ class TestWakeUpMaintenanceWarning:
         from memory_service.main import WakeUpResponse
         r = WakeUpResponse(memories=[], topic_memories=[], maintenance_warning=None)
         assert r.maintenance_warning is None
+
+
+class TestMcpMaintenance:
+    def test_memory_short_rest_tool(self):
+        from unittest.mock import MagicMock, patch
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.short_rest.return_value = {"nodes_decayed": 3, "edges_decayed": 1, "dry_run": False}
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_short_rest
+            result = memory_short_rest()
+        assert "3" in result
+
+    def test_memory_long_rest_tool(self):
+        from unittest.mock import MagicMock, patch
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.long_rest.return_value = {
+            "nodes_decayed": 10, "edges_decayed": 5,
+            "edges_discovered": 2, "edges_pruned": 0, "dry_run": True,
+        }
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_long_rest
+            result = memory_long_rest(dry_run=True)
+        assert "10" in result
+
+    def test_memory_maintenance_stats_tool(self):
+        from unittest.mock import MagicMock, patch
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.maintenance_stats.return_value = {
+            "nodes": {"total": 100, "mean_strength": 0.5, "median_strength": 0.5,
+                       "below_prune_floor": 5, "at_max_strength": 2},
+            "edges": {"total": 300, "mean_weight": 0.4, "weak_count": 15},
+            "maintenance": {"last_short_rest_at": None, "last_long_rest_at": None,
+                             "short_rest_overdue": True, "long_rest_overdue": True},
+        }
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_maintenance_stats
+            result = memory_maintenance_stats()
+        assert result["nodes"]["total"] == 100
+
+
+class TestMaintenanceCLI:
+    def test_status_command_renders_output(self):
+        """memory status prints node total."""
+        import respx
+        import httpx
+        from typer.testing import CliRunner
+        from memory_client.cli import app as cli_app
+        runner = CliRunner()
+        stats = {
+            "nodes": {"total": 50, "mean_strength": 0.61, "median_strength": 0.58,
+                       "below_prune_floor": 3, "at_max_strength": 1},
+            "edges": {"total": 200, "mean_weight": 0.43, "weak_count": 10},
+            "maintenance": {
+                "last_short_rest_at": "2026-03-22T10:00:00+00:00",
+                "last_long_rest_at": None,
+                "short_rest_overdue": False,
+                "long_rest_overdue": True,
+            }
+        }
+        with respx.mock:
+            respx.get("http://localhost:8000/memory/maintenance/stats").mock(
+                return_value=httpx.Response(200, json=stats)
+            )
+            result = runner.invoke(cli_app, ["status"])
+        assert result.exit_code == 0
+        assert "50" in result.output
+
+    def test_short_rest_dry_run_cli(self):
+        """memory short-rest --dry-run calls endpoint with dry_run=true."""
+        import respx
+        import httpx
+        from typer.testing import CliRunner
+        from memory_client.cli import app as cli_app
+        runner = CliRunner()
+        with respx.mock:
+            respx.post("http://localhost:8000/memory/maintenance/short-rest").mock(
+                return_value=httpx.Response(200, json={"nodes_decayed": 5, "edges_decayed": 2, "dry_run": True})
+            )
+            result = runner.invoke(cli_app, ["short-rest", "--dry-run"])
+        assert result.exit_code == 0
+        assert "5" in result.output
+
+    def test_long_rest_cli(self):
+        """memory long-rest calls endpoint and prints summary."""
+        import respx
+        import httpx
+        from typer.testing import CliRunner
+        from memory_client.cli import app as cli_app
+        runner = CliRunner()
+        with respx.mock:
+            respx.post("http://localhost:8000/memory/maintenance/long-rest").mock(
+                return_value=httpx.Response(200, json={
+                    "nodes_decayed": 10, "edges_decayed": 4,
+                    "edges_discovered": 2, "edges_pruned": 0, "dry_run": False,
+                })
+            )
+            result = runner.invoke(cli_app, ["long-rest"])
+        assert result.exit_code == 0
+        assert "10" in result.output

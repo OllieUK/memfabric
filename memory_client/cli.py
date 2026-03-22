@@ -220,6 +220,90 @@ def run_decay() -> None:
         raise typer.Exit(1)
 
 
+@app.command("short-rest")
+def short_rest(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Compute but do not write"),
+) -> None:
+    """Run a Short Rest decay pass on recently-active memories."""
+    try:
+        with _make_client() as client:
+            result = client.short_rest(dry_run=dry_run)
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
+    console.print(
+        f"Nodes decayed: {result['nodes_decayed']}, "
+        f"Edges decayed: {result['edges_decayed']}{dr_label}"
+    )
+
+
+@app.command("long-rest")
+def long_rest(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Compute but do not write"),
+    prune: bool = typer.Option(False, "--prune", help="Hard-delete eligible weak edges"),
+) -> None:
+    """Run a Long Rest: full decay + edge rediscovery + optional prune."""
+    try:
+        with _make_client() as client:
+            result = client.long_rest(dry_run=dry_run, prune=prune)
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
+    console.print(
+        f"Nodes decayed: {result['nodes_decayed']}, "
+        f"Edges decayed: {result['edges_decayed']}, "
+        f"Edges discovered: {result['edges_discovered']}, "
+        f"Edges pruned: {result['edges_pruned']}{dr_label}"
+    )
+
+
+@app.command("status")
+def status() -> None:
+    """Show a health summary of the memory fabric."""
+    try:
+        with _make_client() as client:
+            data = client.maintenance_stats()
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    nodes = data["nodes"]
+    edges = data["edges"]
+    maint = data["maintenance"]
+
+    console.print("\n[bold]Memory Fabric Health[/bold]")
+    console.print(
+        f"  Nodes: {nodes['total']} total  "
+        f"mean strength: {nodes['mean_strength']:.2f}  "
+        f"median: {nodes['median_strength']:.2f}  "
+        f"at-max: {nodes['at_max_strength']}  "
+        f"below-floor: {nodes['below_prune_floor']}"
+    )
+    console.print(
+        f"  Edges: {edges['total']} total  "
+        f"mean weight: {edges['mean_weight']:.2f}  "
+        f"weak: {edges['weak_count']}"
+    )
+
+    sr_overdue = "[red]OVERDUE[/red]" if maint["short_rest_overdue"] else "[green]ok[/green]"
+    lr_overdue = "[red]OVERDUE[/red]" if maint["long_rest_overdue"] else "[green]ok[/green]"
+    console.print(f"\n  Short rest: {maint.get('last_short_rest_at') or 'never'} — {sr_overdue}")
+    console.print(f"  Long rest:  {maint.get('last_long_rest_at') or 'never'} — {lr_overdue}")
+
+
 @app.command("wake-up")
 def wake_up(
     topic: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic to focus the session on"),

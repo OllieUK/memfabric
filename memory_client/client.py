@@ -155,6 +155,32 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["edges"]
 
+    def short_rest(self, *, dry_run: bool = False) -> dict:
+        """POST /memory/maintenance/short-rest. Returns {nodes_decayed, edges_decayed, dry_run}."""
+        params: dict = {}
+        if dry_run:
+            params["dry_run"] = "true"
+        response = self._http.post("/memory/maintenance/short-rest", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def long_rest(self, *, dry_run: bool = False, prune: bool = False) -> dict:
+        """POST /memory/maintenance/long-rest. Returns {nodes_decayed, edges_decayed, edges_discovered, edges_pruned, dry_run}."""
+        params: dict = {}
+        if dry_run:
+            params["dry_run"] = "true"
+        if prune:
+            params["prune"] = "true"
+        response = self._http.post("/memory/maintenance/long-rest", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def maintenance_stats(self) -> dict:
+        """GET /memory/maintenance/stats. Returns the health snapshot dict."""
+        response = self._http.get("/memory/maintenance/stats")
+        response.raise_for_status()
+        return response.json()
+
     def get_graph(
         self,
         *,
