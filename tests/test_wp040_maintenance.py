@@ -246,6 +246,63 @@ class TestDumpRestoreScript:
         assert isinstance(data["nodes"], list)
         assert isinstance(data["edges"], list)
 
+    def test_restore_dry_run_returns_counts_without_writing(self, test_driver):
+        """restore_db dry_run=True returns expected counts but does not write."""
+        from scripts.restore_db import restore_db
+        data = {
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "nodes": [{"id": "restore-dry-run-test", "fact": "test", "text": "test",
+                        "type": "fact", "tags": [], "importance": 3}],
+            "edges": [],
+        }
+        with test_driver.session() as session:
+            result = restore_db(session, data, dry_run=True)
+        assert result["dry_run"] is True
+        assert result["nodes_merged"] == 1
+        # Node must NOT have been written
+        with test_driver.session() as session:
+            row = session.run(
+                "MATCH (m:Memory {id: 'restore-dry-run-test'}) RETURN m"
+            ).single()
+        assert row is None
+
+    def test_restore_allowlist_guard_skips_unknown_edge_type(self, test_driver, capsys):
+        """restore_db skips edges with unknown types and prints a warning."""
+        import uuid
+        from scripts.restore_db import restore_db
+        m1 = f"restore-guard-a-{uuid.uuid4()}"
+        m2 = f"restore-guard-b-{uuid.uuid4()}"
+        try:
+            with test_driver.session() as session:
+                for mid in [m1, m2]:
+                    session.run(
+                        "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
+                        "type: 'fact', tags: [], importance: 3, strength: 0.6, embedding: []})",
+                        id=mid,
+                    )
+            data = {
+                "created_at": "2026-01-01T00:00:00+00:00",
+                "nodes": [],
+                "edges": [
+                    {"src": m1, "tgt": m2, "type": "PRODUCED_BY", "weight": 0.5}
+                ],
+            }
+            with test_driver.session() as session:
+                result = restore_db(session, data, dry_run=False)
+            # Edge should have been skipped
+            assert result["edges_merged"] == 0
+            # Verify no PRODUCED_BY edge was created
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (a:Memory {id: $a})-[r:PRODUCED_BY]->(b:Memory {id: $b}) RETURN r",
+                    a=m1, b=m2,
+                ).single()
+            assert row is None
+        finally:
+            for mid in [m1, m2]:
+                with test_driver.session() as session:
+                    session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
+
 
 @pytest.mark.integration
 class TestMaintenanceStats:
