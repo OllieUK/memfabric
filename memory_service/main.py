@@ -90,7 +90,7 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
     now = datetime.now(tz=timezone.utc).isoformat()
     try:
         with request.app.state.driver.session() as session:
-            memory_repo.add_memory(session, req, memory_id, embedding, now)
+            memory_repo.add_memory(session, req, memory_id, embedding, now, settings.memory_decay_rate)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return AddMemoryResponse(memory_id=memory_id)

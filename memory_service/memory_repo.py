@@ -7,7 +7,7 @@ _AUTO_RELATED_K = 5
 _AUTO_RELATED_MAX_DISTANCE = 0.5
 
 
-def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
+def add_memory(session, req, memory_id: str, embedding: list, now: str, decay_rate: float) -> None:
     """Write a Memory node and all related nodes/edges in a single session.
 
     Steps:
@@ -32,7 +32,12 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
             importance: $importance,
             created_at: $created_at,
             last_used_at: $last_used_at,
-            embedding: $embedding
+            embedding: $embedding,
+            strength: $strength,
+            recall_count: 0,
+            reinforcement_count: 0,
+            last_reinforced_at: $last_reinforced_at,
+            decay_rate: $decay_rate
         })
         CREATE (m)-[:PRODUCED_BY]->(a)
         """,
@@ -47,6 +52,9 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str) -> None:
         created_at=now,
         last_used_at=now,
         embedding=embedding,
+        strength=req.importance / 5.0,
+        last_reinforced_at=now,
+        decay_rate=decay_rate,
     )
 
     # Step 2 — Upsert Project + ABOUT edge
