@@ -4,6 +4,24 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-029 — Memory + edge reinforcement (strength, decay, Hebbian activation)
+
+**Date:** 2026-03-22
+
+- 8 new Settings fields (`memory_decay_rate`, `edge_decay_rate`, `recall_strength_increment`, `explicit_strength_increment`, `edge_recall_increment`, `edge_explicit_increment`, `edge_prune_threshold`, `min_memory_strength`)
+- Memory nodes created with `strength = importance / 5.0`, `recall_count=0`, `reinforcement_count=0`, `last_reinforced_at`, `decay_rate`
+- `recall_increment()` — non-blocking background task fires after every search; increments node strength (capped 1.0) and activates `RELATED_TO|LEADS_TO` edges within result set
+- `decay_pass()` — Python-side computation (Memgraph does not support `duration.between()` on datetime types); fetches nodes/edges, applies `strength * exp(-rate * days)`, writes back via UNWIND
+- `reinforce_memory()` — explicit signal; updates `last_reinforced_at`, increments `reinforcement_count`, Hebbian UNWIND×UNWIND over co-recalled edges
+- `POST /memory/maintenance/decay` and `GET /memory/maintenance/weak-edges` registered before `POST /memory/{memory_id}/reinforce` (FastAPI route ordering critical)
+- `memory reinforce-memory`, `memory run-decay` CLI commands; `memory_reinforce`, `memory_run_decay` MCP tools
+- `scripts/migrate_reinforcement_defaults.py`: backfills pre-existing nodes/edges; ran against live DB (0 nodes, 123 edges updated)
+- **Key finding:** Memgraph does not support `duration.between()` on datetime types — Python-side decay computation required. Cypher `localDateTime()` rejects `+00:00` suffix — `strftime("%Y-%m-%dT%H:%M:%S")` required for any Cypher date arithmetic.
+
+**Retrospective:** Route ordering catch (Task 4 before Task 5) was the highest-risk item — the plan review caught it preemptively and the shadow test `test_decay_pass_not_shadowed_by_reinforce_route` confirms it at runtime. Memgraph `duration.between()` incompatibility required Python-side decay (2-round-trip design); functionally equivalent. Subagent-driven development with spec+quality review per task caught no regressions across 8 tasks.
+
+---
+
 ## WP-037 — Person nodes + `ABOUT` edges
 
 **Date:** 2026-03-21

@@ -19,18 +19,17 @@
 
 | Priority | ID | Title | Value | Effort | Depends on | Notes |
 |----------|----|-------|-------|--------|------------|-------|
-| 1 | WP-029 | Memory + edge reinforcement (strength, decay, Hebbian activation) | H | L | WP-028 ✅ | **Do before WP-006.** See detail below. |
-| 2 | WP-006 | Wire `GET /memory/graph` | M | M | WP-028 ✅, WP-029 | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
+| 2 | WP-006 | Wire `GET /memory/graph` | M | M | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
 | 3 | WP-034 | Add version/build hash to `/health` response | L | S | — | Detect stale service at session startup. Batch with WP-035/036. |
 | 3 | WP-035 | Return `strand_ids` in `add-memory` API response | L | S | — | Reduce friction when chaining related memories. Batch with WP-034/036. |
 | 3 | WP-036 | Document `### Relevant to today` suppression in COMPANION.md | L | S | — | Avoid companion confusion on small DBs. Batch with WP-034/035. |
 | 4 | WP-022 | Cap neighbour count in search results | M | S | WP-005 ✅ | `collect(DISTINCT n.id)` unbounded with `max_hops=3` on dense graph — add slice cap (e.g. `[..50]`). Correctness risk as graph grows. |
-| 5 | WP-040 | Memory maintenance orchestration — Short Rest & Long Rest | H | M | WP-029 | Triggered/scheduled maintenance: Short Rest (end-of-session decay on active memories) + Long Rest (full decay + edge rediscovery + weak-edge pruning). See detail below. |
+| 5 | WP-040 | Memory maintenance orchestration — Short Rest & Long Rest | H | M | WP-029 ✅ | Triggered/scheduled maintenance: Short Rest (end-of-session decay on active memories) + Long Rest (full decay + edge rediscovery + weak-edge pruning). See detail below. |
 | 6 | WP-038 | Memory lifecycle operations — update, merge, archive | H | L | WP-006, WP-037 ✅ | First-class memory maintenance: PATCH, merge, archive, restore. See detail below. |
 | 6 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | WP-038 | Prevent test artefacts polluting live context. See detail below. |
 | 7 | WP-025 | Extract shared CLI error handler | L | S | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
 | 7 | WP-026 | `MemoryType` mirror in `memory_client` | L | S | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 7 | WP-023 | Extract `get_session` context manager for 503 handling | L | S | WP-029 | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 7 | WP-023 | Extract `get_session` context manager for 503 handling | L | S | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
 | 8 | WP-020 | UNWIND for person/strand/related_ids writes | L | S | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
 | 8 | WP-021 | Non-blocking embedding in async endpoints | L | S | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
 | 8 | WP-024 | `cleanup_nodes` support multiple ids per label | L | S | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. |
@@ -39,6 +38,7 @@
 | 10 | WP-012 | Pin dependency versions in requirements.txt | M | S | — | Use `>=x,<y` bounds. Do before stack is considered stable. |
 | 10 | WP-013 | Pin Docker image tags (no `latest`) | M | S | WP-012 | Replace `latest` tags with specific versions. Do after WP-012. |
 | 10 | WP-014 | Docker resource limits | L | S | — | Add `mem_limit`/`cpus` to docker-compose. |
+| 10 | WP-043 | Inline effective_strength sort in search | L | S | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as v1 proxy. |
 
 ---
 
@@ -58,89 +58,6 @@
 ---
 
 ## Detail Specs
-
-### WP-029 — Memory + edge reinforcement (strength, decay, Hebbian activation)
-
-#### Motivation
-
-A flat memory store treats a note written yesterday the same as a pattern confirmed over years. The reinforcement system fixes this by making the graph *self-organise around relevance over time*:
-
-- Memories that are repeatedly recalled become **stronger** and surface higher in search results.
-- Memories never recalled **decay** and fade into the background — still retrievable, but de-prioritised.
-- Edges between frequently co-retrieved memories become **stronger**; edges never confirmed weaken and become dormant.
-
-Mechanisms: **Ebbinghaus forgetting curve** (exponential decay) + **Hebbian learning** (co-activation strengthens edges).
-
-#### New Memory node properties
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `strength` | float (0–1) | `importance / 5.0` | Reinforcement level; decays over time; incremented on recall/reinforcement |
-| `recall_count` | int | 0 | Total search result appearances; monotonically increasing |
-| `reinforcement_count` | int | 0 | Total explicit reinforcement signals; monotonically increasing |
-| `last_reinforced_at` | datetime | `created_at` | Anchor for decay calculation; updated only on explicit reinforcement |
-| `decay_rate` | float | `MEMORY_DECAY_RATE` (0.01) | Per-memory decay rate |
-
-**Effective strength** (computed inline at query time — not stored):
-```
-effective_strength = strength × exp(-decay_rate × days_since_last_reinforced)
-```
-*(v1 deferred: stored `strength` post-decay-pass used as proxy; inline sort added in follow-up)*
-
-#### New edge properties (RELATED_TO and LEADS_TO)
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `activation_count` | int | 0 | Traversal count; monotonically increasing |
-| `last_activated_at` | datetime | `created_at` | Anchor for edge decay |
-| `decay_rate` | float | `EDGE_DECAY_RATE` (0.005) | Per-edge decay (slower than node decay) |
-
-#### Reinforcement signals
-
-| Signal | Trigger | Strength increment | Who |
-|--------|---------|-------------------|-----|
-| `recall` | Memory appears in search results | +`RECALL_STRENGTH_INCREMENT` (0.05) | Server, automatic, non-blocking background task |
-| `explicit` | Caller confirms memory was used | +`EXPLICIT_STRENGTH_INCREMENT` (0.20) | Caller via `POST /memory/{id}/reinforce` |
-
-#### New API surface
-
-- `POST /memory/search` — fires background recall increment after returning results
-- `POST /memory/{id}/reinforce` — body: `{signal: "explicit", co_recalled_ids: [...]}` → bumps node strength + Hebbian edge step; returns `{memory_id, new_strength}`
-- `POST /memory/maintenance/decay` — full-graph decay pass; returns `{nodes_updated, edges_updated}`
-- `GET /memory/maintenance/weak-edges` — edges below `EDGE_PRUNE_THRESHOLD` (0.05)
-- CLI: `memory reinforce-memory <id>`, `memory run-decay`
-- MCP: `memory_reinforce`, `memory_run_decay`
-
-**Route ordering note:** `POST /memory/maintenance/decay` MUST be registered before `POST /memory/{memory_id}/reinforce` in `main.py` or FastAPI will capture `maintenance` as the path parameter.
-
-#### New config variables
-
-| Variable | Default |
-|----------|---------|
-| `MEMORY_DECAY_RATE` | 0.01 |
-| `EDGE_DECAY_RATE` | 0.005 |
-| `RECALL_STRENGTH_INCREMENT` | 0.05 |
-| `EXPLICIT_STRENGTH_INCREMENT` | 0.20 |
-| `EDGE_RECALL_INCREMENT` | 0.02 |
-| `EDGE_EXPLICIT_INCREMENT` | 0.10 |
-| `EDGE_PRUNE_THRESHOLD` | 0.05 |
-| `MIN_MEMORY_STRENGTH` | 0.0 |
-
-#### Definition of Success
-
-- [ ] Memory nodes created with all 5 reinforcement properties; `strength` seeded from `importance / 5.0`
-- [ ] `RELATED_TO` and `LEADS_TO` edges gain `activation_count`, `last_activated_at`, `decay_rate`
-- [ ] `POST /memory/search` fires non-blocking background recall increment
-- [ ] `POST /memory/{id}/reinforce` updates node + co-edge weights; returns `new_strength`
-- [ ] `POST /memory/maintenance/decay` not shadowed by `/{memory_id}/reinforce` route (returns 200, not 422)
-- [ ] `POST /memory/maintenance/decay` returns `{nodes_updated, edges_updated}`
-- [ ] `GET /memory/maintenance/weak-edges` returns list below threshold
-- [ ] CLI + MCP tools functional
-- [ ] Migration script backfills existing nodes/edges
-- [ ] Round-trip: insert → search × 2 → `recall_count >= 2` and `strength > initial`
-- [ ] Existing 175 passing tests unchanged
-
----
 
 ### WP-040 — Memory maintenance orchestration: Short Rest & Long Rest
 
