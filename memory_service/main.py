@@ -326,6 +326,41 @@ async def short_rest(
     return ShortRestResponse(**result)
 
 
+class LongRestResponse(BaseModel):
+    nodes_decayed: int
+    edges_decayed: int
+    edges_discovered: int
+    edges_pruned: int
+    dry_run: bool
+
+
+@app.post("/memory/maintenance/long-rest", response_model=LongRestResponse)
+async def long_rest(
+    request: Request,
+    dry_run: bool = Query(default=False),
+    prune: bool = Query(default=False),
+) -> LongRestResponse:
+    now_iso = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            result = memory_repo.long_rest(
+                session,
+                now_iso=now_iso,
+                min_strength=settings.min_memory_strength,
+                edge_modulation_factor=settings.edge_modulation_factor,
+                edge_modulation_cap=settings.edge_modulation_cap,
+                rediscovery_strength_threshold=settings.rediscovery_strength_threshold,
+                edge_hard_prune_floor=settings.edge_hard_prune_floor,
+                edge_hard_prune_min_days=settings.edge_hard_prune_min_days,
+                edge_decay_rate=settings.edge_decay_rate,
+                dry_run=dry_run,
+                prune=prune,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return LongRestResponse(**result)
+
+
 class ReinforceRequest(BaseModel):
     signal: Literal["explicit"] = "explicit"
     co_recalled_ids: List[str] = []

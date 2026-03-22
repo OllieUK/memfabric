@@ -818,6 +818,148 @@ def short_rest(
     }
 
 
+def long_rest(
+    session,
+    now_iso: str,
+    min_strength: float,
+    edge_modulation_factor: float,
+    edge_modulation_cap: float,
+    rediscovery_strength_threshold: float,
+    edge_hard_prune_floor: float,
+    edge_hard_prune_min_days: int,
+    edge_decay_rate: float,
+    dry_run: bool = False,
+    prune: bool = False,
+) -> dict:
+    """Full maintenance pass: decay all nodes/edges, edge rediscovery, optional prune.
+
+    Steps:
+    1. Full decay pass on all nodes + edges (edge-modulated)
+    2. Edge rediscovery: for strong nodes, vector search and MERGE new RELATED_TO edges
+    3. Weak-edge candidate identification (prune if prune=True and not dry_run)
+    4. Update System node last_long_rest_at (skipped when dry_run)
+    """
+    now = _parse_iso(now_iso)
+
+    # Step 1: Full decay pass
+    decay_result = decay_pass(
+        session, "", now_iso, min_strength,
+        node_ids=None,
+        edge_modulation_factor=edge_modulation_factor,
+        edge_modulation_cap=edge_modulation_cap,
+        dry_run=dry_run,
+    )
+    nodes_decayed = decay_result["nodes_updated"]
+    edges_decayed = decay_result["edges_updated"]
+
+    # Step 2: Edge rediscovery — nodes with strength >= threshold
+    strong_nodes = list(session.run(
+        """
+        MATCH (m:Memory)
+        WHERE m.strength IS NOT NULL AND m.strength >= $threshold
+        AND m.embedding IS NOT NULL AND size(m.embedding) > 0
+        RETURN m.id AS id, m.embedding AS embedding
+        """,
+        threshold=rediscovery_strength_threshold,
+    ))
+
+    edges_discovered = 0
+    for node in strong_nodes:
+        if dry_run:
+            # Dry-run: count edges that would be discovered
+            result = session.run(
+                """
+                CALL vector_search.search("mem_embedding_idx", $k, $query_vec)
+                YIELD node AS candidate, distance
+                WITH candidate, distance
+                WHERE candidate.id <> $src_id AND distance < $max_distance
+                OPTIONAL MATCH (src:Memory {id: $src_id})-[existing:RELATED_TO]->(candidate)
+                WITH existing
+                WHERE existing IS NULL
+                RETURN count(*) AS would_discover
+                """,
+                k=_AUTO_RELATED_K,
+                query_vec=node["embedding"],
+                src_id=node["id"],
+                max_distance=_AUTO_RELATED_MAX_DISTANCE,
+            )
+            row = result.single()
+            if row:
+                edges_discovered += row["would_discover"] or 0
+        else:
+            result = session.run(
+                """
+                CALL vector_search.search("mem_embedding_idx", $k, $query_vec)
+                YIELD node AS candidate, distance
+                WITH candidate, distance
+                WHERE candidate.id <> $src_id AND distance < $max_distance
+                MATCH (src:Memory {id: $src_id})
+                OPTIONAL MATCH (src)-[existing:RELATED_TO]->(candidate)
+                WITH src, candidate, existing, distance
+                WHERE existing IS NULL
+                MERGE (src)-[r:RELATED_TO]->(candidate)
+                ON CREATE SET r.weight = 1.0 - distance,
+                              r.activation_count = 0,
+                              r.last_activated_at = $now_iso,
+                              r.decay_rate = $edge_decay_rate
+                RETURN count(r) AS discovered
+                """,
+                k=_AUTO_RELATED_K,
+                query_vec=node["embedding"],
+                src_id=node["id"],
+                max_distance=_AUTO_RELATED_MAX_DISTANCE,
+                now_iso=now_iso,
+                edge_decay_rate=edge_decay_rate,
+            )
+            row = result.single()
+            if row:
+                edges_discovered += row["discovered"] or 0
+
+    # Step 3: Weak-edge pruning
+    prune_rows = list(session.run(
+        """
+        MATCH (src:Memory)-[r:RELATED_TO|LEADS_TO]->(tgt:Memory)
+        WHERE r.weight IS NOT NULL AND r.weight < $floor
+        AND r.last_activated_at IS NOT NULL
+        RETURN id(r) AS rid, r.last_activated_at AS last_activated
+        """,
+        floor=edge_hard_prune_floor,
+    ))
+
+    prune_candidates = []
+    for row in prune_rows:
+        try:
+            last_act = _parse_iso(row["last_activated"])
+        except (ValueError, TypeError):
+            continue
+        if (now - last_act).total_seconds() / 86400.0 >= edge_hard_prune_min_days:
+            prune_candidates.append(row["rid"])
+
+    edges_pruned = len(prune_candidates)
+    if prune_candidates and prune and not dry_run:
+        session.run(
+            """
+            UNWIND $rids AS rid
+            MATCH ()-[r:RELATED_TO|LEADS_TO]->()
+            WHERE id(r) = rid
+            DELETE r
+            """,
+            rids=prune_candidates,
+        )
+
+    # Step 4: Update System node
+    if not dry_run:
+        upsert_system_node(session, last_long_rest_at=now_iso)
+
+    return {
+        "nodes_decayed": nodes_decayed,
+        "edges_decayed": edges_decayed,
+        "edges_discovered": edges_discovered,
+        "edges_pruned": edges_pruned,
+        "dry_run": dry_run,
+    }
+
+
 def get_system_timestamps(session) -> dict:
     """Return last_short_rest_at and last_long_rest_at from the System node.
 

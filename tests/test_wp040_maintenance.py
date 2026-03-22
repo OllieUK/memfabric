@@ -152,3 +152,78 @@ class TestShortRest:
         finally:
             with test_driver.session() as session:
                 session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mem_id)
+
+
+@pytest.mark.integration
+class TestLongRest:
+    def test_long_rest_dry_run_returns_correct_shape(self, client):
+        """Dry-run: response has correct shape with dry_run=True."""
+        r = client.post("/memory/maintenance/long-rest?dry_run=true")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["dry_run"] is True
+        for field in ["nodes_decayed", "edges_decayed", "edges_discovered", "edges_pruned"]:
+            assert field in data
+            assert isinstance(data[field], int)
+
+    def test_long_rest_live_updates_system_node(self, client, test_driver):
+        """Live long-rest sets last_long_rest_at on System node."""
+        r = client.post("/memory/maintenance/long-rest")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["dry_run"] is False
+
+        with test_driver.session() as session:
+            row = session.run(
+                "MATCH (sys:System {id: 'system'}) RETURN sys.last_long_rest_at AS ts"
+            ).single()
+        assert row is not None
+        assert row["ts"] is not None
+
+    def test_long_rest_edge_rediscovery(self, client, test_driver):
+        """Two semantically similar memories: long-rest discovers a RELATED_TO edge."""
+        import uuid
+        from memory_service.embeddings import get_embedding
+        m1 = m2 = None
+        try:
+            emb1 = get_embedding("The user drinks coffee every morning")
+            emb2 = get_embedding("The user starts each day with a hot beverage")
+            m1 = f"wp040-rd-a-{uuid.uuid4()}"
+            m2 = f"wp040-rd-b-{uuid.uuid4()}"
+
+            with test_driver.session() as session:
+                for mid, emb, fact in [
+                    (m1, emb1, "The user drinks coffee every morning"),
+                    (m2, emb2, "The user starts each day with a hot beverage"),
+                ]:
+                    session.run(
+                        "CREATE (m:Memory {id: $id, fact: $fact, text: $fact, "
+                        "type: 'fact', tags: [], importance: 3, strength: 0.8, "
+                        "recall_count: 0, reinforcement_count: 0, "
+                        "last_reinforced_at: '2026-01-01T00:00:00+00:00', "
+                        "last_used_at: '2026-01-01T00:00:00+00:00', "
+                        "decay_rate: 0.01, embedding: $emb})",
+                        id=mid, fact=fact, emb=emb,
+                    )
+
+            # Remove any auto-created RELATED_TO edges
+            with test_driver.session() as session:
+                session.run(
+                    "MATCH (a:Memory {id: $a})-[r:RELATED_TO]-(b:Memory {id: $b}) DELETE r",
+                    a=m1, b=m2,
+                )
+
+            r = client.post("/memory/maintenance/long-rest")
+            assert r.status_code == 200
+
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (a:Memory {id: $a})-[r:RELATED_TO]-(b:Memory {id: $b}) RETURN r",
+                    a=m1, b=m2,
+                ).single()
+            assert row is not None, "Expected RELATED_TO edge to be discovered between similar memories"
+        finally:
+            for mid in [m1, m2]:
+                if mid:
+                    with test_driver.session() as session:
+                        session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
