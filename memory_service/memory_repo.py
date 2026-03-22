@@ -980,3 +980,79 @@ def get_system_timestamps(session) -> dict:
         "last_short_rest_at": record["last_short_rest_at"],
         "last_long_rest_at": record["last_long_rest_at"],
     }
+
+
+def maintenance_stats(
+    session,
+    now_iso: str,
+    edge_prune_threshold: float,
+    short_rest_recency_days: int,
+    long_rest_recency_days: int,
+) -> dict:
+    """Return a health snapshot of the memory graph for monitoring.
+
+    edge_prune_threshold is used for both below_prune_floor (nodes) and weak_count (edges).
+    Pass settings.edge_hard_prune_floor (not edge_prune_threshold) from the endpoint.
+    """
+    now = _parse_iso(now_iso)
+
+    # Node stats — fetch all strengths
+    node_rows = list(session.run(
+        "MATCH (m:Memory) WHERE m.strength IS NOT NULL RETURN m.strength AS s"
+    ))
+    strengths = [r["s"] for r in node_rows]
+    total_nodes = len(strengths)
+    mean_strength = sum(strengths) / total_nodes if strengths else 0.0
+    sorted_s = sorted(strengths)
+    if sorted_s:
+        n = len(sorted_s)
+        median_strength = sorted_s[n // 2] if n % 2 else (sorted_s[n // 2 - 1] + sorted_s[n // 2]) / 2.0
+    else:
+        median_strength = 0.0
+    below_prune_floor = sum(1 for s in strengths if s < edge_prune_threshold)
+    at_max_strength = sum(1 for s in strengths if s >= 1.0)
+
+    # Edge stats — fetch all weights
+    edge_rows = list(session.run(
+        "MATCH (src:Memory)-[r:RELATED_TO|LEADS_TO]->(tgt:Memory) "
+        "WHERE r.weight IS NOT NULL RETURN r.weight AS w"
+    ))
+    weights = [r["w"] for r in edge_rows]
+    total_edges = len(weights)
+    mean_weight = sum(weights) / total_edges if weights else 0.0
+    weak_count = sum(1 for w in weights if w < edge_prune_threshold)
+
+    # System timestamps + overdue flags
+    ts = get_system_timestamps(session)
+    last_short = ts["last_short_rest_at"]
+    last_long = ts["last_long_rest_at"]
+
+    def _is_overdue(ts_str: str | None, days: int) -> bool:
+        if ts_str is None:
+            return True
+        try:
+            last = _parse_iso(ts_str)
+            return (now - last).total_seconds() / 86400.0 > days
+        except (ValueError, TypeError):
+            return True
+
+    return {
+        "nodes": {
+            "total": total_nodes,
+            "mean_strength": round(mean_strength, 4),
+            "median_strength": round(median_strength, 4),
+            "below_prune_floor": below_prune_floor,
+            "at_max_strength": at_max_strength,
+        },
+        "edges": {
+            "total": total_edges,
+            "mean_weight": round(mean_weight, 4),
+            "weak_count": weak_count,
+        },
+        "maintenance": {
+            "last_short_rest_at": last_short,
+            "last_long_rest_at": last_long,
+            "short_rest_overdue": _is_overdue(last_short, short_rest_recency_days),
+            "long_rest_overdue": _is_overdue(last_long, long_rest_recency_days),
+        },
+    }

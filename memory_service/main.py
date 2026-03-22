@@ -176,6 +176,7 @@ class WakeUpMemoryItem(BaseModel):
 class WakeUpResponse(BaseModel):
     memories: List[WakeUpMemoryItem]          # core (importance-ranked)
     topic_memories: List[WakeUpMemoryItem]    # topic-only; empty when no --topic
+    maintenance_warning: Optional[str] = None
 
 
 @app.get("/memory/wake-up", response_model=WakeUpResponse)
@@ -197,9 +198,33 @@ async def wake_up(
             result = memory_repo.wake_up(session, limit=limit, topic_embedding=topic_embedding)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+
+    # Check maintenance staleness — best-effort, do not fail wake-up if this errors
+    maintenance_warning = None
+    try:
+        with request.app.state.driver.session() as maint_session:
+            ts = memory_repo.get_system_timestamps(maint_session)
+        last_long = ts.get("last_long_rest_at")
+        if last_long is None:
+            maintenance_warning = (
+                "Note: long-rest has never run — consider running "
+                "`memory long-rest` before this session."
+            )
+        else:
+            last_dt = memory_repo._parse_iso(last_long)
+            days_ago = (datetime.now(tz=timezone.utc) - last_dt).total_seconds() / 86400.0
+            if days_ago > settings.long_rest_recency_days:
+                maintenance_warning = (
+                    f"Note: long-rest last ran {days_ago:.0f} day(s) ago — "
+                    "consider running `memory long-rest` before this session."
+                )
+    except Exception:
+        pass  # best-effort; never surface maintenance errors to wake-up
+
     return WakeUpResponse(
         memories=[WakeUpMemoryItem(**r) for r in result["core"]],
         topic_memories=[WakeUpMemoryItem(**r) for r in result["topic"]],
+        maintenance_warning=maintenance_warning,
     )
 
 
@@ -359,6 +384,50 @@ async def long_rest(
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return LongRestResponse(**result)
+
+
+class MaintenanceStatsNodes(BaseModel):
+    total: int
+    mean_strength: float
+    median_strength: float
+    below_prune_floor: int
+    at_max_strength: int
+
+
+class MaintenanceStatsEdges(BaseModel):
+    total: int
+    mean_weight: float
+    weak_count: int
+
+
+class MaintenanceStatsMaintenance(BaseModel):
+    last_short_rest_at: Optional[str] = None
+    last_long_rest_at: Optional[str] = None
+    short_rest_overdue: bool
+    long_rest_overdue: bool
+
+
+class MaintenanceStatsResponse(BaseModel):
+    nodes: MaintenanceStatsNodes
+    edges: MaintenanceStatsEdges
+    maintenance: MaintenanceStatsMaintenance
+
+
+@app.get("/memory/maintenance/stats", response_model=MaintenanceStatsResponse)
+async def maintenance_stats(request: Request) -> MaintenanceStatsResponse:
+    now_iso = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            result = memory_repo.maintenance_stats(
+                session,
+                now_iso=now_iso,
+                edge_prune_threshold=settings.edge_hard_prune_floor,
+                short_rest_recency_days=settings.short_rest_recency_days,
+                long_rest_recency_days=settings.long_rest_recency_days,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return MaintenanceStatsResponse(**result)
 
 
 class ReinforceRequest(BaseModel):
