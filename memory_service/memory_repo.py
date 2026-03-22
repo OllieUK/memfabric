@@ -624,3 +624,42 @@ def list_weak_edges(session, threshold: float) -> list[dict]:
         }
         for row in result
     ]
+
+
+def upsert_system_node(session, **kwargs) -> None:
+    """Create or update the singleton System node with the given properties.
+
+    Typical kwargs: last_short_rest_at="...", last_long_rest_at="..."
+    """
+    if not kwargs:
+        return
+    set_clause = ", ".join(f"sys.{k} = ${k}" for k in kwargs)
+    session.run(
+        f"""
+        MERGE (sys:System {{id: "system"}})
+        SET {set_clause}
+        """,
+        **kwargs,
+    )
+
+
+def get_system_timestamps(session) -> dict:
+    """Return last_short_rest_at and last_long_rest_at from the System node.
+
+    Returns dict with keys last_short_rest_at, last_long_rest_at.
+    Values are ISO strings or None if not set.
+    """
+    result = session.run(
+        """
+        OPTIONAL MATCH (sys:System {id: "system"})
+        RETURN sys.last_short_rest_at AS last_short_rest_at,
+               sys.last_long_rest_at AS last_long_rest_at
+        """
+    )
+    record = result.single()
+    if record is None:
+        return {"last_short_rest_at": None, "last_long_rest_at": None}
+    return {
+        "last_short_rest_at": record["last_short_rest_at"],
+        "last_long_rest_at": record["last_long_rest_at"],
+    }

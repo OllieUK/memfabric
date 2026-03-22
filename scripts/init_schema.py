@@ -126,6 +126,14 @@ def main() -> int:
                 except Exception as exc:
                     print(f"  [FAIL] Vector index: {exc}")
                     success = False
+
+            print("\nCreating System node ...")
+            try:
+                session.run('MERGE (sys:System {id: "system"})')
+                print("  [OK] System node created (idempotent)")
+            except Exception as exc:
+                print(f"  [FAIL] System node: {exc}")
+                success = False
     except Exception as exc:
         print(f"[FAIL] Session error: {exc}")
         return 1
