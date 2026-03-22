@@ -21,6 +21,18 @@ Build a local-first memory service that represents all "memories" as graph nodes
 
 No server-side LLM calls. No external API dependencies.
 
+## Session startup
+
+Before responding substantively in any new companion or user session:
+
+1. Read `memory_client/COMPANION.md`.
+2. Run `memory wake-up` or the MCP equivalent `memory_wake_up`.
+3. Treat the wake-up briefing as baseline context, then refresh the working set with memory search when the topic shifts.
+4. Store durable facts, decisions, insights, and todos as they arise rather than waiting until session end.
+5. Use `memory close-session` or the MCP equivalent `memory_close_session` before ending the session to review what should persist.
+
+The Graph Memory Fabric is part of the operating environment, not an optional add-on. Use it proactively and quietly so continuity does not depend on the user having to remind you.
+
 ## Working norms
 
 ### Before touching any code
