@@ -443,12 +443,12 @@ def _parse_iso(ts: str) -> datetime:
     return dt
 
 
-def _apply_decay(current: float, rate: float, days: float) -> float:
-    """Return decayed value clamped to [0, 1]."""
-    return max(0.0, min(1.0, current * math.exp(-rate * days)))
+def _apply_decay(current: float, rate: float, days: float, min_strength: float = 0.0) -> float:
+    """Return decayed value clamped to [min_strength, 1]."""
+    return max(min_strength, min(1.0, current * math.exp(-rate * days)))
 
 
-def decay_pass(session, now_naive: str, now_iso: str) -> dict:
+def decay_pass(session, now_naive: str, now_iso: str, min_strength: float = 0.0) -> dict:
     """Recompute and write strength for all Memory nodes and weight for all edges.
 
     Formula: new_value = current_value * exp(-decay_rate * days_since_anchor)
@@ -485,7 +485,7 @@ def decay_pass(session, now_naive: str, now_iso: str) -> dict:
         days = (now - anchor).total_seconds() / 86400.0
         node_updates.append({
             "id": row["id"],
-            "new_val": _apply_decay(row["strength"], row["rate"], days),
+            "new_val": _apply_decay(row["strength"], row["rate"], days, min_strength),
         })
 
     if node_updates:

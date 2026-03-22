@@ -272,11 +272,10 @@ class WeakEdgesResponse(BaseModel):
 
 @app.post("/memory/maintenance/decay", response_model=DecayPassResponse)
 async def run_decay_pass(request: Request) -> DecayPassResponse:
-    now_naive = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     now_iso = datetime.now(tz=timezone.utc).isoformat()
     try:
         with request.app.state.driver.session() as session:
-            result = memory_repo.decay_pass(session, now_naive, now_iso)
+            result = memory_repo.decay_pass(session, "", now_iso, settings.min_memory_strength)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return DecayPassResponse(**result)
