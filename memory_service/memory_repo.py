@@ -691,6 +691,133 @@ def upsert_system_node(session, **kwargs) -> None:
     )
 
 
+def short_rest(
+    session,
+    now_iso: str,
+    recency_days: int,
+    min_strength: float,
+    edge_modulation_factor: float,
+    edge_modulation_cap: float,
+    dry_run: bool = False,
+) -> dict:
+    """Decay recently-active Memory nodes and their adjacent edges.
+
+    Scope: nodes where recall_count > 0 OR last_used_at within recency_days days.
+    Required fields (strength, last_reinforced_at, decay_rate) must be present.
+    Edge scope: RELATED_TO and LEADS_TO edges between nodes in the scoped set.
+    """
+    now = _parse_iso(now_iso)
+
+    node_rows = list(session.run(
+        """
+        MATCH (m:Memory)
+        WHERE m.strength IS NOT NULL AND m.last_reinforced_at IS NOT NULL AND m.decay_rate IS NOT NULL
+        AND (
+            (m.recall_count IS NOT NULL AND m.recall_count > 0)
+            OR m.last_used_at IS NOT NULL
+        )
+        OPTIONAL MATCH (pred:Memory)-[inc:RELATED_TO|LEADS_TO]->(m)
+        WITH m, coalesce(sum(inc.weight), 0.0) AS incoming_weight_sum
+        RETURN m.id AS id, m.strength AS strength,
+               m.last_reinforced_at AS anchor, m.decay_rate AS rate,
+               m.last_used_at AS last_used_at, m.recall_count AS recall_count,
+               incoming_weight_sum
+        """
+    ))
+
+    in_scope_ids = []
+    node_updates = []
+
+    for row in node_rows:
+        # Check scope: recall_count > 0 OR last_used_at within recency window
+        in_scope = False
+        if row["recall_count"] and row["recall_count"] > 0:
+            in_scope = True
+        if not in_scope and row["last_used_at"]:
+            try:
+                lu = _parse_iso(row["last_used_at"])
+                if (now - lu).total_seconds() / 86400.0 <= recency_days:
+                    in_scope = True
+            except (ValueError, TypeError):
+                pass
+
+        if not in_scope:
+            continue
+
+        in_scope_ids.append(row["id"])
+
+        try:
+            anchor = _parse_iso(row["anchor"])
+        except (ValueError, TypeError):
+            continue
+
+        days = (now - anchor).total_seconds() / 86400.0
+        new_val = _apply_decay_modulated(
+            row["strength"], row["rate"], days,
+            row["incoming_weight_sum"],
+            edge_modulation_factor, edge_modulation_cap,
+            min_strength,
+        )
+        node_updates.append({"id": row["id"], "new_val": new_val})
+
+    if node_updates and not dry_run:
+        session.run(
+            """
+            UNWIND $updates AS upd
+            MATCH (m:Memory {id: upd.id})
+            SET m.strength = upd.new_val, m.last_reinforced_at = $now_iso
+            """,
+            updates=node_updates,
+            now_iso=now_iso,
+        )
+
+    # Edge decay — only edges between in-scope nodes
+    edge_updates = []
+    if in_scope_ids:
+        edge_rows = list(session.run(
+            """
+            MATCH (src:Memory)-[r:RELATED_TO|LEADS_TO]->(tgt:Memory)
+            WHERE src.id IN $ids AND tgt.id IN $ids
+            AND r.weight IS NOT NULL AND r.last_activated_at IS NOT NULL AND r.decay_rate IS NOT NULL
+            RETURN id(r) AS rid, r.weight AS weight,
+                   r.last_activated_at AS anchor, r.decay_rate AS rate
+            """,
+            ids=in_scope_ids,
+        ))
+
+        for row in edge_rows:
+            try:
+                anchor = _parse_iso(row["anchor"])
+            except (ValueError, TypeError):
+                continue
+            days = (now - anchor).total_seconds() / 86400.0
+            edge_updates.append({
+                "rid": row["rid"],
+                "new_val": _apply_decay(row["weight"], row["rate"], days),
+            })
+
+        if edge_updates and not dry_run:
+            session.run(
+                """
+                UNWIND $updates AS upd
+                MATCH ()-[r:RELATED_TO|LEADS_TO]->()
+                WHERE id(r) = upd.rid
+                SET r.weight = upd.new_val, r.last_activated_at = $now_iso
+                """,
+                updates=edge_updates,
+                now_iso=now_iso,
+            )
+
+    if not dry_run:
+        upsert_system_node(session, last_short_rest_at=now_iso)
+
+    return {
+        "nodes_decayed": len(node_updates),
+        "edges_decayed": len(edge_updates),
+        "dry_run": dry_run,
+    }
+
+
 def get_system_timestamps(session) -> dict:
     """Return last_short_rest_at and last_long_rest_at from the System node.
 

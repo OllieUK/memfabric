@@ -298,6 +298,34 @@ async def get_weak_edges(request: Request) -> WeakEdgesResponse:
     return WeakEdgesResponse(edges=[WeakEdgeItem(**e) for e in edges])
 
 
+class ShortRestResponse(BaseModel):
+    nodes_decayed: int
+    edges_decayed: int
+    dry_run: bool
+
+
+@app.post("/memory/maintenance/short-rest", response_model=ShortRestResponse)
+async def short_rest(
+    request: Request,
+    dry_run: bool = Query(default=False),
+) -> ShortRestResponse:
+    now_iso = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            result = memory_repo.short_rest(
+                session,
+                now_iso=now_iso,
+                recency_days=settings.short_rest_recency_days,
+                min_strength=settings.min_memory_strength,
+                edge_modulation_factor=settings.edge_modulation_factor,
+                edge_modulation_cap=settings.edge_modulation_cap,
+                dry_run=dry_run,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ShortRestResponse(**result)
+
+
 class ReinforceRequest(BaseModel):
     signal: Literal["explicit"] = "explicit"
     co_recalled_ids: List[str] = []

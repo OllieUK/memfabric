@@ -81,3 +81,74 @@ class TestEdgeModulatedDecay:
         # effective_rate = 0.1 / 3.0
         expected = math.exp(-0.1 / 3.0 * 1.0)
         assert abs(result - expected) < 1e-6
+
+
+@pytest.mark.integration
+class TestShortRest:
+    def test_short_rest_dry_run_returns_correct_shape(self, client, test_driver):
+        """Dry-run: response has correct shape and dry_run=True."""
+        import uuid
+        mem_id = f"wp040-sr-dr-{uuid.uuid4()}"
+        try:
+            with test_driver.session() as session:
+                session.run(
+                    "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
+                    "type: 'fact', tags: [], importance: 3, strength: 0.6, "
+                    "recall_count: 1, reinforcement_count: 0, "
+                    "last_reinforced_at: '2026-01-01T00:00:00+00:00', "
+                    "last_used_at: '2026-01-01T00:00:00+00:00', "
+                    "decay_rate: 0.01, embedding: []})",
+                    id=mem_id,
+                )
+            before_strength = 0.6
+
+            r = client.post("/memory/maintenance/short-rest?dry_run=true")
+            assert r.status_code == 200
+            data = r.json()
+            assert data["dry_run"] is True
+            assert "nodes_decayed" in data
+            assert "edges_decayed" in data
+            assert isinstance(data["nodes_decayed"], int)
+
+            # DB state unchanged after dry-run
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.strength AS s", id=mem_id
+                ).single()
+            assert abs(row["s"] - before_strength) < 0.001
+        finally:
+            with test_driver.session() as session:
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mem_id)
+
+    def test_short_rest_live_decays_and_updates_system_node(self, client, test_driver):
+        """Live run decays in-scope nodes and sets last_short_rest_at on System node."""
+        import uuid
+        mem_id = f"wp040-sr-live-{uuid.uuid4()}"
+        try:
+            with test_driver.session() as session:
+                session.run(
+                    "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
+                    "type: 'fact', tags: [], importance: 3, strength: 0.6, "
+                    "recall_count: 1, reinforcement_count: 0, "
+                    "last_reinforced_at: '2020-01-01T00:00:00+00:00', "
+                    "last_used_at: '2020-01-01T00:00:00+00:00', "
+                    "decay_rate: 0.01, embedding: []})",
+                    id=mem_id,
+                )
+
+            r = client.post("/memory/maintenance/short-rest")
+            assert r.status_code == 200
+            data = r.json()
+            assert data["dry_run"] is False
+            assert data["nodes_decayed"] >= 1
+
+            # System node must be updated
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (sys:System {id: 'system'}) RETURN sys.last_short_rest_at AS ts"
+                ).single()
+            assert row is not None
+            assert row["ts"] is not None
+        finally:
+            with test_driver.session() as session:
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mem_id)
