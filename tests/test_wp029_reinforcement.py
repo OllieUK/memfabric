@@ -328,3 +328,90 @@ class TestReinforceMemoryCLI:
             result = self.runner.invoke(cli_app, ["run-decay"])
         assert "5" in result.output
         assert "2" in result.output
+
+
+@pytest.mark.integration
+class TestMigrateReinforcementScript:
+    def test_backfill_nodes_sets_defaults(self, test_driver):
+        """Insert a node without strength, run backfill, verify properties set."""
+        from datetime import datetime, timezone
+        from memory_service.config import Settings, get_driver as gd
+        from scripts.migrate_reinforcement_defaults import backfill_nodes
+
+        mem_id = f"wp029-migrate-{uuid.uuid4()}"
+        try:
+            with test_driver.session() as session:
+                session.run(
+                    "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
+                    "type: 'fact', tags: [], importance: 3, "
+                    "created_at: '2026-01-01T00:00:00+00:00', "
+                    "last_used_at: '2026-01-01T00:00:00+00:00', embedding: []})",
+                    id=mem_id,
+                )
+
+            now_iso = datetime.now(timezone.utc).isoformat()
+            s = Settings()
+            driver = gd(s)
+            with driver.session() as session:
+                count = backfill_nodes(session, now_iso, 0.01, dry_run=False)
+            driver.close()
+            assert count >= 1
+
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.strength AS s, m.recall_count AS rc",
+                    id=mem_id,
+                ).single()
+                assert abs(row["s"] - 0.6) < 0.001
+                assert row["rc"] == 0
+        finally:
+            with test_driver.session() as session:
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mem_id)
+
+    def test_backfill_is_idempotent(self, test_driver):
+        """Second backfill run updates 0 nodes (all already migrated by Task 2)."""
+        from datetime import datetime, timezone
+        from memory_service.config import Settings, get_driver as gd
+        from scripts.migrate_reinforcement_defaults import backfill_nodes
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        s = Settings()
+        driver = gd(s)
+        with driver.session() as session:
+            count = backfill_nodes(session, now_iso, 0.01, dry_run=False)
+        driver.close()
+        # All memories created in WP-029 already have strength set → 0 updated
+        assert count == 0
+
+    def test_dry_run_does_not_write(self, test_driver):
+        from datetime import datetime, timezone
+        from memory_service.config import Settings, get_driver as gd
+        from scripts.migrate_reinforcement_defaults import backfill_nodes
+
+        mem_id = f"wp029-dryrun-{uuid.uuid4()}"
+        try:
+            with test_driver.session() as session:
+                session.run(
+                    "CREATE (m:Memory {id: $id, fact: 'dry', text: 'dry', "
+                    "type: 'fact', tags: [], importance: 2, "
+                    "created_at: '2026-01-01T00:00:00+00:00', "
+                    "last_used_at: '2026-01-01T00:00:00+00:00', embedding: []})",
+                    id=mem_id,
+                )
+
+            now_iso = datetime.now(timezone.utc).isoformat()
+            s = Settings()
+            driver = gd(s)
+            with driver.session() as session:
+                count = backfill_nodes(session, now_iso, 0.01, dry_run=True)
+            driver.close()
+            assert count >= 1
+
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.strength AS s", id=mem_id
+                ).single()
+                assert row["s"] is None  # not written in dry-run
+        finally:
+            with test_driver.session() as session:
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mem_id)
