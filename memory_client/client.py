@@ -130,6 +130,31 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()
 
+    def reinforce_memory(
+        self,
+        memory_id: str,
+        co_recalled_ids: list[str] | None = None,
+    ) -> dict:
+        """POST /memory/{id}/reinforce. Returns {memory_id, new_strength}."""
+        body: dict = {"signal": "explicit"}
+        if co_recalled_ids:
+            body["co_recalled_ids"] = co_recalled_ids
+        response = self._http.post(f"/memory/{memory_id}/reinforce", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def run_decay(self) -> dict:
+        """POST /memory/maintenance/decay. Returns {nodes_updated, edges_updated}."""
+        response = self._http.post("/memory/maintenance/decay")
+        response.raise_for_status()
+        return response.json()
+
+    def get_weak_edges(self) -> list[dict]:
+        """GET /memory/maintenance/weak-edges. Returns list of weak edge dicts."""
+        response = self._http.get("/memory/maintenance/weak-edges")
+        response.raise_for_status()
+        return response.json()["edges"]
+
     def get_graph(
         self,
         *,

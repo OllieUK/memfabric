@@ -1,5 +1,11 @@
 import uuid
+import json
 import pytest
+import respx
+import httpx
+from memory_client.client import MemoryClient
+from typer.testing import CliRunner
+from memory_client.cli import app as cli_app
 from memory_service import memory_repo
 
 
@@ -237,3 +243,88 @@ class TestExplicitReinforcement:
                 if mid:
                     with test_driver.session() as session:
                         session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
+
+
+class TestMemoryClientReinforce:
+    def test_reinforce_memory_returns_dict(self):
+        with respx.mock:
+            respx.post("http://test/memory/abc123/reinforce").mock(
+                return_value=httpx.Response(200, json={"memory_id": "abc123", "new_strength": 0.85})
+            )
+            with MemoryClient(base_url="http://test") as client:
+                result = client.reinforce_memory("abc123")
+            assert result["new_strength"] == 0.85
+
+    def test_reinforce_memory_sends_co_recalled_ids(self):
+        with respx.mock:
+            route = respx.post("http://test/memory/abc/reinforce").mock(
+                return_value=httpx.Response(200, json={"memory_id": "abc", "new_strength": 0.9})
+            )
+            with MemoryClient(base_url="http://test") as client:
+                client.reinforce_memory("abc", co_recalled_ids=["x", "y"])
+            body = json.loads(route.calls[0].request.content)
+            assert body["co_recalled_ids"] == ["x", "y"]
+
+    def test_run_decay_returns_counts(self):
+        with respx.mock:
+            respx.post("http://test/memory/maintenance/decay").mock(
+                return_value=httpx.Response(200, json={"nodes_updated": 42, "edges_updated": 7})
+            )
+            with MemoryClient(base_url="http://test") as client:
+                result = client.run_decay()
+            assert result["nodes_updated"] == 42
+
+    def test_get_weak_edges_returns_list(self):
+        with respx.mock:
+            respx.get("http://test/memory/maintenance/weak-edges").mock(
+                return_value=httpx.Response(200, json={"edges": [{"source_id": "a", "target_id": "b", "relation": "RELATED_TO", "weight": 0.02, "activation_count": 0}]})
+            )
+            with MemoryClient(base_url="http://test") as client:
+                edges = client.get_weak_edges()
+            assert len(edges) == 1
+            assert edges[0]["weight"] == 0.02
+
+
+class TestMcpReinforcement:
+    def test_memory_reinforce_tool(self):
+        from unittest.mock import MagicMock, patch
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.reinforce_memory.return_value = {"memory_id": "abc", "new_strength": 0.75}
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_reinforce
+            result = memory_reinforce("abc")
+        assert result["new_strength"] == 0.75
+
+    def test_memory_run_decay_tool(self):
+        from unittest.mock import MagicMock, patch
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.run_decay.return_value = {"nodes_updated": 10, "edges_updated": 3}
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_run_decay
+            result = memory_run_decay()
+        assert result["nodes_updated"] == 10
+
+
+class TestReinforceMemoryCLI:
+    runner = CliRunner()
+
+    def test_reinforce_memory_prints_strength(self):
+        with respx.mock:
+            respx.post("http://localhost:8000/memory/abc123/reinforce").mock(
+                return_value=httpx.Response(200, json={"memory_id": "abc123", "new_strength": 0.75})
+            )
+            result = self.runner.invoke(cli_app, ["reinforce-memory", "abc123"])
+        assert "0.750" in result.output
+
+    def test_run_decay_prints_counts(self):
+        with respx.mock:
+            respx.post("http://localhost:8000/memory/maintenance/decay").mock(
+                return_value=httpx.Response(200, json={"nodes_updated": 5, "edges_updated": 2})
+            )
+            result = self.runner.invoke(cli_app, ["run-decay"])
+        assert "5" in result.output
+        assert "2" in result.output

@@ -128,6 +128,20 @@ def memory_create_person(person_id: str, name: str, description: str | None = No
         return client.create_person(person_id, name, description=description)
 
 
+@mcp.tool
+def memory_reinforce(memory_id: str, co_recalled_ids: list[str] | None = None) -> dict:
+    """Explicitly reinforce a memory. Pass co_recalled_ids for Hebbian edge strengthening."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.reinforce_memory(memory_id, co_recalled_ids=co_recalled_ids)
+
+
+@mcp.tool
+def memory_run_decay() -> dict:
+    """Trigger a full-graph decay pass. Returns nodes_updated and edges_updated counts."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.run_decay()
+
+
 _CLOSE_SESSION_SCAFFOLD = """\
 ## Session close-out
 

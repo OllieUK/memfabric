@@ -185,6 +185,41 @@ def create_person(
         raise typer.Exit(1)
 
 
+@app.command("reinforce-memory")
+def reinforce_memory(
+    memory_id: str = typer.Argument(..., help="Memory UUID to reinforce"),
+    co_recalled_id: Optional[list[str]] = typer.Option(
+        None, "--co-recalled-id", help="Co-recalled memory ID (repeatable)"
+    ),
+) -> None:
+    """Explicitly reinforce a memory (Hebbian signal)."""
+    try:
+        with _make_client() as client:
+            result = client.reinforce_memory(memory_id, co_recalled_ids=co_recalled_id)
+        console.print(f"Strength: {result['new_strength']:.3f}")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("run-decay")
+def run_decay() -> None:
+    """Trigger a full-graph decay pass (maintenance operation)."""
+    try:
+        with _make_client() as client:
+            result = client.run_decay()
+        console.print(f"Nodes updated: {result['nodes_updated']}, Edges updated: {result['edges_updated']}")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("wake-up")
 def wake_up(
     topic: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic to focus the session on"),
