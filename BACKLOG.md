@@ -27,6 +27,7 @@
 | 5 | WP-040 | Memory maintenance orchestration — Short Rest & Long Rest | H | M | WP-029 ✅ | Triggered/scheduled maintenance: Short Rest (end-of-session decay on active memories) + Long Rest (full decay + edge rediscovery + weak-edge pruning). See detail below. |
 | 6 | WP-038 | Memory lifecycle operations — update, merge, archive | H | L | WP-006, WP-037 ✅ | First-class memory maintenance: PATCH, merge, archive, restore. See detail below. |
 | 6 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | WP-038 | Prevent test artefacts polluting live context. See detail below. |
+| 7 | WP-044 | Fix broken 503 + connect-error tests | M | S | — | `test_returns_503_when_db_down` ×2 and `test_connect_error_exits_nonzero` ×2 pass vacuously — 503 path untested. Fix: use `respx.mock` for CLI tests (not `env=`); use `override_dependencies` or lifespan mock for endpoint 503 tests. See detail below. |
 | 7 | WP-025 | Extract shared CLI error handler | L | S | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
 | 7 | WP-026 | `MemoryType` mirror in `memory_client` | L | S | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
 | 7 | WP-023 | Extract `get_session` context manager for 503 handling | L | S | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
@@ -170,3 +171,26 @@ Integration tests write real memories to the live graph. Without explicit epheme
 - [ ] Search and wake-up exclude ephemeral memories by default
 - [ ] `POST /memory/maintenance/purge-ephemeral` returns count deleted
 - [ ] Integration tests updated to use `ephemeral: true` for test writes
+
+---
+
+### WP-044 — Fix broken 503 + connect-error tests
+
+#### Root cause
+
+Two failure modes, both causing tests to pass vacuously:
+
+**`test_returns_503_when_db_down`** (in `test_add_memory.py` and `test_search_memory.py`):
+Tests inject a mock driver via `app.state.driver = mock_driver` after the lifespan startup has already wired the real driver. The mock is ignored because the endpoint resolves the driver from the already-running app state set at startup.
+Fix: use FastAPI's `app.dependency_overrides` (or patch `request.app.state.driver` via a proper fixture that runs before the TestClient starts) so the mock driver is actually seen by the endpoint.
+
+**`test_connect_error_exits_nonzero`** (in `test_list_strands.py` and `test_wp037_person_nodes.py`):
+Tests pass `env={"API_BASE_URL": "http://localhost:19999"}` to Typer's `CliRunner.invoke`. Pydantic-settings reads env vars at import time, so the override arrives too late — the settings object already has `localhost:8000`. The real service is running on 8000 and responds successfully, giving exit_code=0.
+Fix: follow the pattern used in `test_wake_up_close_session.py` — use `respx.mock` with `side_effect=httpx.ConnectError(...)` instead of redirecting the URL.
+
+#### Definition of Success
+
+- [ ] `test_returns_503_when_db_down` in `test_add_memory.py` and `test_search_memory.py` actually exercises the 503 path and passes
+- [ ] `test_connect_error_exits_nonzero` in `test_list_strands.py` and `test_wp037_person_nodes.py` actually exercises the connect-error path and passes
+- [ ] No new test infrastructure added — reuse `respx.mock` pattern already present in `test_wake_up_close_session.py`
+- [ ] 4 pre-existing failures eliminated; total test count unchanged
