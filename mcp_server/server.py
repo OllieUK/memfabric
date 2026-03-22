@@ -142,6 +142,42 @@ def memory_run_decay() -> dict:
         return client.run_decay()
 
 
+@mcp.tool
+def memory_short_rest(dry_run: bool = False) -> str:
+    """Run Short Rest decay pass on recently-active memories.
+    Returns a plain-text summary. Use dry_run=True to preview without writing."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        result = client.short_rest(dry_run=dry_run)
+    dr = " (dry-run)" if result.get("dry_run") else ""
+    return (
+        f"Short Rest{dr}: {result['nodes_decayed']} nodes decayed, "
+        f"{result['edges_decayed']} edges decayed."
+    )
+
+
+@mcp.tool
+def memory_long_rest(dry_run: bool = False, prune: bool = False) -> str:
+    """Run Long Rest: full decay + edge rediscovery + optional prune.
+    Returns a plain-text summary. Use dry_run=True to preview without writing.
+    Use prune=True to hard-delete eligible weak edges (only when dry_run=False)."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        result = client.long_rest(dry_run=dry_run, prune=prune)
+    dr = " (dry-run)" if result.get("dry_run") else ""
+    return (
+        f"Long Rest{dr}: {result['nodes_decayed']} nodes decayed, "
+        f"{result['edges_decayed']} edges decayed, "
+        f"{result['edges_discovered']} edges discovered, "
+        f"{result['edges_pruned']} edges pruned."
+    )
+
+
+@mcp.tool
+def memory_maintenance_stats() -> dict:
+    """Return a health snapshot of the memory fabric including node/edge stats and maintenance timestamps."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.maintenance_stats()
+
+
 _CLOSE_SESSION_SCAFFOLD = """\
 ## Session close-out
 
