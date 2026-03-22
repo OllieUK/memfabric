@@ -463,7 +463,7 @@ def _apply_decay_modulated(
     A node with more/stronger incoming edges decays slower (elaborative encoding).
     factor=0 disables modulation (effective_rate == base_rate).
     """
-    modulation = min(1.0 + factor * incoming_weight_sum, cap)
+    modulation = max(min(1.0 + factor * incoming_weight_sum, cap), 1e-9)
     effective_rate = base_rate / modulation
     return _apply_decay(current, effective_rate, days, min_strength)
 
@@ -475,7 +475,7 @@ def decay_pass(
     min_strength: float = 0.0,
     node_ids: list[str] | None = None,
     edge_modulation_factor: float = 0.0,
-    edge_modulation_cap: float = 1.0,
+    edge_modulation_cap: float = 10.0,
     dry_run: bool = False,
 ) -> dict:
     """Recompute and write strength for all Memory nodes and weight for all edges.
