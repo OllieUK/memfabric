@@ -448,10 +448,39 @@ def _apply_decay(current: float, rate: float, days: float, min_strength: float =
     return max(min_strength, min(1.0, current * math.exp(-rate * days)))
 
 
-def decay_pass(session, now_naive: str, now_iso: str, min_strength: float = 0.0) -> dict:
+def _apply_decay_modulated(
+    current: float,
+    base_rate: float,
+    days: float,
+    incoming_weight_sum: float,
+    factor: float,
+    cap: float,
+    min_strength: float = 0.0,
+) -> float:
+    """Apply Ebbinghaus decay with edge-modulated rate.
+
+    effective_rate = base_rate / min(1 + factor * incoming_weight_sum, cap)
+    A node with more/stronger incoming edges decays slower (elaborative encoding).
+    factor=0 disables modulation (effective_rate == base_rate).
+    """
+    modulation = min(1.0 + factor * incoming_weight_sum, cap)
+    effective_rate = base_rate / modulation
+    return _apply_decay(current, effective_rate, days, min_strength)
+
+
+def decay_pass(
+    session,
+    now_naive: str,
+    now_iso: str,
+    min_strength: float = 0.0,
+    node_ids: list[str] | None = None,
+    edge_modulation_factor: float = 0.0,
+    edge_modulation_cap: float = 1.0,
+    dry_run: bool = False,
+) -> dict:
     """Recompute and write strength for all Memory nodes and weight for all edges.
 
-    Formula: new_value = current_value * exp(-decay_rate * days_since_anchor)
+    Formula: new_value = current_value * exp(-effective_rate * days_since_anchor)
     Anchors: Memory.last_reinforced_at, edge.last_activated_at.
     After writing, resets anchors to now_iso so future inline calcs stay numerically stable.
 
@@ -461,19 +490,33 @@ def decay_pass(session, now_naive: str, now_iso: str, min_strength: float = 0.0)
     Args:
         now_naive: unused (kept for API compatibility); computation uses now_iso
         now_iso: full ISO string representing the current time, e.g. "2026-03-22T10:30:00+00:00"
+        min_strength: floor for node strength after decay (default 0.0)
+        node_ids: if provided, restrict node decay to this list of Memory ids
+        edge_modulation_factor: multiplier controlling how much incoming edge weight slows decay;
+            0.0 disables modulation (backward compatible default)
+        edge_modulation_cap: maximum denominator for modulation (caps the slowdown effect)
+        dry_run: if True, compute updates but do not write to the database
 
     Returns dict with keys: nodes_updated, edges_updated (int counts).
     """
     now = _parse_iso(now_iso)
 
     # --- Node decay ---
+    # Build node scope filter
+    node_filter = "AND m.id IN $node_ids" if node_ids is not None else ""
+
     node_rows = list(session.run(
-        """
+        f"""
         MATCH (m:Memory)
         WHERE m.strength IS NOT NULL AND m.last_reinforced_at IS NOT NULL AND m.decay_rate IS NOT NULL
+        {node_filter}
+        OPTIONAL MATCH (pred:Memory)-[inc:RELATED_TO|LEADS_TO]->(m)
+        WITH m, coalesce(sum(inc.weight), 0.0) AS incoming_weight_sum
         RETURN m.id AS id, m.strength AS strength,
-               m.last_reinforced_at AS anchor, m.decay_rate AS rate
-        """
+               m.last_reinforced_at AS anchor, m.decay_rate AS rate,
+               incoming_weight_sum
+        """,
+        node_ids=node_ids if node_ids is not None else [],
     ))
 
     node_updates = []
@@ -485,10 +528,15 @@ def decay_pass(session, now_naive: str, now_iso: str, min_strength: float = 0.0)
         days = (now - anchor).total_seconds() / 86400.0
         node_updates.append({
             "id": row["id"],
-            "new_val": _apply_decay(row["strength"], row["rate"], days, min_strength),
+            "new_val": _apply_decay_modulated(
+                row["strength"], row["rate"], days,
+                row["incoming_weight_sum"],
+                edge_modulation_factor, edge_modulation_cap,
+                min_strength,
+            ),
         })
 
-    if node_updates:
+    if node_updates and not dry_run:
         session.run(
             """
             UNWIND $updates AS upd
@@ -521,7 +569,7 @@ def decay_pass(session, now_naive: str, now_iso: str, min_strength: float = 0.0)
             "new_val": _apply_decay(row["weight"], row["rate"], days),
         })
 
-    if edge_updates:
+    if edge_updates and not dry_run:
         session.run(
             """
             UNWIND $updates AS upd

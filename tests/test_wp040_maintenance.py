@@ -41,3 +41,43 @@ class TestSystemNodeHelpers:
         result = memory_repo.get_system_timestamps(session)
         assert "last_short_rest_at" in result
         assert "last_long_rest_at" in result
+
+
+class TestEdgeModulatedDecay:
+    def test_apply_decay_no_modulation(self):
+        """With factor=0, effective rate == base rate (backward compat)."""
+        import math
+        from memory_service.memory_repo import _apply_decay_modulated
+        result = _apply_decay_modulated(
+            current=1.0, base_rate=0.01, days=1.0,
+            incoming_weight_sum=5.0,
+            factor=0.0, cap=10.0, min_strength=0.0,
+        )
+        expected = math.exp(-0.01 * 1.0)
+        assert abs(result - expected) < 1e-9
+
+    def test_apply_decay_with_modulation_reduces_rate(self):
+        """With factor=0.5 and sum_weight=2.0, effective rate is base/2.0."""
+        import math
+        from memory_service.memory_repo import _apply_decay_modulated
+        # effective_rate = 0.01 / min(1 + 0.5*2.0, 10) = 0.01 / 2.0 = 0.005
+        result = _apply_decay_modulated(
+            current=1.0, base_rate=0.01, days=1.0,
+            incoming_weight_sum=2.0,
+            factor=0.5, cap=10.0, min_strength=0.0,
+        )
+        expected = math.exp(-0.005 * 1.0)
+        assert abs(result - expected) < 1e-9
+
+    def test_apply_decay_cap_limits_reduction(self):
+        """Cap=3.0 means max denominator is 3, even with very high edge weight."""
+        import math
+        from memory_service.memory_repo import _apply_decay_modulated
+        result = _apply_decay_modulated(
+            current=1.0, base_rate=0.1, days=1.0,
+            incoming_weight_sum=1000.0,
+            factor=0.5, cap=3.0, min_strength=0.0,
+        )
+        # effective_rate = 0.1 / 3.0
+        expected = math.exp(-0.1 / 3.0 * 1.0)
+        assert abs(result - expected) < 1e-6
