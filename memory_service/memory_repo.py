@@ -536,6 +536,67 @@ def decay_pass(session, now_naive: str, now_iso: str) -> dict:
     return {"nodes_updated": len(node_updates), "edges_updated": len(edge_updates)}
 
 
+def reinforce_memory(
+    session,
+    memory_id: str,
+    strength_increment: float,
+    edge_increment: float,
+    co_recalled_ids: list[str],
+    now_iso: str,
+) -> float:
+    """Explicitly reinforce a memory node and its co-recalled edges.
+
+    Updates last_reinforced_at (unlike recall_increment, which does not).
+    Returns the new stored strength value (float).
+    """
+    result = session.run(
+        """
+        MATCH (m:Memory {id: $id})
+        SET m.reinforcement_count = coalesce(m.reinforcement_count, 0) + 1,
+            m.last_reinforced_at = $now,
+            m.strength = CASE
+                WHEN coalesce(m.strength, m.importance / 5.0) + $increment >= 1.0
+                THEN 1.0
+                ELSE coalesce(m.strength, m.importance / 5.0) + $increment
+            END
+        RETURN m.strength AS strength
+        """,
+        id=memory_id,
+        increment=strength_increment,
+        now=now_iso,
+    )
+    row = result.single()
+    if row is None:
+        raise ValueError(f"Memory not found: {memory_id}")
+    new_strength = row["strength"]
+
+    # Hebbian step — bump edges between this memory and co-recalled memories
+    if co_recalled_ids:
+        all_ids = [memory_id] + co_recalled_ids
+        session.run(
+            """
+            UNWIND $all_ids AS src
+            UNWIND $all_ids AS tgt
+            WITH src, tgt
+            WHERE src <> tgt
+            OPTIONAL MATCH (a:Memory {id: src})-[r:RELATED_TO|LEADS_TO]->(b:Memory {id: tgt})
+            WITH r, $edge_increment AS inc, $now AS ts
+            WHERE r IS NOT NULL
+            SET r.activation_count = coalesce(r.activation_count, 0) + 1,
+                r.last_activated_at = ts,
+                r.weight = CASE
+                    WHEN coalesce(r.weight, 0.5) + inc >= 1.0 THEN 1.0
+                    ELSE coalesce(r.weight, 0.5) + inc
+                END
+            """,
+            all_ids=all_ids,
+            edge_increment=edge_increment,
+            now=now_iso,
+        )
+
+    return new_strength
+
+
 def list_weak_edges(session, threshold: float) -> list[dict]:
     """Return edges whose stored weight is below threshold (up to 200 results).
 

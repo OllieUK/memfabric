@@ -158,3 +158,82 @@ class TestMaintenanceEndpoints:
         data = r.json()
         assert "edges" in data
         assert isinstance(data["edges"], list)
+
+
+@pytest.mark.integration
+class TestExplicitReinforcement:
+    def test_reinforce_increments_strength(self, client, test_driver):
+        memory_id = None
+        fact = f"wp029-reinforce-{uuid.uuid4()}"
+        try:
+            resp = client.post("/memory", json={
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 2,
+            })
+            memory_id = resp.json()["memory_id"]
+            initial_strength = 2 / 5.0  # 0.4
+
+            r = client.post(f"/memory/{memory_id}/reinforce", json={"signal": "explicit"})
+            assert r.status_code == 200
+            data = r.json()
+            assert data["memory_id"] == memory_id
+            assert data["new_strength"] > initial_strength
+
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.reinforcement_count AS rc",
+                    id=memory_id,
+                ).single()
+                assert row["rc"] == 1
+        finally:
+            if memory_id:
+                with test_driver.session() as session:
+                    session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_id)
+
+    def test_reinforce_404_on_missing_memory(self, client):
+        r = client.post("/memory/nonexistent-id/reinforce", json={"signal": "explicit"})
+        assert r.status_code == 404
+
+    def test_reinforce_co_recalled_ids_activates_edges(self, client, test_driver):
+        """Two explicitly related memories: reinforce one with the other as co_recalled → edge weight increases."""
+        m1 = m2 = None
+        try:
+            r1 = client.post("/memory", json={
+                "fact": f"wp029-hebbian-a-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
+            })
+            m1 = r1.json()["memory_id"]
+            # Use related_ids to guarantee a RELATED_TO edge exists between m2 and m1
+            r2 = client.post("/memory", json={
+                "fact": f"wp029-hebbian-b-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
+                "related_ids": [m1],
+            })
+            m2 = r2.json()["memory_id"]
+
+            # Confirm edge exists before reinforcement
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (a:Memory {id: $a})-[r:RELATED_TO]->(b:Memory {id: $b}) "
+                    "RETURN r.weight AS w, coalesce(r.activation_count, 0) AS ac",
+                    a=m2, b=m1,
+                ).single()
+            assert row is not None, "Expected RELATED_TO edge to exist via related_ids"
+            initial_weight = row["w"]
+            initial_ac = row["ac"]
+
+            # Reinforce m1 with m2 as co-recalled
+            client.post(f"/memory/{m1}/reinforce", json={
+                "signal": "explicit", "co_recalled_ids": [m2],
+            })
+
+            with test_driver.session() as session:
+                row = session.run(
+                    "MATCH (a:Memory {id: $a})-[r:RELATED_TO]->(b:Memory {id: $b}) "
+                    "RETURN r.weight AS w, r.activation_count AS ac",
+                    a=m2, b=m1,
+                ).single()
+            # Either weight increased or activation_count incremented
+            assert row["w"] > initial_weight or row["ac"] > initial_ac
+        finally:
+            for mid in [m1, m2]:
+                if mid:
+                    with test_driver.session() as session:
+                        session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)

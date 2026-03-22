@@ -292,6 +292,38 @@ async def get_weak_edges(request: Request) -> WeakEdgesResponse:
     return WeakEdgesResponse(edges=[WeakEdgeItem(**e) for e in edges])
 
 
+class ReinforceRequest(BaseModel):
+    signal: Literal["explicit"] = "explicit"
+    co_recalled_ids: List[str] = []
+
+
+class ReinforceResponse(BaseModel):
+    memory_id: str
+    new_strength: float
+
+
+@app.post("/memory/{memory_id}/reinforce", response_model=ReinforceResponse)
+async def reinforce_memory(
+    memory_id: str, req: ReinforceRequest, request: Request
+) -> ReinforceResponse:
+    now_iso = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            new_strength = memory_repo.reinforce_memory(
+                session,
+                memory_id,
+                strength_increment=settings.explicit_strength_increment,
+                edge_increment=settings.edge_explicit_increment,
+                co_recalled_ids=req.co_recalled_ids,
+                now_iso=now_iso,
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ReinforceResponse(memory_id=memory_id, new_strength=new_strength)
+
+
 class NodeLabel(str, Enum):
     memory = "Memory"
     strand = "Strand"
