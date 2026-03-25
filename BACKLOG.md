@@ -1,7 +1,8 @@
 # Graph-Memory Fabric – Feature Backlog
 
 > **Value:** H = High / M = Medium / L = Low
-> **Effort:** S = Small (hrs) / M = Medium (day) / L = Large (days) / XL = Extra-large (week+)
+> **Effort:** H = High / M = Medium / L = Low
+> **Priority score:** `Value / Effort` using `H=3`, `M=2`, `L=1`
 > Completed WPs → [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ---
@@ -10,50 +11,51 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
+| WP-044 | Fix broken 503 + connect-error tests | Implementation | M | L | — | 4 vacuous tests; fix pattern documented in BACKLOG detail spec |
 
 ---
 
 ## Prioritised Backlog
 
-> Items ordered by dependency-adjusted value/effort: correctness and unblockers first, then high-value platform work, then medium-value quick wins, then low-value cleanup/polish. Do not start a row if its "Depends on" is not in Completed.
+> Items ordered as a dependency-safe executable sequence informed by `Priority score`.
+> Higher score is better, but `Depends on` always wins for execution order.
+> When a lower-score prerequisite unlocks a stronger branch, keep the prerequisite immediately ahead of that branch.
+> Within an equal-score block, preserve the existing order unless a newly identified dependency requires a move.
+> Add new work packages at the bottom of their equal-score block unless dependency constraints require otherwise.
+> `Release` is planning metadata only. The backlog stays continuous and contiguous; release numbers indicate target package, not a separate queue.
 
-| Priority | ID | Title | Value | Effort | Depends on | Notes |
-|----------|----|-------|-------|--------|------------|-------|
-| 1 | WP-044 | Fix broken 503 + connect-error tests | M | S | — | `test_returns_503_when_db_down` ×2 and `test_connect_error_exits_nonzero` ×2 pass vacuously — 503 path untested. Fix pattern fully documented. See detail below. |
-| 2 | WP-038 | Memory lifecycle operations — update, merge, archive | H | L | WP-037 ✅ | First-class memory maintenance: PATCH, merge, archive, restore. WP-006 dependency removed — graph export is useful for discovery but not technically required. See detail below. |
-| 3 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | WP-038 | Prevent test artefacts polluting live context. See detail below. |
-| 4 | WP-022 | Cap neighbour count in search results | M | S | WP-005 ✅ | `collect(DISTINCT n.id)` unbounded with `max_hops=3` on dense graph — add slice cap (e.g. `[..50]`). Correctness risk as graph grows. |
-| 5 | WP-006 | Wire `GET /memory/graph` | M | M | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
-| 6 | WP-012 | Pin dependency versions in requirements.txt | M | S | — | Use `>=x,<y` bounds. Stability/reproducibility prerequisite — do before declaring v1 stable. |
-| 7 | WP-013 | Pin Docker image tags (no `latest`) | M | S | WP-012 | Replace `latest` tags with specific versions. Do after WP-012. |
-| 8 | WP-034 | Add version/build hash to `/health` response | L | S | — | Detect stale service at session startup. Batch with WP-035/036. |
-| 9 | WP-035 | Return `strand_ids` in `add-memory` API response | L | S | — | Reduce friction when chaining related memories. Batch with WP-034/036. |
-| 10 | WP-036 | Document `### Relevant to today` suppression in COMPANION.md | L | S | — | Avoid companion confusion on small DBs. Batch with WP-034/035. Not covered by the three-tier memory model addition (2026-03-22) — still needed for wake-up output behaviour on sparse graphs. |
-| 11 | WP-043 | Inline effective_strength sort in search | L | S | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as v1 proxy. |
-| 12 | WP-025 | Extract shared CLI error handler | L | S | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
-| 13 | WP-026 | `MemoryType` mirror in `memory_client` | L | S | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 14 | WP-023 | Extract `get_session` context manager for 503 handling | L | S | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
-| 15 | WP-020 | UNWIND for person/strand/related_ids writes | L | S | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
-| 16 | WP-021 | Non-blocking embedding in async endpoints | L | S | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
-| 17 | WP-024 | `cleanup_nodes` support multiple ids per label | L | S | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. |
-| 18 | WP-017 | Embedding cache eviction / size cap | L | S | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
-| 19 | WP-019 | Expose vector index `capacity` as config | L | S | WP-016 ✅ | `capacity: 1000` hardcoded in `init_schema.py`. Add to `Settings`. |
-| 20 | WP-014 | Docker resource limits | L | S | — | Add `mem_limit`/`cpus` to docker-compose. |
+| Priority | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
+|----------|---------|----|-------|-------|--------|----------------|------------|-------|
+| 1 | R1 | WP-044 | Fix broken 503 + connect-error tests | M | L | 2.0 | — | `test_returns_503_when_db_down` ×2 and `test_connect_error_exits_nonzero` ×2 pass vacuously — 503 path untested. Fix pattern fully documented. See detail below. |
+| 2 | R1 | WP-022 | Cap neighbour count in search results | M | L | 2.0 | WP-005 ✅ | `collect(DISTINCT n.id)` unbounded with `max_hops=3` on dense graph — add slice cap (e.g. `[..50]`). Correctness risk as graph grows. |
+| 3 | R1 | WP-012 | Pin dependency versions in requirements.txt | M | L | 2.0 | — | Use `>=x,<y` bounds. Stability/reproducibility prerequisite — do before declaring a stable first release. |
+| 4 | R1 | WP-013 | Pin Docker image tags (no `latest`) | M | L | 2.0 | WP-012 | Replace `latest` tags with specific versions. Do after WP-012. |
+| 5 | R1 | WP-045 | Make local startup deterministic offline | M | L | 2.0 | — | Fix misleading Memgraph healthcheck and add a documented/scripted API startup path that works with cached embeddings offline (`HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`). Prevent false “memory service unreachable” failures at session start. |
+| 6 | R1 | WP-034 | Add version/build hash to `/health` response | M | L | 2.0 | — | Detect stale or mismatched service instances at mandatory session startup. Promoted from low value because startup operability is part of the core working loop. Batch with WP-035/036. |
+| 7 | R1 | WP-038 | Memory lifecycle operations — update, merge, archive | H | H | 1.0 | WP-037 ✅ | First-class memory maintenance: PATCH, merge, archive, restore. Kept immediately ahead of WP-039 because it is the prerequisite for the stronger next branch. See detail below. |
+| 8 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.5 | WP-038 | Prevent test artefacts polluting live context. See detail below. |
+| 9 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
+| 10 | R2 | WP-035 | Return `strand_ids` in `add-memory` API response | L | L | 1.0 | — | Reduce friction when chaining related memories. Batch with WP-034/036. |
+| 11 | R2 | WP-036 | Document `### Relevant to today` suppression in COMPANION.md | L | L | 1.0 | — | Avoid companion confusion on small DBs. Batch with WP-034/035. Not covered by the three-tier memory model addition (2026-03-22) — still needed for wake-up output behaviour on sparse graphs. |
+| 12 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
+| 13 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
+| 14 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
+| 15 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 16 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
+| 17 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
+| 18 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. |
+| 19 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
+| 20 | R2 | WP-019 | Expose vector index `capacity` as config | L | L | 1.0 | WP-016 ✅ | `capacity: 1000` hardcoded in `init_schema.py`. Add to `Settings`. |
+| 21 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
+| 22 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
+| 23 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
+| 24 | R3 | WP-008 | LLMClient abstraction | M | M | 1.0 | WP-007 ✅ | `LLMClient.ask(system, prompt, model)` wrappers for Claude/OpenAI/Ollama. |
+| 25 | R3 | WP-009 | Headless agent framework | M | H | 0.67 | WP-008 | `BaseAgent` using `memory_client` + `LLMClient`; scheduled/event-driven tasks. |
+| 26 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
+| 27 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 
----
-
-## v2+ — Future phases (not in scope for v1)
-
-| ID | Title | Value | Effort | Depends on | Notes |
-|----|-------|-------|--------|------------|-------|
-| WP-041 | Subject/object schema on Memory nodes | H | L | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
-| WP-042 | Self-contained `memory_client` packaging | M | S | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. |
-| WP-008 | LLMClient abstraction | M | M | WP-007 ✅ | `LLMClient.ask(system, prompt, model)` wrappers for Claude/OpenAI/Ollama. |
-| WP-009 | Headless agent framework | M | L | WP-008 | `BaseAgent` using `memory_client` + `LLMClient`; scheduled/event-driven tasks. |
-| WP-010 | Remote/mobile access | L | XL | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
-| WP-011 | Custom graph-cloud UI | L | XL | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
-
-> **Note:** v2+ WP-034 and WP-035 from the old backlog have been renumbered WP-041 and WP-042 to avoid collision with the v1 WP-034/035/036 companion-polish items.
+> **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
+> Old v2+ WP-034 and WP-035 were renumbered WP-041 and WP-042 to avoid collision with the current WP-034/035/036 items.
 
 ---
 

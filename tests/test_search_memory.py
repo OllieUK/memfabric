@@ -204,21 +204,21 @@ class TestSearchGraphExpansion:
 
 
 class TestSearchDbUnavailable:
-    def test_returns_503_when_db_down(self, test_driver):
+    def test_returns_503_when_db_down(self):
         """Inject a driver that raises ServiceUnavailable; expect 503."""
         from memory_service.main import app
 
         mock_driver = MagicMock()
         mock_driver.session.side_effect = ServiceUnavailable("connection refused")
 
-        original_driver = getattr(app.state, "driver", None)
-        app.state.driver = mock_driver
-        try:
-            with TestClient(app) as c:
+        with TestClient(app) as c:
+            original_driver = app.state.driver
+            app.state.driver = mock_driver
+            try:
                 response = c.post("/memory/search", json={"query": "test"})
-            assert response.status_code == 503
-        finally:
-            app.state.driver = original_driver
+            finally:
+                app.state.driver = original_driver
+        assert response.status_code == 503
 
 
 @pytest.mark.integration

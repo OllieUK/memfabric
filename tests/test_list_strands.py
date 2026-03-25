@@ -193,13 +193,10 @@ class TestListStrandsCLI:
         assert result.exit_code == 1
 
     # I5: connect error exits 1 with informative message
+    @respx.mock
     def test_connect_error_exits_nonzero(self):
-        # Use a bad port that nothing listens on
-        result = runner.invoke(
-            app,
-            ["list-strands"],
-            env={"API_BASE_URL": "http://localhost:19999"},
-        )
+        respx.get(f"{BASE}/strands").mock(side_effect=httpx.ConnectError("connection refused"))
+        result = runner.invoke(app, ["list-strands"])
         assert result.exit_code == 1
 
 

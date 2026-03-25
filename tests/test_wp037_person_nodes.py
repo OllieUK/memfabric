@@ -474,12 +474,10 @@ class TestListPersonsCLI:
         result = _cli_runner.invoke(cli_app, ["list-persons"])
         assert result.exit_code != 0
 
+    @respx.mock
     def test_connect_error_exits_nonzero(self):
-        result = _cli_runner.invoke(
-            cli_app,
-            ["list-persons"],
-            env={"API_BASE_URL": "http://localhost:19999"},
-        )
+        respx.get("http://localhost:8000/person").mock(side_effect=httpx.ConnectError("connection refused"))
+        result = _cli_runner.invoke(cli_app, ["list-persons"])
         assert result.exit_code != 0
 
 
