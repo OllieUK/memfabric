@@ -4,6 +4,18 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-044 — Fix broken 503 + connect-error tests
+
+**Date:** 2026-03-25
+
+- `test_returns_503_when_db_down` (×2): moved mock-driver assignment inside `TestClient` context so lifespan no longer overwrites it; removed `test_driver` fixture dep (no live DB needed)
+- `test_connect_error_exits_nonzero` (×2): replaced env-redirect approach (ignored by pydantic-settings at import time) with `respx.mock` + `side_effect=httpx.ConnectError`, matching existing pattern in `test_wake_up_close_session.py`
+- All 4 tests now exercise the intended failure paths; 121 passing (was 119), no regressions
+
+**Retrospective:** Root causes were well-documented in the backlog — execution was straightforward once the patterns were clear. The `test_driver` fixture dependency on the 503 tests was an easy miss (tests looked like integration tests but were really unit tests).
+
+---
+
 ## WP-040 — Memory maintenance orchestration: Short Rest & Long Rest
 
 **Date:** 2026-03-22
