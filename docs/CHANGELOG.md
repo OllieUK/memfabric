@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-048 — Two-speed decay + importance floor to protect core memories
+
+**Date:** 2026-03-26
+
+- Added 4 new config fields: `initial_strength_factor` (0.4), `memory_initial_decay_rate` (0.07), `memory_consolidated_decay_rate` (0.01), `importance_floor_factor` (0.3)
+- `add_memory`: initial strength = `initial_strength_factor * importance/5` (was `importance/5`); decay rate = `memory_initial_decay_rate` (fast); `min_strength` = `importance_floor_factor * importance/5` stored on node
+- `reinforce_memory`: first reinforcement switches `decay_rate` to `memory_consolidated_decay_rate` using pre-increment count check via WITH clause
+- `decay_pass` + `short_rest`: read per-node `min_strength` as decay floor; fall back to global `min_memory_strength` for nodes without the property
+- Updated `tests/test_wp029_reinforcement.py` for new initial-strength expectations
+- New `tests/test_wp048_two_speed_decay.py`: 8 unit tests + 8 integration tests covering all acceptance criteria
+
+**Retrospective:** The Memgraph evaluation-order nuance in the consolidation Cypher (needing a `WITH` to capture pre-increment `reinforcement_count`) was the only implementation surprise. Per-node `min_strength` fallback for pre-existing memories requires no migration — `coalesce` handles it cleanly.
+
+---
+
 ## WP-046 — Deduplicate search and wake-up results
 
 **Date:** 2026-03-26
