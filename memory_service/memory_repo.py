@@ -178,7 +178,7 @@ WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
 OPTIONAL MATCH (m)-[:ABOUT]->(p:Project)
 WITH m, distance, p
 WHERE ($project_ids IS NULL OR p.id IN $project_ids)
-WITH m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, m
+WITH DISTINCT m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, m
 {neighbour_clause}
 RETURN id, text, type, tags, importance, distance, {neighbour_return}
 ORDER BY distance ASC\
