@@ -12,7 +12,7 @@ from memory_service import memory_repo
 @pytest.mark.integration
 class TestMemoryCreationSeeding:
     def test_new_memory_has_strength_seeded_from_importance(self, client, test_driver):
-        """Memory created with importance=4 should have strength=0.8."""
+        """Memory created with importance=4 should have strength=0.32 (WP-048: 0.4 * 4/5)."""
         memory_id = None
         fact = f"wp029-seed-test-{uuid.uuid4()}"
         try:
