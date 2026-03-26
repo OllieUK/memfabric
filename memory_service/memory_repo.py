@@ -10,7 +10,16 @@ _AUTO_RELATED_K = 5
 _AUTO_RELATED_MAX_DISTANCE = 0.5
 
 
-def add_memory(session, req, memory_id: str, embedding: list, now: str, decay_rate: float) -> None:
+def add_memory(
+    session,
+    req,
+    memory_id: str,
+    embedding: list,
+    now: str,
+    decay_rate: float,
+    initial_strength_factor: float = 0.4,
+    importance_floor_factor: float = 0.3,
+) -> None:
     """Write a Memory node and all related nodes/edges in a single session.
 
     Steps:
@@ -37,6 +46,7 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str, decay_ra
             last_used_at: $last_used_at,
             embedding: $embedding,
             strength: $strength,
+            min_strength: $min_strength,
             recall_count: 0,
             reinforcement_count: 0,
             last_reinforced_at: $last_reinforced_at,
@@ -55,7 +65,8 @@ def add_memory(session, req, memory_id: str, embedding: list, now: str, decay_ra
         created_at=now,
         last_used_at=now,
         embedding=embedding,
-        strength=req.importance / 5.0,
+        strength=initial_strength_factor * (req.importance / 5.0),
+        min_strength=importance_floor_factor * (req.importance / 5.0),
         last_reinforced_at=now,
         decay_rate=decay_rate,
     )

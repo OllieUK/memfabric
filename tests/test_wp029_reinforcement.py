@@ -34,11 +34,11 @@ class TestMemoryCreationSeeding:
                 )
                 row = result.single()
                 assert row is not None
-                assert abs(row["strength"] - 0.8) < 0.001
+                assert abs(row["strength"] - 0.32) < 0.001
                 assert row["recall_count"] == 0
                 assert row["reinforcement_count"] == 0
                 assert row["last_reinforced_at"] is not None
-                assert row["decay_rate"] == pytest.approx(0.01, abs=0.0001)
+                assert row["decay_rate"] == pytest.approx(0.07, abs=0.0001)
         finally:
             if memory_id:
                 with test_driver.session() as session:
@@ -57,7 +57,7 @@ class TestMemoryCreationSeeding:
                 row = session.run(
                     "MATCH (m:Memory {id: $id}) RETURN m.strength AS strength", id=memory_id
                 ).single()
-                assert abs(row["strength"] - 0.2) < 0.001
+                assert abs(row["strength"] - 0.08) < 0.001
         finally:
             if memory_id:
                 with test_driver.session() as session:
@@ -90,7 +90,7 @@ class TestRecallIncrement:
             })
             assert resp.status_code == 200
             memory_id = resp.json()["memory_id"]
-            initial_strength = 3 / 5.0  # 0.6
+            initial_strength = 0.4 * (3 / 5.0)  # 0.24 — WP-048
 
             # Search twice — TestClient runs background tasks synchronously
             for _ in range(2):
@@ -176,7 +176,7 @@ class TestExplicitReinforcement:
                 "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 2,
             })
             memory_id = resp.json()["memory_id"]
-            initial_strength = 2 / 5.0  # 0.4
+            initial_strength = 0.4 * (2 / 5.0)  # 0.16 — WP-048
 
             r = client.post(f"/memory/{memory_id}/reinforce", json={"signal": "explicit"})
             assert r.status_code == 200
