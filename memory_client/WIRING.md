@@ -10,8 +10,7 @@ How to connect a companion environment to the Graph Memory Fabric.
 
 1. Memory service running:
    ```bash
-   docker compose up -d
-   uvicorn memory_service.main:app --reload
+   ./scripts/start-local-stack.sh
    ```
 
 2. Install the package (registers `memory` and `memory-mcp` entry points):

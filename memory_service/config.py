@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_local_files_only: bool = True
+    embedding_preload_on_startup: bool = True
     agent_id: str = "claude-code"
 
     memory_decay_rate: float = 0.01

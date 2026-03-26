@@ -9,7 +9,7 @@ services:
       - "7444:7444"   # HTTP / REST
     command: ["--log-level=INFO"]
     healthcheck:
-      test: ["CMD-SHELL", "echo > /dev/tcp/localhost/7687 && echo healthy || exit 1"]
+      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/127.0.0.1/7687"]
       interval: 10s
       timeout: 5s
       retries: 5

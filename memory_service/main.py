@@ -12,14 +12,20 @@ from pydantic import BaseModel, Field, model_validator
 
 from memory_service import memory_repo
 from memory_service.config import get_driver, settings
-from memory_service.embeddings import get_embedding
+from memory_service.embeddings import get_embedding, get_embedding_dimension
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.driver = get_driver(settings)
-    yield
-    app.state.driver.close()
+    driver = get_driver(settings)
+    driver.verify_connectivity()
+    if settings.embedding_preload_on_startup:
+        get_embedding_dimension()
+    app.state.driver = driver
+    try:
+        yield
+    finally:
+        driver.close()
 
 
 app = FastAPI(

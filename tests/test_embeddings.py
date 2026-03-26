@@ -1,18 +1,41 @@
 # tests/test_embeddings.py
 
-import importlib
 import json
-from pathlib import Path
 
 import pytest
 
 import memory_service.embeddings as emb_module
-from memory_service.embeddings import get_embedding
+from memory_service.embeddings import get_embedding, get_embedding_dimension, get_model
+
+
+class DummyModel:
+    def __init__(self, dim=3):
+        self.dim = dim
+
+    def encode(self, text):
+        base = float(sum(ord(ch) for ch in text))
+        return DummyVector([base + float(i) for i in range(self.dim)])
+
+    def get_sentence_embedding_dimension(self):
+        return self.dim
+
+
+class DummyVector:
+    def __init__(self, values):
+        self._values = values
+
+    def tolist(self):
+        return list(self._values)
+
+
+@pytest.fixture(autouse=True)
+def reset_embedding_model(monkeypatch):
+    monkeypatch.setattr(emb_module, "_model", DummyModel())
+    monkeypatch.setattr(emb_module, "_cache_dir", None)
 
 
 def test_get_embedding_returns_list():
-    from memory_service.embeddings import _model
-    expected_dim = _model.get_sentence_embedding_dimension()
+    expected_dim = get_embedding_dimension()
     result = get_embedding("hello world")
     assert isinstance(result, list)
     assert len(result) == expected_dim
@@ -51,3 +74,36 @@ def test_get_embedding_cache(monkeypatch, tmp_path):
 
     second = get_embedding(text)
     assert second == first, "Second call (cache hit) must return the same embedding"
+
+
+def test_get_model_uses_local_files_only_by_default(monkeypatch):
+    calls = []
+
+    class RecordingModel(DummyModel):
+        def __init__(self, model_name, **kwargs):
+            calls.append((model_name, kwargs))
+            super().__init__()
+
+    monkeypatch.delenv("EMBEDDING_LOCAL_FILES_ONLY", raising=False)
+    monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
+    monkeypatch.delenv("TRANSFORMERS_OFFLINE", raising=False)
+    monkeypatch.setattr(emb_module, "_model", None)
+    monkeypatch.setattr(emb_module, "SentenceTransformer", RecordingModel)
+
+    model = get_model()
+
+    assert isinstance(model, RecordingModel)
+    assert calls == [(emb_module._model_name, {"local_files_only": True})]
+
+
+def test_get_model_raises_helpful_error_when_local_model_missing(monkeypatch):
+    class MissingModel:
+        def __init__(self, *args, **kwargs):
+            raise OSError("missing model")
+
+    monkeypatch.setenv("EMBEDDING_LOCAL_FILES_ONLY", "true")
+    monkeypatch.setattr(emb_module, "_model", None)
+    monkeypatch.setattr(emb_module, "SentenceTransformer", MissingModel)
+
+    with pytest.raises(RuntimeError, match="Cache the model locally first"):
+        get_model()
