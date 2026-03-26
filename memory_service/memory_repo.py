@@ -526,6 +526,7 @@ def decay_pass(
         WITH m, coalesce(sum(inc.weight), 0.0) AS incoming_weight_sum
         RETURN m.id AS id, m.strength AS strength,
                m.last_reinforced_at AS anchor, m.decay_rate AS rate,
+               m.min_strength AS min_strength,
                incoming_weight_sum
         """,
         node_ids=node_ids if node_ids is not None else [],
@@ -538,13 +539,14 @@ def decay_pass(
         except (ValueError, TypeError):
             continue
         days = (now - anchor).total_seconds() / 86400.0
+        node_floor = row["min_strength"] if row["min_strength"] is not None else min_strength
         node_updates.append({
             "id": row["id"],
             "new_val": _apply_decay_modulated(
                 row["strength"], row["rate"], days,
                 row["incoming_weight_sum"],
                 edge_modulation_factor, edge_modulation_cap,
-                min_strength,
+                node_floor,
             ),
         })
 
@@ -744,6 +746,7 @@ def short_rest(
         RETURN m.id AS id, m.strength AS strength,
                m.last_reinforced_at AS anchor, m.decay_rate AS rate,
                m.last_used_at AS last_used_at, m.recall_count AS recall_count,
+               m.min_strength AS min_strength,
                incoming_weight_sum
         """
     ))
@@ -775,11 +778,12 @@ def short_rest(
             continue
 
         days = (now - anchor).total_seconds() / 86400.0
+        node_floor = row["min_strength"] if row["min_strength"] is not None else min_strength
         new_val = _apply_decay_modulated(
             row["strength"], row["rate"], days,
             row["incoming_weight_sum"],
             edge_modulation_factor, edge_modulation_cap,
-            min_strength,
+            node_floor,
         )
         node_updates.append({"id": row["id"], "new_val": new_val})
 
