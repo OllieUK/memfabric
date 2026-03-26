@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     agent_id: str = "claude-code"
 
     memory_decay_rate: float = 0.01
+    initial_strength_factor: float = 0.4
+    memory_initial_decay_rate: float = 0.07
+    memory_consolidated_decay_rate: float = 0.01
+    importance_floor_factor: float = 0.3
     edge_decay_rate: float = 0.005
     recall_strength_increment: float = 0.05
     explicit_strength_increment: float = 0.20
