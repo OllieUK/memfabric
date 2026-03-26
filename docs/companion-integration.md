@@ -21,9 +21,12 @@ The fabric is local-first and requires no external LLM API. All embeddings run l
 ```
 [Session start]
   ↓
-memory wake-up              → fetch top memories by importance + optional topic search
+memory wake-up --limit 10   → load core continuity first
   ↓
-[Companion reads briefing, responds to user]
+memory wake-up --topic ... --limit 10
+                           → load the active project or domain
+  ↓
+[Companion reads both layers, responds to user]
   ↓
 memory add-memory (×N)      → store decisions, insights, todos, facts during session
   ↓
@@ -32,7 +35,7 @@ memory close-session        → structured scaffold prompts final memory capture
 [Session end]
 ```
 
-Each session begins with a briefing drawn from the graph, and ends with new memories added back. Over time the fabric accumulates a rich, queryable model of the user's context.
+Each session begins with a briefing drawn from the graph, and ends with new memories added back. Over time the fabric accumulates a rich, queryable model of Oliver's context.
 
 ---
 
@@ -63,15 +66,15 @@ Each session begins with a briefing drawn from the graph, and ends with new memo
 
 ```bash
 # 1. Start the stack
-docker compose up -d
-uvicorn memory_service.main:app --reload
+./scripts/start-local-stack.sh
 
 # 2. At session start
-memory wake-up
+memory wake-up --limit 10
+memory wake-up --topic "job finding and landing project" --limit 10
 
 # 3. Store a memory
 memory add-memory \
-  --text "The user decided to ..." \
+  --text "Oliver decided to ..." \
   --type decision \
   --strand-id <strand-id> \
   --importance 4

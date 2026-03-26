@@ -99,7 +99,16 @@ This document defines how a companion agent (Claude Code or other) should open a
 
 ## Session start — `memory wake-up`
 
-At the beginning of every session, run:
+At the beginning of every session, run a wake-up before responding.
+
+Recommended default: use a two-phase wake-up when the session has a clear work theme.
+
+```bash
+memory wake-up --limit 10
+memory wake-up --topic "job finding and landing project" --limit 10
+```
+
+Use a plain general wake-up when there is no clear topic yet:
 
 ```bash
 memory wake-up
@@ -116,9 +125,18 @@ Optional flags:
 
 ```bash
 memory wake-up
+memory wake-up --limit 10
 memory wake-up --topic "health and ADHD management"
+memory wake-up --topic "job finding and landing project" --limit 10
 memory wake-up --topic "coding project graph-memory-fabric" --limit 30
 ```
+
+Recommended pattern:
+
+- Load core continuity first with a general wake-up
+- Then load the active domain or project with a topic wake-up
+- Default budget: `10` general + `10` topic
+- Use a single general wake-up when the topic is not yet clear
 
 The output is a structured briefing grouped by strand. Read it fully before responding to the user's first message. It establishes:
 
@@ -176,18 +194,18 @@ Run `memory list-strands` if strand IDs are uncertain. Always use an existing st
 
 ### Wording convention
 
-Write all memory content with "the user" as subject: *"The user prefers short feedback loops over long planning phases."* — not "you prefer" (ambiguous when read by an LLM) and not a specific name (non-portable).
+Use the person's established name once identity is known. In this graph, write memory content with "Oliver" as subject: *"Oliver prefers short feedback loops over long planning phases."* Use *"The User"* only as a generic placeholder before identity has been established. Do not use "you" as subject because it is ambiguous when read by an LLM.
 
 When using the `fact` / `so_what` split, write `so_what` so it can stand on its own as a consequence statement. It should still make sense if surfaced independently or later promoted into its own Memory node via `LEADS_TO`. Avoid pronouns whose meaning depends on the paired `fact`.
 
 Good:
 
-- `fact`: *"The user has ADHD."*
+- `fact`: *"Oliver has ADHD."*
 - `so_what`: *"Structure and short feedback loops matter more than motivation."*
 
 Bad:
 
-- `fact`: *"The user has ADHD."*
+- `fact`: *"The User has ADHD."*  # when identity is already known
 - `so_what`: *"This means it helps."*
 
 ---
@@ -220,8 +238,8 @@ memory wake-up [--topic "..."]
 ... session work ...
 
 # store durables as they arise
-memory add-memory --text "The user decided to ..." --type decision --strand-id <strand-id> --importance 4
-memory add-memory --text "The user prefers ..." --type insight --strand-id <strand-id> --importance 3
+memory add-memory --text "Oliver decided to ..." --type decision --strand-id <strand-id> --importance 4
+memory add-memory --text "Oliver prefers ..." --type insight --strand-id <strand-id> --importance 3
 
 # review and close
 memory close-session

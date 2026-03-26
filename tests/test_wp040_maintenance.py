@@ -186,15 +186,15 @@ class TestLongRest:
         from memory_service.embeddings import get_embedding
         m1 = m2 = None
         try:
-            emb1 = get_embedding("The user drinks coffee every morning")
-            emb2 = get_embedding("The user starts each day with a hot beverage")
+            emb1 = get_embedding("Oliver drinks coffee every morning")
+            emb2 = get_embedding("Oliver starts each day with a hot beverage")
             m1 = f"wp040-rd-a-{uuid.uuid4()}"
             m2 = f"wp040-rd-b-{uuid.uuid4()}"
 
             with test_driver.session() as session:
                 for mid, emb, fact in [
-                    (m1, emb1, "The user drinks coffee every morning"),
-                    (m2, emb2, "The user starts each day with a hot beverage"),
+                    (m1, emb1, "Oliver drinks coffee every morning"),
+                    (m2, emb2, "Oliver starts each day with a hot beverage"),
                 ]:
                     session.run(
                         "CREATE (m:Memory {id: $id, fact: $fact, text: $fact, "

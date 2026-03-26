@@ -80,7 +80,9 @@ See [BACKLOG.md](BACKLOG.md) for the full prioritised backlog and completed work
 ```bash
 # Session start — load memory briefing
 memory wake-up
+memory wake-up --limit 10
 memory wake-up --topic "what I'm working on today"
+memory wake-up --topic "what I'm working on today" --limit 10
 
 # Store a memory
 memory add-memory "TEXT" --type fact --strand-id <strand-id> --importance 3

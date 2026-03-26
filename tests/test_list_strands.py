@@ -4,7 +4,7 @@ tests/test_list_strands.py — Tests for WP-027: GET /strands + memory list-stra
 Unit tests (no live stack required):
   U1 — MemoryClient.list_strands() calls GET /strands and returns list of dicts
   U2 — MemoryClient.list_strands() raises HTTPStatusError on non-2xx
-  U3 — All strand descriptions in seed_strands.py use "the user" / "the Companion" correctly
+  U3 — All strand descriptions in seed_strands.py use Oliver / "the Companion" correctly
 
 Integration tests (live Memgraph + FastAPI required):
   I1 — GET /strands returns 200 with 20 strand items, each with required fields
@@ -37,7 +37,7 @@ _STRANDS_RESPONSE = {
         {
             "id": "strand-core-health",
             "name": "Health",
-            "description": "The user's physical and mental health, medications, routines, and wellbeing practices.",
+            "description": "Oliver's physical and mental health, medications, routines, and wellbeing practices.",
             "category": "Core Life Domains",
         },
     ]
@@ -117,6 +117,16 @@ class TestStrandDescriptionLanguage:
         ]
         assert violations == [], (
             f"Found 'your AI' in strand descriptions: "
+            + ", ".join(s["id"] for s in violations)
+        )
+
+    def test_uses_oliver_after_identity_is_known(self):
+        strands = self._load_strands()
+        violations = [
+            s for s in strands if "The user" in s["description"] or "the user" in s["description"]
+        ]
+        assert violations == [], (
+            "Strand descriptions should use Oliver after identity is established. Violations: "
             + ", ".join(s["id"] for s in violations)
         )
 

@@ -39,7 +39,8 @@ Verify: start a Claude Code session and run `/mcp` — `memory` should appear as
 Use the `memory` CLI directly in any shell or Claude Code bash tool call:
 
 ```bash
-memory wake-up
+memory wake-up --limit 10
+memory wake-up --topic "job finding and landing project" --limit 10
 memory add-memory --text "..." --type fact --strand-id <strand-id>
 memory close-session
 ```

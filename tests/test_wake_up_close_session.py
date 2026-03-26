@@ -30,6 +30,7 @@ Integration tests (live Memgraph + running FastAPI required):
 """
 
 import re
+import uuid
 
 import httpx
 import pytest
@@ -47,7 +48,7 @@ _WAKE_UP_RESPONSE = {
     "memories": [
         {
             "id": "mem-aaa",
-            "text": "The user has ADHD and benefits from short feedback loops.",
+            "text": "Oliver has ADHD and benefits from short feedback loops.",
             "type": "fact",
             "tags": ["strand-core-health"],
             "strand_id": "strand-core-health",
@@ -56,7 +57,7 @@ _WAKE_UP_RESPONSE = {
         },
         {
             "id": "mem-bbb",
-            "text": "The user prefers async communication over meetings.",
+            "text": "Oliver prefers async communication over meetings.",
             "type": "observation",
             "tags": ["strand-core-work"],
             "strand_id": "strand-core-work",
@@ -151,7 +152,7 @@ class TestWakeUpCLI:
         assert result.exit_code == 0
         assert "Memory briefing" in result.output
         assert "fact" in result.output
-        assert "The user has ADHD" in result.output
+        assert "Oliver has ADHD" in result.output
 
     @respx.mock
     def test_forwards_limit_and_topic(self):
@@ -232,7 +233,7 @@ _SPLIT_WAKE_UP_RESPONSE = {
     "memories": [
         {
             "id": "mem-aaa",
-            "text": "The user has ADHD and benefits from short feedback loops.",
+            "text": "Oliver has ADHD and benefits from short feedback loops.",
             "type": "fact",
             "tags": ["strand-core-health"],
             "strand_id": "strand-core-health",
@@ -241,7 +242,7 @@ _SPLIT_WAKE_UP_RESPONSE = {
         },
         {
             "id": "mem-bbb",
-            "text": "The user prefers async communication over meetings.",
+            "text": "Oliver prefers async communication over meetings.",
             "type": "observation",
             "tags": ["strand-core-work"],
             "strand_id": "strand-core-work",
@@ -252,7 +253,7 @@ _SPLIT_WAKE_UP_RESPONSE = {
     "topic_memories": [
         {
             "id": "mem-ccc",
-            "text": "The user is building the graph-memory-fabric project.",
+            "text": "Oliver is building the graph-memory-fabric project.",
             "type": "fact",
             "tags": ["strand-companion-graph-memory-fabric"],
             "strand_id": "strand-companion-graph-memory-fabric",
@@ -269,7 +270,7 @@ _SPLIT_WAKE_UP_NO_TOPIC = {
         # This verifies that _render_section sorts before groupby.
         {
             "id": "mem-aaa",
-            "text": "The user has ADHD and benefits from short feedback loops.",
+            "text": "Oliver has ADHD and benefits from short feedback loops.",
             "type": "fact",
             "tags": ["strand-core-health"],
             "strand_id": "strand-core-health",
@@ -278,7 +279,7 @@ _SPLIT_WAKE_UP_NO_TOPIC = {
         },
         {
             "id": "mem-bbb",
-            "text": "The user prefers async communication over meetings.",
+            "text": "Oliver prefers async communication over meetings.",
             "type": "observation",
             "tags": ["strand-core-work"],
             "strand_id": "strand-core-work",
@@ -287,7 +288,7 @@ _SPLIT_WAKE_UP_NO_TOPIC = {
         },
         {
             "id": "mem-ddd",
-            "text": "The user exercises regularly to manage energy levels.",
+            "text": "Oliver exercises regularly to manage energy levels.",
             "type": "fact",
             "tags": ["strand-core-health"],
             "strand_id": "strand-core-health",
@@ -447,3 +448,63 @@ class TestWakeUpIntegration:
         assert "memories" in data
         assert "topic_memories" in data
         assert isinstance(data["topic_memories"], list)
+
+    @pytest.mark.integration
+    def test_core_wake_up_prefers_stronger_reinforced_memory(self, client, test_driver):
+        strong_id = f"wake-up-strong-{uuid.uuid4()}"
+        weak_id = f"wake-up-weak-{uuid.uuid4()}"
+        try:
+            with test_driver.session() as session:
+                session.run(
+                    """
+                    CREATE (:Memory {
+                        id: $strong_id,
+                        fact: $strong_fact,
+                        text: $strong_fact,
+                        type: 'fact',
+                        tags: ['strand-companion-ai-anchor'],
+                        importance: 5,
+                        created_at: '2026-03-20T00:00:00+00:00',
+                        last_used_at: '2026-03-26T00:00:00+00:00',
+                        strength: 0.98,
+                        min_strength: 0.3,
+                        recall_count: 14,
+                        reinforcement_count: 4,
+                        last_reinforced_at: '2026-03-26T00:00:00+00:00',
+                        decay_rate: 0.01,
+                        embedding: [0.1, 0.2, 0.3]
+                    })
+                    CREATE (:Memory {
+                        id: $weak_id,
+                        fact: $weak_fact,
+                        text: $weak_fact,
+                        type: 'fact',
+                        tags: ['strand-core-work-career'],
+                        importance: 5,
+                        created_at: '2026-03-26T23:59:59+00:00',
+                        last_used_at: '2026-03-26T23:59:59+00:00',
+                        strength: 0.32,
+                        min_strength: 0.3,
+                        recall_count: 0,
+                        reinforcement_count: 0,
+                        last_reinforced_at: '2026-03-26T23:59:59+00:00',
+                        decay_rate: 0.07,
+                        embedding: [0.3, 0.2, 0.1]
+                    })
+                    """,
+                    strong_id=strong_id,
+                    strong_fact="wake-up strong anchor memory",
+                    weak_id=weak_id,
+                    weak_fact="wake-up weaker recent memory",
+                )
+
+            resp = client.get("/memory/wake-up", params={"limit": 50})
+            assert resp.status_code == 200
+            ids = [m["id"] for m in resp.json()["memories"]]
+            assert strong_id in ids
+            assert weak_id in ids
+            assert ids.index(strong_id) < ids.index(weak_id)
+        finally:
+            with test_driver.session() as session:
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=strong_id)
+                session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=weak_id)

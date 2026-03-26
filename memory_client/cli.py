@@ -353,7 +353,7 @@ Review this session and answer the following before ending:
 1. What decisions were made? (store as type: decision)
    → memory add-memory "..." --type decision --strand-id <strand-id>
 
-2. What was learned or observed about the user? (store as type: insight or observation)
+2. What was learned or observed about Oliver? (store as type: insight or observation)
    → memory add-memory "..." --type insight --strand-id <strand-id>
    → Use --so-what "..." to capture the impact or meaning
 

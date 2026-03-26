@@ -60,26 +60,40 @@
 
 ## Detail Specs
 
-### WP-047 — Near-duplicate detection for memory review
+### WP-047 — Duplicate handling at ingest + near-duplicate review
 
 #### Motivation
 
-As the fabric grows, semantically similar memories accumulate that should ideally be merged. Currently the only way to find them is manual inspection or coincidence during a search. A dedicated endpoint that surfaces near-duplicates enables a systematic review-and-merge loop using the WP-038 merge endpoint.
+As the fabric grows, two different duplicate problems emerge:
+
+- exact duplicates, where the same memory is stored again and should reinforce an existing node rather than create a parallel one
+- near-duplicates, where semantically similar memories accumulate and should be surfaced for review and possible merge
+
+Today both cases require manual inspection or coincidence during retrieval. This work package clarifies the boundary between them so the write path can avoid true duplicates while still supporting a review-and-merge loop for semantically similar memories via WP-038.
 
 #### Design
 
-- `GET /memory/duplicates?threshold=0.92&limit=20` — returns a list of candidate pairs `[{a: {id, text}, b: {id, text}, similarity: float}]` ordered by similarity descending.
-- Implementation: iterate all Memory node pairs that have an existing `RELATED_TO` edge (already implies semantic proximity) and filter to those where cosine similarity of stored embeddings exceeds `threshold`. This avoids a full O(n²) scan by using the graph structure as a pre-filter.
-- Alternatively (if no `RELATED_TO` edge yet): run the vector index search for each node and check top-k against `threshold`. Use the pre-existing `RELATED_TO` approach first; document the limitation.
+- Exact-duplicate handling happens at ingest time on `POST /memory`.
+- Exact duplicate = the incoming memory matches an existing active memory after agreed normalization of the canonical memory content.
+- When an exact duplicate is detected, do not create a new `Memory` node.
+- Instead, treat the event as reinforcement of the existing memory and merge any genuinely new contextual associations from the attempted write onto the surviving node.
+- Near-duplicate handling remains a review flow.
+- `GET /memory/duplicates?threshold=0.92&limit=20` returns a list of candidate pairs `[{a: {id, text}, b: {id, text}, similarity: float}]` ordered by similarity descending.
+- For near-duplicate review, implementation iterates Memory node pairs that already have a `RELATED_TO` edge (semantic proximity pre-filter) and keeps only those whose cosine similarity of stored embeddings exceeds `threshold`.
+- Alternatively (if no `RELATED_TO` edge exists yet): run vector index search for each node and check top-k against `threshold`. Use the pre-existing `RELATED_TO` approach first and document the limitation.
+- Distinct-but-related memories remain valid new nodes; this package is only about exact-duplicate interception and near-duplicate review.
 - `threshold` and `limit` configurable via query param; defaults from `Settings`.
 - CLI: `memory find-duplicates [--threshold 0.92] [--limit 20]`
 - MCP: `memory_find_duplicates`
 
 #### Definition of Success
 
+- [ ] `POST /memory` no longer creates a second active node for an exact duplicate; it reinforces the existing memory instead
+- [ ] Exact-duplicate interception preserves or merges any new non-duplicate context edges onto the surviving node
 - [ ] `GET /memory/duplicates` returns correct pairs above threshold, ordered by similarity
 - [ ] Result excludes archived and merged memories (status filter from WP-038)
 - [ ] CLI and MCP wired
+- [ ] Integration test: posting the same memory twice does not create a second node and updates the existing node via reinforcement semantics
 - [ ] Integration test: seed two nearly-identical memories, confirm they appear as a pair; seed two unrelated memories, confirm they do not
 
 ---
@@ -143,4 +157,3 @@ Integration tests write real memories to the live graph. Without explicit epheme
 - [ ] Search and wake-up exclude ephemeral memories by default
 - [ ] `POST /memory/maintenance/purge-ephemeral` returns count deleted
 - [ ] Integration tests updated to use `ephemeral: true` for test writes
-

@@ -303,7 +303,11 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
         RETURN m.id AS id, m.text AS text, m.type AS type,
                m.tags AS tags, m.importance AS importance,
                m.created_at AS created_at, strand_id
-        ORDER BY m.importance DESC, m.created_at DESC
+        ORDER BY m.importance DESC,
+                 coalesce(m.strength, 0.0) DESC,
+                 coalesce(m.reinforcement_count, 0) DESC,
+                 coalesce(m.recall_count, 0) DESC,
+                 m.created_at DESC
         LIMIT $limit
         """,
         limit=limit,
