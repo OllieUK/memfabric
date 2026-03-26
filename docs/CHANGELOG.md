@@ -4,6 +4,19 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-046 — Deduplicate search and wake-up results
+
+**Date:** 2026-03-26
+
+- Added `WITH DISTINCT` to `_SEARCH_QUERY_TEMPLATE` so primary search hits are deduplicated before multi-hop OPTIONAL MATCH traversal fan-out
+- Added `WITH DISTINCT` to both core and topic queries in `wake_up` to guard against duplicate rows from multi-strand OPTIONAL MATCH joins
+- Regression tests in `tests/test_wp046_dedup.py`: diamond-topology neighbour dedup, primary results dedup, wake-up topic dedup
+- All 3 dedup tests pass; no regression in 22 existing search tests
+
+**Retrospective:** Fix was surgical — one `DISTINCT` keyword in each of three Cypher queries. The diamond-topology test correctly documents the expected invariant even though it passed before the fix (sparse graph); it will catch regressions on a denser graph.
+
+---
+
 ## WP-044 — Fix broken 503 + connect-error tests
 
 **Date:** 2026-03-25

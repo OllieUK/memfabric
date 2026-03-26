@@ -288,7 +288,7 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
         """
         MATCH (m:Memory)
         OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-        WITH m, collect(s.id)[0] AS strand_id
+        WITH DISTINCT m, collect(s.id)[0] AS strand_id
         RETURN m.id AS id, m.text AS text, m.type AS type,
                m.tags AS tags, m.importance AS importance,
                m.created_at AS created_at, strand_id
@@ -309,7 +309,7 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
         CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
         YIELD node AS m, distance
         OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-        WITH m, collect(s.id)[0] AS strand_id
+        WITH DISTINCT m, collect(s.id)[0] AS strand_id
         RETURN m.id AS id, m.text AS text, m.type AS type,
                m.tags AS tags, m.importance AS importance,
                m.created_at AS created_at, strand_id
