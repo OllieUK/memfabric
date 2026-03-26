@@ -465,6 +465,7 @@ async def reinforce_memory(
                 edge_increment=settings.edge_explicit_increment,
                 co_recalled_ids=req.co_recalled_ids,
                 now_iso=now_iso,
+                consolidated_decay_rate=settings.memory_consolidated_decay_rate,
             )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

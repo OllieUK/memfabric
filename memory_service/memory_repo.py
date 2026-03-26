@@ -603,27 +603,38 @@ def reinforce_memory(
     edge_increment: float,
     co_recalled_ids: list[str],
     now_iso: str,
+    consolidated_decay_rate: float | None = None,
 ) -> float:
     """Explicitly reinforce a memory node and its co-recalled edges.
 
     Updates last_reinforced_at (unlike recall_increment, which does not).
+    On the first reinforcement (reinforcement_count == 0 before increment),
+    switches decay_rate to consolidated_decay_rate if provided.
     Returns the new stored strength value (float).
     """
     result = session.run(
         """
         MATCH (m:Memory {id: $id})
-        SET m.reinforcement_count = coalesce(m.reinforcement_count, 0) + 1,
+        WITH m,
+             coalesce(m.reinforcement_count, 0) AS pre_count
+        SET m.reinforcement_count = pre_count + 1,
             m.last_reinforced_at = $now,
             m.strength = CASE
                 WHEN coalesce(m.strength, m.importance / 5.0) + $increment >= 1.0
                 THEN 1.0
                 ELSE coalesce(m.strength, m.importance / 5.0) + $increment
+            END,
+            m.decay_rate = CASE
+                WHEN $consolidated_rate IS NOT NULL AND pre_count = 0
+                THEN $consolidated_rate
+                ELSE m.decay_rate
             END
         RETURN m.strength AS strength
         """,
         id=memory_id,
         increment=strength_increment,
         now=now_iso,
+        consolidated_rate=consolidated_decay_rate,
     )
     row = result.single()
     if row is None:
