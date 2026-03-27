@@ -151,7 +151,7 @@ async def search_memory(
     query_embedding = get_embedding(req.query)
     try:
         with request.app.state.driver.session() as session:
-            results = memory_repo.search_memories(session, req, query_embedding)
+            results = memory_repo.search_memories(session, req, query_embedding, settings.search_neighbour_cap)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 

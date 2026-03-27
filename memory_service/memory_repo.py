@@ -196,7 +196,7 @@ ORDER BY distance ASC\
 """
 
 
-def search_memories(session, req, query_embedding: list) -> list:
+def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> list:
     """Run vector search with optional filters and graph expansion.
 
     Args:
@@ -204,6 +204,8 @@ def search_memories(session, req, query_embedding: list) -> list:
         req: SearchMemoryRequest (query, tags, agent_ids, project_ids, limit, max_hops,
              traversal_direction)
         query_embedding: pre-computed embedding for req.query
+        neighbour_cap: max neighbours returned per traversal direction; total per hit
+            is at most 3 × neighbour_cap (RELATED_TO + causes + effects)
 
     Returns:
         List of dicts with keys: id, text, type, tags, importance, neighbours
@@ -230,11 +232,11 @@ def search_memories(session, req, query_embedding: list) -> list:
 
     collect_parts = []
     if hops > 0:
-        collect_parts.append("collect(DISTINCT n.id)")
+        collect_parts.append(f"collect(DISTINCT n.id)[..{neighbour_cap}]")
     if direction in ("causes", "both"):
-        collect_parts.append("collect(DISTINCT c.id)")
+        collect_parts.append(f"collect(DISTINCT c.id)[..{neighbour_cap}]")
     if direction in ("effects", "both"):
-        collect_parts.append("collect(DISTINCT e.id)")
+        collect_parts.append(f"collect(DISTINCT e.id)[..{neighbour_cap}]")
 
     if collect_parts:
         neighbour_return = " + ".join(collect_parts) + " AS neighbours"

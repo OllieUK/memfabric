@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     edge_hard_prune_min_days: int = 90
     edge_modulation_factor: float = 0.5
     edge_modulation_cap: float = 10.0
+    # Prevents response bloat from highly-connected nodes on dense graphs.
+    # Per traversal direction; total per hit is at most 3 × this value.
+    search_neighbour_cap: int = 50
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

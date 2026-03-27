@@ -4,6 +4,19 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-022 — Cap neighbour count in search results
+
+**Date:** 2026-03-27
+
+- Added `search_neighbour_cap: int = 50` to `Settings` (config.py) and `.env.example`; prevents response bloat from highly-connected nodes on dense graphs
+- `search_memories` in `memory_repo.py` now requires a `neighbour_cap: int` argument; each `collect(DISTINCT x.id)` Cypher expression carries `[..{neighbour_cap}]` so the database slices before serialisation
+- `main.py` call site passes `settings.search_neighbour_cap`
+- New `tests/test_wp022_neighbour_cap.py`: 4 unit tests (Cypher string assertions) + 3 integration tests; uses `monkeypatch` for settings override
+
+**Retrospective:** Integration tests initially failed because `add_memory` auto-creates `RELATED_TO` edges, making exact neighbour counts unpredictable. Fixed by using `max_hops=0` to isolate LEADS_TO traversal and switching the below-cap test to assert `>=` rather than exact equality.
+
+---
+
 ## WP-048 — Two-speed decay + importance floor to protect core memories
 
 **Date:** 2026-03-26
