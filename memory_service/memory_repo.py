@@ -50,7 +50,8 @@ def add_memory(
             recall_count: 0,
             reinforcement_count: 0,
             last_reinforced_at: $last_reinforced_at,
-            decay_rate: $decay_rate
+            decay_rate: $decay_rate,
+            status: 'active'
         })
         CREATE (m)-[:PRODUCED_BY]->(a)
         """,
@@ -182,7 +183,8 @@ _SEARCH_QUERY_TEMPLATE = """\
 CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
 YIELD node AS m, distance
 WITH m, distance
-WHERE ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
+WHERE (m.status IS NULL OR m.status = 'active')
+AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
 WITH m, distance, a
 WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
@@ -300,6 +302,7 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
     result = session.run(
         """
         MATCH (m:Memory)
+        WHERE (m.status IS NULL OR m.status = 'active')
         OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
         WITH DISTINCT m, collect(s.id)[0] AS strand_id
         RETURN m.id AS id, m.text AS text, m.type AS type,
@@ -325,6 +328,8 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
         """
         CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
         YIELD node AS m, distance
+        WITH m, distance
+        WHERE (m.status IS NULL OR m.status = 'active')
         OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
         WITH DISTINCT m, collect(s.id)[0] AS strand_id, min(distance) AS dist
         RETURN m.id AS id, m.text AS text, m.type AS type,
@@ -391,6 +396,250 @@ def upsert_person(session, req) -> dict:
     if record is None:
         raise RuntimeError(f"upsert_person: MERGE returned no record for id={req.id!r}")
     return {"id": record["id"], "name": record["name"], "description": record["description"]}
+
+
+def get_memory_for_update(session, memory_id: str) -> dict | None:
+    """Return current fact and so_what for an active memory, or None if not found/active."""
+    result = session.run(
+        """
+        MATCH (m:Memory {id: $id})
+        WHERE (m.status IS NULL OR m.status = 'active')
+        RETURN m.fact AS fact, m.so_what AS so_what
+        """,
+        id=memory_id,
+    )
+    record = result.single()
+    if record is None:
+        return None
+    return {"fact": record["fact"], "so_what": record["so_what"]}
+
+
+def update_memory(
+    session,
+    memory_id: str,
+    patch_fields: dict,
+    new_embedding: list | None,
+    now: str,
+) -> None:
+    """In-place update of an active memory's fields.
+
+    patch_fields must contain only the fields to update. person_ids and
+    strand_ids (if present) are full replacements: existing edges are
+    deleted and the new set is created.
+
+    new_embedding must be provided when fact or so_what changed; it is
+    written along with the recomputed text field (also in patch_fields).
+
+    Raises ValueError if the memory is not found or not active.
+    """
+    # Build scalar SET clause (all fields except person_ids/strand_ids)
+    scalar_keys = [k for k in patch_fields if k not in ("person_ids", "strand_ids")]
+    if new_embedding is not None:
+        scalar_keys.append("embedding")
+
+    if scalar_keys or new_embedding is not None:
+        set_parts = [f"m.{k} = ${k}" for k in scalar_keys if k in patch_fields]
+        if new_embedding is not None:
+            set_parts.append("m.embedding = $embedding")
+        set_parts.append("m.updated_at = $updated_at")
+        set_clause = ", ".join(set_parts)
+        params = {k: patch_fields[k] for k in scalar_keys if k in patch_fields}
+        params["id"] = memory_id
+        params["updated_at"] = now
+        if new_embedding is not None:
+            params["embedding"] = new_embedding
+        session.run(f"MATCH (m:Memory {{id: $id}}) SET {set_clause}", **params)
+
+    # Replace person_ids: delete existing ABOUT→Person edges, recreate
+    if "person_ids" in patch_fields:
+        session.run(
+            "MATCH (m:Memory {id: $id})-[r:ABOUT]->(p:Person) DELETE r",
+            id=memory_id,
+        )
+        for person_id in patch_fields["person_ids"]:
+            session.run(
+                """
+                MERGE (p:Person {id: $person_id})
+                WITH p
+                MATCH (m:Memory {id: $memory_id})
+                CREATE (m)-[:ABOUT]->(p)
+                """,
+                person_id=person_id,
+                memory_id=memory_id,
+            )
+
+    # Replace strand_ids: delete existing IN_STRAND edges, recreate
+    if "strand_ids" in patch_fields:
+        session.run(
+            "MATCH (m:Memory {id: $id})-[r:IN_STRAND]->(s:Strand) DELETE r",
+            id=memory_id,
+        )
+        for strand_id in patch_fields["strand_ids"]:
+            session.run(
+                """
+                MERGE (s:Strand {id: $strand_id})
+                WITH s
+                MATCH (m:Memory {id: $memory_id})
+                CREATE (m)-[:IN_STRAND {weight: 1.0}]->(s)
+                """,
+                strand_id=strand_id,
+                memory_id=memory_id,
+            )
+
+
+def archive_memory(session, memory_id: str, now: str) -> None:
+    """Set status=archived on an active memory.
+
+    Raises ValueError if the memory is not found or not active.
+    """
+    result = session.run(
+        """
+        MATCH (m:Memory {id: $id})
+        WHERE (m.status IS NULL OR m.status = 'active')
+        SET m.status = 'archived', m.archived_at = $now
+        RETURN m.id AS id
+        """,
+        id=memory_id,
+        now=now,
+    )
+    if result.single() is None:
+        raise ValueError(f"Memory {memory_id!r} not found or not active")
+
+
+def restore_memory(session, memory_id: str) -> None:
+    """Return an archived memory to active status.
+
+    Raises ValueError if the memory is not found or not archived.
+    Only archived memories can be restored; merged memories cannot.
+    """
+    result = session.run(
+        """
+        MATCH (m:Memory {id: $id})
+        WHERE m.status = 'archived'
+        SET m.status = 'active'
+        REMOVE m.archived_at
+        RETURN m.id AS id
+        """,
+        id=memory_id,
+    )
+    if result.single() is None:
+        raise ValueError(f"Memory {memory_id!r} not found or not archived")
+
+
+def merge_memory(session, source_id: str, target_id: str, strategy: str) -> None:
+    """Merge source memory into target: rewire edges, mark source as merged.
+
+    All ABOUT, IN_STRAND, LEADS_TO, and RELATED_TO edges from/to source are
+    rewired to target using MERGE (deduplicating edges target already has).
+    A MERGED_INTO edge is created and source.status is set to 'merged'.
+
+    strategy is accepted for API compatibility but only 'replace' semantics
+    are implemented in v1.
+
+    Raises ValueError if source or target is not found or not active.
+    """
+    # Validate both nodes exist and are active
+    check = session.run(
+        """
+        MATCH (src:Memory {id: $src_id})
+        MATCH (tgt:Memory {id: $tgt_id})
+        WHERE (src.status IS NULL OR src.status = 'active')
+          AND (tgt.status IS NULL OR tgt.status = 'active')
+        RETURN src.id AS src_id
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+    if check.single() is None:
+        raise ValueError(f"Source {source_id!r} or target {target_id!r} not found or not active")
+
+    # Rewire ABOUT edges (to Person and Project)
+    session.run(
+        """
+        MATCH (src:Memory {id: $src_id})-[r:ABOUT]->(x)
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (tgt)-[:ABOUT]->(x)
+        DELETE r
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+
+    # Rewire IN_STRAND edges
+    session.run(
+        """
+        MATCH (src:Memory {id: $src_id})-[r:IN_STRAND]->(s:Strand)
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (tgt)-[:IN_STRAND {weight: coalesce(r.weight, 1.0)}]->(s)
+        DELETE r
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+
+    # Rewire outgoing LEADS_TO edges (source → effect)
+    session.run(
+        """
+        MATCH (src:Memory {id: $src_id})-[r:LEADS_TO]->(e:Memory)
+        WHERE e.id <> $tgt_id
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (tgt)-[:LEADS_TO]->(e)
+        DELETE r
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+
+    # Rewire incoming LEADS_TO edges (cause → source)
+    session.run(
+        """
+        MATCH (c:Memory)-[r:LEADS_TO]->(src:Memory {id: $src_id})
+        WHERE c.id <> $tgt_id
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (c)-[:LEADS_TO]->(tgt)
+        DELETE r
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+
+    # Rewire outgoing RELATED_TO edges
+    session.run(
+        """
+        MATCH (src:Memory {id: $src_id})-[r:RELATED_TO]->(rel:Memory)
+        WHERE rel.id <> $tgt_id
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (tgt)-[:RELATED_TO {weight: coalesce(r.weight, 0.5)}]->(rel)
+        DELETE r
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+
+    # Rewire incoming RELATED_TO edges
+    session.run(
+        """
+        MATCH (rel:Memory)-[r:RELATED_TO]->(src:Memory {id: $src_id})
+        WHERE rel.id <> $tgt_id
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (rel)-[:RELATED_TO {weight: coalesce(r.weight, 0.5)}]->(tgt)
+        DELETE r
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
+
+    # Create MERGED_INTO edge and mark source
+    session.run(
+        """
+        MATCH (src:Memory {id: $src_id})
+        MATCH (tgt:Memory {id: $tgt_id})
+        MERGE (src)-[:MERGED_INTO]->(tgt)
+        SET src.status = 'merged', src.superseded_by = $tgt_id
+        """,
+        src_id=source_id,
+        tgt_id=target_id,
+    )
 
 
 def recall_increment(

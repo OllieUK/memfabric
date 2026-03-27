@@ -4,6 +4,23 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-038 — Memory lifecycle operations: update, merge, archive, restore
+
+**Date:** 2026-03-27
+
+- Added `status: 'active'` to all new Memory nodes at creation; search and wake-up now filter `WHERE (m.status IS NULL OR m.status = 'active')` for backwards compatibility with pre-WP-038 nodes
+- `PATCH /memory/{id}`: in-place update of fact, so_what, tags, importance, person_ids, strand_ids; recomputes embedding when text content changes; person_ids/strand_ids are full replacements
+- `POST /memory/{id}/merge`: rewires ABOUT, IN_STRAND, LEADS_TO (both directions), RELATED_TO (both directions) from source to target; creates MERGED_INTO tombstone edge; sets `source.status='merged'`, `source.superseded_by=target_id`
+- `POST /memory/{id}/archive`: sets `status='archived'`, `archived_at`; excluded from search and wake-up
+- `POST /memory/{id}/restore`: returns archived memory to active, clears `archived_at`; merged memories cannot be restored
+- `get_memory_for_update` repo helper fetches current fact/so_what for merge-then-recompute pattern; PATCH endpoint uses single session for both read and write
+- Client, CLI, and MCP updated with `update_memory`, `merge_memory`, `archive_memory`, `restore_memory`
+- New `tests/test_wp038_lifecycle.py`: 14 unit tests (Pydantic validation, Cypher filter assertions, HTTP client/CLI wire-up) + 21 integration tests covering all status transitions, edge rewiring, and exclusion from search/wake-up
+
+**Retrospective:** /simplify caught three issues post-implementation: a redundant existence check in `update_memory` (the endpoint already validates via `get_memory_for_update`), two separate DB sessions in the PATCH endpoint that could be one, and a dead `now` parameter in `merge_memory` that was accepted but never used. All fixed before commit.
+
+---
+
 ## WP-022 — Cap neighbour count in search results
 
 **Date:** 2026-03-27

@@ -3,7 +3,8 @@
 Exposes tools via FastMCP over STDIO transport:
   memory_add, memory_search, memory_wake_up, memory_list_strands, memory_close_session,
   memory_list_persons, memory_create_person,
-  memory_short_rest, memory_long_rest, memory_maintenance_stats
+  memory_short_rest, memory_long_rest, memory_maintenance_stats,
+  memory_update, memory_archive, memory_restore, memory_merge
 """
 from itertools import groupby
 
@@ -203,6 +204,53 @@ Review this session and answer the following before ending:
 Run memory_list_strands() if strand IDs are uncertain.
 Do not end the session without calling memory_add at least once if any of the above apply.\
 """
+
+
+@mcp.tool
+def memory_update(
+    memory_id: str,
+    fact: str | None = None,
+    so_what: str | None = None,
+    tags: list[str] | None = None,
+    importance: int | None = None,
+    strand_ids: list[str] | None = None,
+) -> dict:
+    """Update an existing active memory's content. Only include fields you want to change.
+    fact/so_what changes trigger embedding recomputation. strand_ids is a full replacement.
+    Returns {memory_id, updated_at}."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.update_memory(
+            memory_id,
+            fact=fact,
+            so_what=so_what,
+            tags=tags,
+            importance=importance,
+            strand_ids=strand_ids,
+        )
+
+
+@mcp.tool
+def memory_archive(memory_id: str) -> dict:
+    """Archive a memory. Archived memories are excluded from search and wake-up.
+    Use memory_restore to make it active again. Returns {memory_id, archived_at}."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.archive_memory(memory_id)
+
+
+@mcp.tool
+def memory_restore(memory_id: str) -> dict:
+    """Restore an archived memory to active status. Returns {memory_id, status}."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.restore_memory(memory_id)
+
+
+@mcp.tool
+def memory_merge(source_id: str, target_id: str) -> dict:
+    """Merge source memory into target. The source is marked merged and its edges
+    (ABOUT, IN_STRAND, LEADS_TO, RELATED_TO) are rewired to the target.
+    Returns {source_id, target_id}."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.merge_memory(source_id, target_id)
 
 
 @mcp.tool

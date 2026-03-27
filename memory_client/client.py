@@ -143,6 +143,56 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()
 
+    def update_memory(
+        self,
+        memory_id: str,
+        *,
+        fact: str | None = None,
+        so_what: str | None = None,
+        tags: list[str] | None = None,
+        importance: int | None = None,
+        person_ids: list[str] | None = None,
+        strand_ids: list[str] | None = None,
+    ) -> dict:
+        """PATCH /memory/{id}. Returns {memory_id, updated_at}."""
+        body: dict = {}
+        if fact is not None:
+            body["fact"] = fact
+        if so_what is not None:
+            body["so_what"] = so_what
+        if tags is not None:
+            body["tags"] = tags
+        if importance is not None:
+            body["importance"] = importance
+        if person_ids is not None:
+            body["person_ids"] = person_ids
+        if strand_ids is not None:
+            body["strand_ids"] = strand_ids
+        response = self._http.patch(f"/memory/{memory_id}", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def merge_memory(self, memory_id: str, target_id: str, strategy: str = "replace") -> dict:
+        """POST /memory/{id}/merge. Returns {source_id, target_id}."""
+        response = self._http.post(
+            f"/memory/{memory_id}/merge",
+            json={"target_id": target_id, "strategy": strategy},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def archive_memory(self, memory_id: str) -> dict:
+        """POST /memory/{id}/archive. Returns {memory_id, archived_at}."""
+        response = self._http.post(f"/memory/{memory_id}/archive")
+        response.raise_for_status()
+        return response.json()
+
+    def restore_memory(self, memory_id: str) -> dict:
+        """POST /memory/{id}/restore. Returns {memory_id, status}."""
+        response = self._http.post(f"/memory/{memory_id}/restore")
+        response.raise_for_status()
+        return response.json()
+
     def run_decay(self) -> dict:
         """POST /memory/maintenance/decay. Returns {nodes_updated, edges_updated}."""
         response = self._http.post("/memory/maintenance/decay")

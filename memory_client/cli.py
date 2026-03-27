@@ -370,6 +370,93 @@ Run `memory list-strands` if strand IDs are uncertain.
 Do not end the session without running at least one `memory add-memory` if any of the above apply.""")
 
 
+@app.command("update-memory")
+def update_memory(
+    memory_id: str = typer.Argument(..., help="Memory UUID to update"),
+    fact: Optional[str] = typer.Option(None, "--fact", help="New fact text"),
+    so_what: Optional[str] = typer.Option(None, "--so-what", help="New impact/meaning"),
+    tags: Optional[list[str]] = typer.Option(None, "--tag", help="Replacement tag list (repeatable)"),
+    importance: Optional[int] = typer.Option(None, "--importance", "-i", min=1, max=5, help="New importance 1-5"),
+    person_ids: Optional[list[str]] = typer.Option(None, "--person-id", help="Replacement person IDs (repeatable)"),
+    strand_ids: Optional[list[str]] = typer.Option(None, "--strand-id", help="Replacement strand IDs (repeatable)"),
+) -> None:
+    """Update fields on an existing memory (in-place)."""
+    if all(v is None for v in [fact, so_what, tags, importance, person_ids, strand_ids]):
+        err_console.print("[red]Error:[/red] Provide at least one field to update.")
+        raise typer.Exit(1)
+    try:
+        with _make_client() as client:
+            result = client.update_memory(
+                memory_id,
+                fact=fact,
+                so_what=so_what,
+                tags=tags,
+                importance=importance,
+                person_ids=person_ids,
+                strand_ids=strand_ids,
+            )
+        console.print(f"Updated at: {result['updated_at']}")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("merge-memory")
+def merge_memory(
+    source_id: str = typer.Argument(..., help="Source memory UUID (will be marked merged)"),
+    target_id: str = typer.Argument(..., help="Target memory UUID (survives)"),
+    strategy: str = typer.Option("replace", "--strategy", help="Merge strategy (default: replace)"),
+) -> None:
+    """Merge source memory into target, rewiring all edges."""
+    try:
+        with _make_client() as client:
+            client.merge_memory(source_id, target_id, strategy=strategy)
+        console.print(f"Merged {source_id[:8]} → {target_id[:8]}")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("archive-memory")
+def archive_memory(
+    memory_id: str = typer.Argument(..., help="Memory UUID to archive"),
+) -> None:
+    """Archive a memory (excluded from search and wake-up; restorable)."""
+    try:
+        with _make_client() as client:
+            result = client.archive_memory(memory_id)
+        console.print(f"Archived {memory_id[:8]} at {result['archived_at']}")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("restore-memory")
+def restore_memory(
+    memory_id: str = typer.Argument(..., help="Memory UUID to restore to active"),
+) -> None:
+    """Restore an archived memory to active status."""
+    try:
+        with _make_client() as client:
+            client.restore_memory(memory_id)
+        console.print(f"Restored {memory_id[:8]} to active")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("dump-graph")
 def dump_graph(
     project_id: Optional[str] = typer.Option(None, "--project-id", help="Filter by project ID"),

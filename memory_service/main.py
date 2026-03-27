@@ -444,6 +444,124 @@ async def maintenance_stats(request: Request) -> MaintenanceStatsResponse:
     return MaintenanceStatsResponse(**result)
 
 
+class UpdateMemoryRequest(BaseModel):
+    fact: Optional[str] = None
+    so_what: Optional[str] = None
+    tags: Optional[List[str]] = None
+    importance: Optional[int] = Field(default=None, ge=1, le=5)
+    person_ids: Optional[List[str]] = None
+    strand_ids: Optional[List[str]] = None
+
+    @model_validator(mode="after")
+    def at_least_one_field(self) -> "UpdateMemoryRequest":
+        if all(v is None for v in [
+            self.fact, self.so_what, self.tags,
+            self.importance, self.person_ids, self.strand_ids,
+        ]):
+            raise ValueError("At least one field must be provided for update")
+        return self
+
+
+class UpdateMemoryResponse(BaseModel):
+    memory_id: str
+    updated_at: str
+
+
+class MergeMemoryRequest(BaseModel):
+    target_id: str
+    strategy: str = "replace"
+
+
+class MergeMemoryResponse(BaseModel):
+    source_id: str
+    target_id: str
+
+
+class ArchiveMemoryResponse(BaseModel):
+    memory_id: str
+    archived_at: str
+
+
+class RestoreMemoryResponse(BaseModel):
+    memory_id: str
+    status: str = "active"
+
+
+@app.patch("/memory/{memory_id}", response_model=UpdateMemoryResponse)
+async def update_memory(
+    memory_id: str, req: UpdateMemoryRequest, request: Request
+) -> UpdateMemoryResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    patch_fields = req.model_dump(exclude_none=True)
+    new_embedding = None
+
+    try:
+        with request.app.state.driver.session() as session:
+            if "fact" in patch_fields or "so_what" in patch_fields:
+                # Fetch current node to merge with patch before recomputing embedding
+                current = memory_repo.get_memory_for_update(session, memory_id)
+                if current is None:
+                    raise HTTPException(status_code=404, detail="Memory not found or not active")
+                merged_fact = patch_fields.get("fact", current["fact"] or "")
+                merged_so_what = patch_fields.get("so_what", current["so_what"])
+                merged_text = merged_fact + (" " + merged_so_what if merged_so_what else "")
+                patch_fields["text"] = merged_text
+                new_embedding = get_embedding(merged_text)
+            memory_repo.update_memory(session, memory_id, patch_fields, new_embedding, now)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return UpdateMemoryResponse(memory_id=memory_id, updated_at=now)
+
+
+@app.post("/memory/{memory_id}/merge", response_model=MergeMemoryResponse)
+async def merge_memory(
+    memory_id: str, req: MergeMemoryRequest, request: Request
+) -> MergeMemoryResponse:
+    if memory_id == req.target_id:
+        raise HTTPException(status_code=400, detail="Source and target must differ")
+    try:
+        with request.app.state.driver.session() as session:
+            memory_repo.merge_memory(session, memory_id, req.target_id, req.strategy)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return MergeMemoryResponse(source_id=memory_id, target_id=req.target_id)
+
+
+@app.post("/memory/{memory_id}/archive", response_model=ArchiveMemoryResponse)
+async def archive_memory(
+    memory_id: str, request: Request
+) -> ArchiveMemoryResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            memory_repo.archive_memory(session, memory_id, now)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ArchiveMemoryResponse(memory_id=memory_id, archived_at=now)
+
+
+@app.post("/memory/{memory_id}/restore", response_model=RestoreMemoryResponse)
+async def restore_memory(
+    memory_id: str, request: Request
+) -> RestoreMemoryResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            memory_repo.restore_memory(session, memory_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return RestoreMemoryResponse(memory_id=memory_id)
+
+
 class ReinforceRequest(BaseModel):
     signal: Literal["explicit"] = "explicit"
     co_recalled_ids: List[str] = []
