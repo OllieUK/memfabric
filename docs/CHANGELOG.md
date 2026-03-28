@@ -4,6 +4,23 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-079 — Importance recalibration pass
+
+**Date:** 2026-03-28
+
+- Reviewed all active memories at `importance >= 4` against the blast-radius-of-absence definition introduced in `memory_client/COMPANION.md`
+- Recalibrated `145` of the `174` reviewed memories by updating `importance` only; no memory text or graph structure changed
+- One additional active `importance=4` memory discovered outside the initial export was downgraded during verification, for `146` total live updates
+- High-priority pool reduced from `174` memories (`58` fives, `116` fours) to `52` (`13` fives, `39` fours)
+- Final active-memory distribution after the pass: `13` at `5`, `39` at `4`, `174` at `3`, `26` at `2`, `3` at `1`
+- Surviving `5` memories are now concentrated on hard boundaries, startup / HITL protocol, Mara identity anchors, Umbrella safety cues, and primary-relationship constraints
+- Surviving `4` memories are now concentrated on live project constraints, current job-search rules, material communication guidance, and high-impact personal calibration such as ADHD support needs
+- Added a data-pass plan and verification note at `docs/superpowers/plans/2026-03-28-wp-079-importance-recalibration.md`
+
+**Retrospective:** The main risk was not under-correcting single memories but preserving whole inflated categories. Reviewing by blast radius rather than emotional salience cleaned this up quickly: relationship texture, biography, project history, and ritual detail mostly belong at `3`, not `4` or `5`. The one extra `importance=4` memory found during verification is a good reminder that future recalibration tooling should query live data again immediately before mutation, not rely only on a single export snapshot.
+
+---
+
 ## WP-069 — Cybersecurity knowledge layer: schema, indexes, multilingual model
 
 **Date:** 2026-03-28
