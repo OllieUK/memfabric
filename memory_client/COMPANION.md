@@ -192,15 +192,22 @@ A memory is worth storing if it would be useful to a future session that has no 
 | `todo` | A committed action not yet done |
 | `event` | Something that happened (timestamped occurrence) |
 
-**Importance:**
+**Importance — blast radius of absence:**
 
-| Value | Meaning |
-|-------|---------|
-| 5 | Critical — always include in wake-up |
-| 4 | High — include when relevant strand is active |
-| 3 | Normal (default) |
-| 2 | Low — background context, rarely surfaced |
-| 1 | Ephemeral — expected to decay quickly |
+The question to ask at write time: *"If a future session has no knowledge of this memory, what is the worst that happens?"* Rate by the consequence of absence, not by how significant the memory feels in the moment.
+
+| Value | Blast radius of absence | Examples |
+|-------|------------------------|---------|
+| **5** | **A breach.** A future session acts in direct violation of an active constraint, crosses a boundary, or fundamentally misreads the relationship or situation. Getting it wrong is actively worse than knowing nothing. | Safety pacts, hard relationship rules, blacklisted contacts, irreversible decisions with active force |
+| **4** | **A significant miss.** A recommendation ignores something already decided, a plan contradicts established context, or the response is meaningfully miscalibrated. The interaction proceeds but produces the wrong outcome. | Active project decisions, current working constraints, key preferences that shape recommendations |
+| **3** | **A quality loss.** The response is generically correct but imprecise — less personal, missing nuance, slightly off. No material harm, just reduced value. **Default for most memories.** | Background facts, general preferences, historical context, insights about patterns |
+| **2** | **Barely noticeable.** The response is complete and correct without this. Supplementary detail that enriches but is not structurally needed. | Secondary observations, supporting data, peripheral context |
+| **1** | **No future impact.** Only relevant in the session it was created. Expected to decay quickly. | Ephemeral state, test memories, single data points with no lasting relevance |
+
+**Calibration notes:**
+- When in doubt, use **3**. Promotion to 4 or 5 requires a concrete answer to "what breaks without this?"
+- Blast radius can change over time — an active application is importance-4 now and importance-2 once closed. Recalibrate on lifecycle events.
+- Importance also sets initial strength and decay floor (`importance / 5.0`), so inflation has mechanical consequences: over-rated memories resist decay and crowd out genuinely critical ones in wake-up.
 
 Run `memory list-strands` if strand IDs are uncertain. Always use an existing strand ID — never invent one.
 
