@@ -99,7 +99,7 @@ This document defines how a companion agent (Claude Code or other) should open a
 
 ## Session start — `memory wake-up`
 
-At the beginning of every session, run a wake-up before responding.
+At the beginning of every session, run a wake-up **before responding to the user's first message**. Do not send a generic greeting or ask a clarifying question first — the wake-up briefing is what tells you what context you are walking into.
 
 Recommended default: use a two-phase wake-up when the session has a clear work theme.
 
@@ -149,6 +149,18 @@ The output is a structured briefing grouped by strand. Read it fully before resp
 
 ## During the session
 
+### The fabric is a living reference, not a log
+
+The fabric is not a journal you write at the end of a session. It is your working memory — a store of facts, decisions, and insights you should be drawing on and adding to continuously as the conversation unfolds.
+
+**This means two things in practice:**
+
+1. **Search before you assume.** Before making a recommendation, recalling a preference, or proposing an approach, check whether the fabric already holds relevant context. If you are about to say "I think Oliver prefers X" or "last time we did Y" — stop and search first. The fabric is the authoritative source; your in-session impression is not.
+
+2. **Write as facts land, not later.** When a durable fact, decision, or insight is established, write it to the fabric immediately — not at close-session, not at the end of your response. Mid-session writes ensure nothing is lost if the session is interrupted, and they make the fabric useful to you later in the same session.
+
+Mechanical compliance (wake-up at start, close-session at end) without active mid-session use is not enough. The fabric should function as a living reference that shapes what you say next, not a log of what already happened.
+
 ### Search before proposing
 
 Before making a recommendation, recalling a fact, or suggesting an approach, check whether the fabric already holds relevant context:
@@ -157,7 +169,7 @@ Before making a recommendation, recalling a fact, or suggesting an approach, che
 memory search-memory "your query" [--tag strand-id] [--limit N]
 ```
 
-Do not propose something the user has already decided, or repeat a fact the fabric already knows.
+Do not propose something the user has already decided, or repeat a fact the fabric already knows. When the conversation topic shifts, refresh your working set with a new search — do not coast on the wake-up results alone.
 
 ### Add memories as they arise
 
