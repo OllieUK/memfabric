@@ -16,7 +16,7 @@ from memory_service.main import UpdateMemoryRequest
 from memory_service import memory_repo
 from memory_client.client import MemoryClient
 from memory_client.cli import app as cli_app
-from tests.conftest import cleanup_nodes, edge_exists, get_memory_node
+from tests.conftest import cleanup_nodes, count_edges, edge_exists, get_edge_props, get_memory_node
 
 
 # ---------------------------------------------------------------------------
@@ -477,3 +477,171 @@ def test_merge_already_merged_source_returns_404(client, test_driver):
         assert r.status_code == 404
     finally:
         cleanup_nodes(test_driver, src_id, tgt_id, tgt2_id, extra_ids={"Agent": _AGENT_ID})
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — WP-051: merge edge deduplication
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+def test_merge_in_strand_dedup_keeps_higher_weight(client, test_driver):
+    """When both source and target share a strand, merge must produce a single
+    IN_STRAND edge with weight = max(source_weight, target_weight)."""
+    src_id = None
+    tgt_id = None
+    strand_id = "wp051-test-strand"
+    try:
+        src_id = _add_memory(client, "wp051 in_strand dedup source")
+        tgt_id = _add_memory(client, "wp051 in_strand dedup target")
+        with test_driver.session() as s:
+            s.run(
+                """
+                MERGE (st:Strand {id: $sid})
+                ON CREATE SET st.name = $sid
+                WITH st
+                MATCH (src:Memory {id: $src}), (tgt:Memory {id: $tgt})
+                MERGE (src)-[:IN_STRAND {weight: 0.5}]->(st)
+                MERGE (tgt)-[:IN_STRAND {weight: 1.0}]->(st)
+                """,
+                sid=strand_id, src=src_id, tgt=tgt_id,
+            )
+        r = client.post(f"/memory/{src_id}/merge", json={"target_id": tgt_id})
+        assert r.status_code == 200, r.text
+        # Exactly one IN_STRAND edge from target to the strand
+        assert count_edges(test_driver, tgt_id, "IN_STRAND", strand_id) == 1
+        # Weight preserved as the higher value
+        props = get_edge_props(test_driver, tgt_id, "IN_STRAND", strand_id)
+        assert props["weight"] == 1.0
+    finally:
+        cleanup_nodes(test_driver, src_id, tgt_id, extra_ids={"Agent": _AGENT_ID, "Strand": strand_id})
+
+
+@pytest.mark.integration
+def test_merge_in_strand_dedup_source_wins_when_higher(client, test_driver):
+    """Source IN_STRAND weight (0.9) beats target weight (0.5) after merge."""
+    src_id = None
+    tgt_id = None
+    strand_id = "wp051-test-strand-b"
+    try:
+        src_id = _add_memory(client, "wp051 in_strand src higher source")
+        tgt_id = _add_memory(client, "wp051 in_strand src higher target")
+        with test_driver.session() as s:
+            s.run(
+                """
+                MERGE (st:Strand {id: $sid})
+                ON CREATE SET st.name = $sid
+                WITH st
+                MATCH (src:Memory {id: $src}), (tgt:Memory {id: $tgt})
+                MERGE (src)-[:IN_STRAND {weight: 0.9}]->(st)
+                MERGE (tgt)-[:IN_STRAND {weight: 0.5}]->(st)
+                """,
+                sid=strand_id, src=src_id, tgt=tgt_id,
+            )
+        client.post(f"/memory/{src_id}/merge", json={"target_id": tgt_id})
+        assert count_edges(test_driver, tgt_id, "IN_STRAND", strand_id) == 1
+        props = get_edge_props(test_driver, tgt_id, "IN_STRAND", strand_id)
+        assert props["weight"] == 0.9
+    finally:
+        cleanup_nodes(test_driver, src_id, tgt_id, extra_ids={"Agent": _AGENT_ID, "Strand": strand_id})
+
+
+@pytest.mark.integration
+def test_merge_related_to_dedup_reconciles_properties(client, test_driver):
+    """When both source and target have RELATED_TO edges to the same third memory,
+    merge must produce a single edge with reconciled properties."""
+    src_id = None
+    tgt_id = None
+    third_id = None
+    try:
+        src_id = _add_memory(client, "wp051 related_to dedup source")
+        tgt_id = _add_memory(client, "wp051 related_to dedup target")
+        third_id = _add_memory(client, "wp051 related_to dedup third")
+        with test_driver.session() as s:
+            s.run(
+                """
+                MATCH (src:Memory {id: $src}), (tgt:Memory {id: $tgt}), (th:Memory {id: $th})
+                MERGE (src)-[:RELATED_TO {
+                    weight: 0.4,
+                    activation_count: 3,
+                    last_activated_at: '2024-01-01T00:00:00+00:00',
+                    decay_rate: 0.003
+                }]->(th)
+                MERGE (tgt)-[:RELATED_TO {
+                    weight: 0.6,
+                    activation_count: 2,
+                    last_activated_at: '2024-06-01T00:00:00+00:00',
+                    decay_rate: 0.007
+                }]->(th)
+                """,
+                src=src_id, tgt=tgt_id, th=third_id,
+            )
+        r = client.post(f"/memory/{src_id}/merge", json={"target_id": tgt_id})
+        assert r.status_code == 200, r.text
+        # Exactly one edge
+        assert count_edges(test_driver, tgt_id, "RELATED_TO", third_id) == 1
+        props = get_edge_props(test_driver, tgt_id, "RELATED_TO", third_id)
+        assert props["weight"] == 0.6                              # max(0.4, 0.6)
+        assert props["activation_count"] == 5                      # sum(3, 2)
+        assert props["last_activated_at"] == "2024-06-01T00:00:00+00:00"  # more recent
+        assert props["decay_rate"] == 0.003                        # min(0.003, 0.007)
+    finally:
+        cleanup_nodes(test_driver, src_id, tgt_id, third_id, extra_ids={"Agent": _AGENT_ID})
+
+
+@pytest.mark.integration
+def test_merge_related_to_dedup_sparse_edge_no_crash(client, test_driver):
+    """Source RELATED_TO edge with no reinforcement properties (sparse, from add_memory step 5a)
+    must not crash; coalesced defaults are applied."""
+    src_id = None
+    tgt_id = None
+    third_id = None
+    try:
+        src_id = _add_memory(client, "wp051 sparse edge source")
+        tgt_id = _add_memory(client, "wp051 sparse edge target")
+        third_id = _add_memory(client, "wp051 sparse edge third")
+        with test_driver.session() as s:
+            # Sparse edge — only weight, no activation_count etc.
+            s.run(
+                """
+                MATCH (src:Memory {id: $src}), (tgt:Memory {id: $tgt}), (th:Memory {id: $th})
+                MERGE (src)-[:RELATED_TO {weight: 0.7}]->(th)
+                """,
+                src=src_id, tgt=tgt_id, th=third_id,
+            )
+        r = client.post(f"/memory/{src_id}/merge", json={"target_id": tgt_id})
+        assert r.status_code == 200, r.text
+        # Edge was rewired without error
+        assert count_edges(test_driver, tgt_id, "RELATED_TO", third_id) == 1
+        props = get_edge_props(test_driver, tgt_id, "RELATED_TO", third_id)
+        assert props["weight"] == 0.7
+        assert props.get("activation_count", 0) == 0
+    finally:
+        cleanup_nodes(test_driver, src_id, tgt_id, third_id, extra_ids={"Agent": _AGENT_ID})
+
+
+@pytest.mark.integration
+def test_merge_related_to_pure_rewire(client, test_driver):
+    """When target has no existing RELATED_TO edge to the third memory,
+    the source edge is rewired cleanly with its properties preserved."""
+    src_id = None
+    tgt_id = None
+    third_id = None
+    try:
+        src_id = _add_memory(client, "wp051 pure rewire source")
+        tgt_id = _add_memory(client, "wp051 pure rewire target")
+        third_id = _add_memory(client, "wp051 pure rewire third")
+        with test_driver.session() as s:
+            s.run(
+                """
+                MATCH (src:Memory {id: $src}), (th:Memory {id: $th})
+                MERGE (src)-[:RELATED_TO {weight: 0.8, activation_count: 5}]->(th)
+                """,
+                src=src_id, th=third_id,
+            )
+        client.post(f"/memory/{src_id}/merge", json={"target_id": tgt_id})
+        assert count_edges(test_driver, tgt_id, "RELATED_TO", third_id) == 1
+        props = get_edge_props(test_driver, tgt_id, "RELATED_TO", third_id)
+        assert props["weight"] == 0.8
+        assert props["activation_count"] == 5
+    finally:
+        cleanup_nodes(test_driver, src_id, tgt_id, third_id, extra_ids={"Agent": _AGENT_ID})

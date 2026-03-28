@@ -75,3 +75,22 @@ def cleanup_nodes(driver, *memory_ids, extra_ids: dict | None = None) -> None:
             session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
         for label, nid in (extra_ids or {}).items():
             session.run(f"MATCH (n:{label} {{id: $id}}) DETACH DELETE n", id=nid)
+
+
+def count_edges(driver, from_id: str, rel_type: str, to_id: str) -> int:
+    with driver.session() as session:
+        result = session.run(
+            f"MATCH (a {{id: $a}})-[r:{rel_type}]->(b {{id: $b}}) RETURN count(r) AS c",
+            a=from_id, b=to_id,
+        )
+        return result.single()["c"]
+
+
+def get_edge_props(driver, from_id: str, rel_type: str, to_id: str) -> dict:
+    with driver.session() as session:
+        result = session.run(
+            f"MATCH (a {{id: $a}})-[r:{rel_type}]->(b {{id: $b}}) RETURN r",
+            a=from_id, b=to_id,
+        )
+        record = result.single()
+        return dict(record["r"]) if record else {}

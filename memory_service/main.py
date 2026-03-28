@@ -525,7 +525,13 @@ async def merge_memory(
         raise HTTPException(status_code=400, detail="Source and target must differ")
     try:
         with request.app.state.driver.session() as session:
-            memory_repo.merge_memory(session, memory_id, req.target_id, req.strategy)
+            memory_repo.merge_memory(
+                session,
+                memory_id,
+                req.target_id,
+                req.strategy,
+                default_edge_decay_rate=settings.edge_decay_rate,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ServiceUnavailable as exc:

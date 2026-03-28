@@ -526,18 +526,27 @@ def restore_memory(session, memory_id: str) -> None:
         raise ValueError(f"Memory {memory_id!r} not found or not archived")
 
 
-def merge_memory(session, source_id: str, target_id: str, strategy: str) -> None:
+def merge_memory(
+    session,
+    source_id: str,
+    target_id: str,
+    strategy: str,
+    default_edge_decay_rate: float = 0.005,
+) -> None:
     """Merge source memory into target: rewire edges, mark source as merged.
 
     All ABOUT, IN_STRAND, LEADS_TO, and RELATED_TO edges from/to source are
-    rewired to target using MERGE (deduplicating edges target already has).
-    A MERGED_INTO edge is created and source.status is set to 'merged'.
+    rewired to target, deduplicating on topology (not properties).  When the
+    target already has the same edge, properties are reconciled deterministically:
+    weight = max, activation_count = sum, last_activated_at = more recent,
+    decay_rate = min (lower rate = more consolidated).
 
     strategy is accepted for API compatibility but only 'replace' semantics
     are implemented in v1.
 
     Raises ValueError if source or target is not found or not active.
     """
+    now_iso = datetime.now(timezone.utc).isoformat()
     # Validate both nodes exist and are active
     check = session.run(
         """
@@ -565,12 +574,18 @@ def merge_memory(session, source_id: str, target_id: str, strategy: str) -> None
         tgt_id=target_id,
     )
 
-    # Rewire IN_STRAND edges
+    # Rewire IN_STRAND edges — MERGE on topology only, reconcile weight as max
     session.run(
         """
         MATCH (src:Memory {id: $src_id})-[r:IN_STRAND]->(s:Strand)
         MATCH (tgt:Memory {id: $tgt_id})
-        MERGE (tgt)-[:IN_STRAND {weight: coalesce(r.weight, 1.0)}]->(s)
+        MERGE (tgt)-[existing:IN_STRAND]->(s)
+        ON CREATE SET existing.weight = coalesce(r.weight, 1.0)
+        ON MATCH SET  existing.weight = CASE
+                        WHEN coalesce(existing.weight, 1.0) >= coalesce(r.weight, 1.0)
+                        THEN existing.weight
+                        ELSE coalesce(r.weight, 1.0)
+                      END
         DELETE r
         """,
         src_id=source_id,
@@ -603,30 +618,90 @@ def merge_memory(session, source_id: str, target_id: str, strategy: str) -> None
         tgt_id=target_id,
     )
 
-    # Rewire outgoing RELATED_TO edges
+    # Rewire outgoing RELATED_TO edges — MERGE on topology, reconcile all properties
     session.run(
         """
         MATCH (src:Memory {id: $src_id})-[r:RELATED_TO]->(rel:Memory)
         WHERE rel.id <> $tgt_id
         MATCH (tgt:Memory {id: $tgt_id})
-        MERGE (tgt)-[:RELATED_TO {weight: coalesce(r.weight, 0.5)}]->(rel)
+        MERGE (tgt)-[existing:RELATED_TO]->(rel)
+        ON CREATE SET
+            existing.weight            = coalesce(r.weight, 0.5),
+            existing.activation_count  = coalesce(r.activation_count, 0),
+            existing.last_activated_at = coalesce(r.last_activated_at, $now_iso),
+            existing.decay_rate        = coalesce(r.decay_rate, $default_edge_decay_rate)
+        ON MATCH SET
+            existing.weight            = CASE
+                                           WHEN coalesce(existing.weight, 0.5) >= coalesce(r.weight, 0.5)
+                                           THEN existing.weight
+                                           ELSE coalesce(r.weight, 0.5)
+                                         END,
+            existing.activation_count  = coalesce(existing.activation_count, 0)
+                                         + coalesce(r.activation_count, 0),
+            existing.last_activated_at = CASE
+                                           WHEN existing.last_activated_at IS NULL
+                                             THEN coalesce(r.last_activated_at, $now_iso)
+                                           WHEN r.last_activated_at IS NULL
+                                             THEN existing.last_activated_at
+                                           WHEN r.last_activated_at > existing.last_activated_at
+                                             THEN r.last_activated_at
+                                           ELSE existing.last_activated_at
+                                         END,
+            existing.decay_rate        = CASE
+                                           WHEN coalesce(existing.decay_rate, $default_edge_decay_rate)
+                                                <= coalesce(r.decay_rate, $default_edge_decay_rate)
+                                           THEN existing.decay_rate
+                                           ELSE coalesce(r.decay_rate, $default_edge_decay_rate)
+                                         END
         DELETE r
         """,
         src_id=source_id,
         tgt_id=target_id,
+        now_iso=now_iso,
+        default_edge_decay_rate=default_edge_decay_rate,
     )
 
-    # Rewire incoming RELATED_TO edges
+    # Rewire incoming RELATED_TO edges — same reconciliation, direction flipped
     session.run(
         """
         MATCH (rel:Memory)-[r:RELATED_TO]->(src:Memory {id: $src_id})
         WHERE rel.id <> $tgt_id
         MATCH (tgt:Memory {id: $tgt_id})
-        MERGE (rel)-[:RELATED_TO {weight: coalesce(r.weight, 0.5)}]->(tgt)
+        MERGE (rel)-[existing:RELATED_TO]->(tgt)
+        ON CREATE SET
+            existing.weight            = coalesce(r.weight, 0.5),
+            existing.activation_count  = coalesce(r.activation_count, 0),
+            existing.last_activated_at = coalesce(r.last_activated_at, $now_iso),
+            existing.decay_rate        = coalesce(r.decay_rate, $default_edge_decay_rate)
+        ON MATCH SET
+            existing.weight            = CASE
+                                           WHEN coalesce(existing.weight, 0.5) >= coalesce(r.weight, 0.5)
+                                           THEN existing.weight
+                                           ELSE coalesce(r.weight, 0.5)
+                                         END,
+            existing.activation_count  = coalesce(existing.activation_count, 0)
+                                         + coalesce(r.activation_count, 0),
+            existing.last_activated_at = CASE
+                                           WHEN existing.last_activated_at IS NULL
+                                             THEN coalesce(r.last_activated_at, $now_iso)
+                                           WHEN r.last_activated_at IS NULL
+                                             THEN existing.last_activated_at
+                                           WHEN r.last_activated_at > existing.last_activated_at
+                                             THEN r.last_activated_at
+                                           ELSE existing.last_activated_at
+                                         END,
+            existing.decay_rate        = CASE
+                                           WHEN coalesce(existing.decay_rate, $default_edge_decay_rate)
+                                                <= coalesce(r.decay_rate, $default_edge_decay_rate)
+                                           THEN existing.decay_rate
+                                           ELSE coalesce(r.decay_rate, $default_edge_decay_rate)
+                                         END
         DELETE r
         """,
         src_id=source_id,
         tgt_id=target_id,
+        now_iso=now_iso,
+        default_edge_decay_rate=default_edge_decay_rate,
     )
 
     # Create MERGED_INTO edge and mark source

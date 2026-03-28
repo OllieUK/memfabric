@@ -4,6 +4,22 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-051 — Fix merge rewiring dedup for weighted relationships
+
+**Date:** 2026-03-28
+
+- `merge_memory()` previously used `MERGE (tgt)-[:IN_STRAND {weight: ...}]->(s)` and `MERGE (tgt)-[:RELATED_TO {weight: ...}]->(rel)` — because Memgraph matches the entire pattern including inline properties, these created duplicate parallel edges when the target already had the same topological edge with a different weight
+- Fixed by switching to topology-only MERGE (`MERGE (tgt)-[existing:IN_STRAND]->(s)`) with `ON CREATE SET` / `ON MATCH SET` to populate or reconcile properties
+- IN_STRAND reconciliation: `weight = max(existing, source)`
+- RELATED_TO reconciliation: `weight = max`, `activation_count = sum`, `last_activated_at = more recent`, `decay_rate = min` (lower rate = more consolidated)
+- Dropped internal-only `now_iso` parameter from `merge_memory()`; generated unconditionally inside the function
+- Moved `count_edges` and `get_edge_props` helpers to `tests/conftest.py` alongside existing graph inspection helpers
+- 5 new integration tests: IN_STRAND dedup (target wins, source wins), RELATED_TO full property reconciliation, sparse edge with missing properties, pure rewire
+
+**Retrospective:** Memgraph does not support `min()` as a scalar function in Cypher. The first attempt used `min(existing.weight, 1.0)` for a weight cap — dead code in any case since weights are bounded 0–1. Removed on `/simplify` review. The topology-only MERGE pattern (MERGE then SET) is the right approach for any edge carrying properties that may be written from multiple sources.
+
+---
+
 ## WP-038 — Memory lifecycle operations: update, merge, archive, restore
 
 **Date:** 2026-03-27
