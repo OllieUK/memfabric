@@ -4,6 +4,25 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-069 — Cybersecurity knowledge layer: schema, indexes, multilingual model
+
+**Date:** 2026-03-28
+
+- New `scripts/init_cybersec_schema.py` — idempotent Memgraph setup for the knowledge layer: 7 uniqueness constraints (`Standard.id`, `Control.id`, `Document.id`, `Chunk.id`, `BusinessAttribute.id`, `Organisation.id`, `Jurisdiction.code`), two vector indexes (`ctrl_embedding_idx ON :Control(embedding)`, `chunk_embedding_idx ON :Chunk(embedding)`), post-creation validation via `SHOW INDEX INFO`, legacy capacity advisory for `mem_embedding_idx`
+- New `memory_service/cybersec_schemas.py` — shared enum-like frozensets: `SABSA_LAYERS`, `CONTROL_DOMAINS`, `CONTROL_RELATIONSHIP_TYPES`, `DOCUMENT_POLICY_LEVELS`, `JURISDICTION_TYPES`, `ORGANISATION_TYPES`
+- New `scripts/migrate_embeddings.py` — one-time re-embedding migration for `Memory`, `Control`, and `Chunk` nodes after switching `EMBEDDING_MODEL`; idempotent (skips nodes where `embedding_model_name` already matches); `--dry-run` and `--batch-size` flags
+- `memory_service/config.py` — added `memory_index_capacity: int = 5000`, `ctrl_index_capacity: int = 5000`, `chunk_index_capacity: int = 10000`
+- `memory_service/main.py` — `NodeLabel` enum extended with 7 knowledge-layer labels: `Standard`, `Control`, `Document`, `Chunk`, `BusinessAttribute`, `Organisation`, `Jurisdiction`
+- `scripts/init_schema.py` — fixed `SHOW INDEX INFO` column name (`"index type"` with space); `create_vector_index` now accepts configurable `capacity` parameter; `mem_embedding_idx` capacity defaults to `settings.memory_index_capacity` (5000)
+- `scripts/dump_db.py` — edge query broadened from `:Memory`-scoped `RELATED_TO|LEADS_TO` to label-agnostic `WHERE type(r) IN [...]` covering all 13 edge types including the knowledge layer
+- `scripts/restore_db.py` — `ALLOWED_EDGE_TYPES` frozenset expanded to all 13 edge types; hoisted to module level (was inside loop)
+- WP-019 closed (superseded): `ctrl_index_capacity` and `chunk_index_capacity` config fields, plus `mem_embedding_idx` capacity bump to 5000, fold in WP-019's scope
+- 12 unit tests + 4 integration tests in `tests/test_wp069_cybersec_schema.py`
+
+**Retrospective:** Memgraph's `SHOW INDEX INFO` and `SHOW CONSTRAINT INFO` use space-containing column names (`"index type"`, `"constraint type"`, `"properties"` as list) not the simple `"type"` or `"property"` names you'd expect. All record lookups need `.get("index type") or .get("type")` fallback chains. Deferred to WP-077: `create_constraint()` and `get_embedding_dimension()` are duplicated identically between `init_schema.py` and `init_cybersec_schema.py` — worth extracting to `scripts/schema_utils.py` once there are three init scripts.
+
+---
+
 ## WP-051 — Fix merge rewiring dedup for weighted relationships
 
 **Date:** 2026-03-28

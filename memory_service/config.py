@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     # Prevents response bloat from highly-connected nodes on dense graphs.
     # Per traversal direction; total per hit is at most 3 × this value.
     search_neighbour_cap: int = 50
+    memory_index_capacity: int = 5000
+    ctrl_index_capacity: int = 5000
+    chunk_index_capacity: int = 10000
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

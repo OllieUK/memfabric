@@ -607,6 +607,13 @@ class NodeLabel(str, Enum):
     agent = "Agent"
     person = "Person"
     project = "Project"
+    standard = "Standard"
+    control = "Control"
+    document = "Document"
+    chunk = "Chunk"
+    business_attribute = "BusinessAttribute"
+    organisation = "Organisation"
+    jurisdiction = "Jurisdiction"
 
 
 class GraphNode(BaseModel):

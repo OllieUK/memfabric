@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-dump_db.py — Dump all Memory nodes and RELATED_TO/LEADS_TO edges to a JSON snapshot.
+dump_db.py — Dump all Memory nodes and graph edges to a JSON snapshot.
+
+Captured edge types:
+  Memory layer:       RELATED_TO, LEADS_TO
+  Knowledge layer:    HAS_CONTROL, MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
+                      ADDRESSES, OWNED_BY, APPLIES_IN, OPERATES_IN,
+                      ABOUT_CONTROL, CITES_DOC
 
 Usage:
     python scripts/dump_db.py [--output path/to/snapshot.json]
@@ -17,7 +23,11 @@ from memory_service.config import Settings, get_driver
 
 
 def dump_db(session, output_path: str) -> dict:
-    """Dump Memory nodes and RELATED_TO/LEADS_TO edges to a JSON file.
+    """Dump Memory nodes and all known edge types to a JSON file.
+
+    Covers both the memory layer (RELATED_TO, LEADS_TO) and the knowledge
+    layer (HAS_CONTROL, MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS, ADDRESSES,
+    OWNED_BY, APPLIES_IN, OPERATES_IN, ABOUT_CONTROL, CITES_DOC).
 
     Returns summary dict with node_count and edge_count.
     """
@@ -32,7 +42,13 @@ def dump_db(session, output_path: str) -> dict:
 
     edge_rows = list(session.run(
         """
-        MATCH (src:Memory)-[r:RELATED_TO|LEADS_TO]->(tgt:Memory)
+        MATCH (src)-[r]->(tgt)
+        WHERE type(r) IN [
+            'RELATED_TO', 'LEADS_TO',
+            'HAS_CONTROL', 'MAPPED_TO', 'SUPPORTS', 'HAS_CHUNK',
+            'IMPLEMENTS', 'ADDRESSES', 'OWNED_BY', 'APPLIES_IN',
+            'OPERATES_IN', 'ABOUT_CONTROL', 'CITES_DOC'
+        ]
         RETURN src.id AS src, tgt.id AS tgt, type(r) AS type,
                properties(r) AS props
         """

@@ -2,6 +2,18 @@
 """
 restore_db.py — Restore Memory nodes and edges from a JSON snapshot.
 
+Recognised edge types (allowlisted for replay):
+  Memory layer:       RELATED_TO, LEADS_TO
+  Knowledge layer:    HAS_CONTROL, MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
+                      ADDRESSES, OWNED_BY, APPLIES_IN, OPERATES_IN,
+                      ABOUT_CONTROL, CITES_DOC
+
+Note: knowledge-layer *node* restoration (Standard, Control, Document, etc.)
+is handled by the ETL scripts (WP-074), not by this script.  Knowledge-layer
+edges present in the dump file are accepted by the allowlist so they are not
+silently skipped, but they will only be replayed successfully once the
+relevant nodes exist in the graph.
+
 Usage:
     python scripts/restore_db.py --from snapshot.json [--dry-run]
 
@@ -15,6 +27,13 @@ import sys
 from pathlib import Path
 
 from memory_service.config import Settings, get_driver
+
+ALLOWED_EDGE_TYPES = frozenset({
+    "RELATED_TO", "LEADS_TO",
+    "HAS_CONTROL", "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
+    "IMPLEMENTS", "ADDRESSES", "OWNED_BY", "APPLIES_IN",
+    "OPERATES_IN", "ABOUT_CONTROL", "CITES_DOC",
+})
 
 
 def restore_db(session, data: dict, dry_run: bool = False) -> dict:
@@ -51,7 +70,7 @@ def restore_db(session, data: dict, dry_run: bool = False) -> dict:
         if not src or not tgt:
             continue
         # Allowlist guard — prevents injection if dump file is corrupted or edited
-        if etype not in ("RELATED_TO", "LEADS_TO"):
+        if etype not in ALLOWED_EDGE_TYPES:
             print(f"  [SKIP] Unexpected edge type: {etype!r}")
             continue
         props = {k: v for k, v in edge.items() if k not in ("src", "tgt", "type") and v is not None}

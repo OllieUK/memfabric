@@ -28,7 +28,7 @@ def get_existing_index_dimension(session) -> int | None:
             # Column names vary by Memgraph version — inspect the row lazily
             label = record.get("label") or record.get("Label") or ""
             prop = record.get("property") or record.get("Property") or ""
-            index_type = str(record.get("type") or record.get("Type") or "")
+            index_type = str(record.get("index type") or record.get("type") or record.get("Type") or "")
             if label == "Memory" and prop == "embedding" and "vector" in index_type.lower():
                 row = dict(record)
                 return row.get("dimension") or row.get("Dimension") or row.get("options", {}).get("dimension")
@@ -61,14 +61,14 @@ def create_constraint(session, label: str, prop: str) -> None:
             raise
 
 
-def create_vector_index(session, dim: int, model_name: str) -> None:
+def create_vector_index(session, dim: int, model_name: str, capacity: int = 5000) -> None:
     query = (
         f'CREATE VECTOR INDEX mem_embedding_idx ON :Memory(embedding) '
-        f'WITH CONFIG {{"dimension": {dim}, "capacity": 1000, "metric": "cos"}};'
+        f'WITH CONFIG {{"dimension": {dim}, "capacity": {capacity}, "metric": "cos"}};'
     )
     try:
         session.run(query)
-        print(f"  [OK] Vector index created: Memory(embedding) dim={dim} model={model_name} metric=cos")
+        print(f"  [OK] Vector index created: Memory(embedding) dim={dim} capacity={capacity} model={model_name} metric=cos")
     except ClientError as exc:
         if "already exists" in str(exc).lower():
             print(f"  [SKIP] Vector index already exists: Memory(embedding)")
@@ -122,7 +122,7 @@ def main() -> int:
                 success = False
             else:
                 try:
-                    create_vector_index(session, dim=dim, model_name=settings.embedding_model)
+                    create_vector_index(session, dim=dim, model_name=settings.embedding_model, capacity=settings.memory_index_capacity)
                 except Exception as exc:
                     print(f"  [FAIL] Vector index: {exc}")
                     success = False
