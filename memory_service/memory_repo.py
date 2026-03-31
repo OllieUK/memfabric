@@ -26,7 +26,7 @@ def add_memory(
     1. Upsert Agent + create Memory + PRODUCED_BY edge (single round-trip)
     2. Upsert Project + ABOUT edge (if project_id)
     3. Upsert each Person + ABOUT edge
-    4. Upsert each Strand + IN_STRAND edge
+    4. Link to each Strand via IN_STRAND edge (strand must already exist)
     5a. Explicit RELATED_TO edges (if related_ids provided)
     5b. Auto RELATED_TO via vector search (if related_ids is None)
     """
@@ -98,11 +98,11 @@ def add_memory(
             memory_id=memory_id,
         )
 
-    # Step 4 — Upsert each Strand + IN_STRAND edge
+    # Step 4 — Link to each Strand via IN_STRAND edge (strand must already exist)
     for strand_id in req.strand_ids:
         session.run(
             """
-            MERGE (s:Strand {id: $strand_id})
+            MATCH (s:Strand {id: $strand_id})
             WITH s
             MATCH (m:Memory {id: $memory_id})
             CREATE (m)-[:IN_STRAND {weight: 1.0}]->(s)

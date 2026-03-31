@@ -82,6 +82,52 @@ class TestListStrandsRepoFilter:
         call_args = mock_session.run.call_args[0][0]
         assert "IS NOT NULL" in call_args
 
+
+class TestAddMemoryUnknownStrand:
+    """Unit test: add_memory with unknown strand_id must not create a bare Strand node."""
+
+    def test_unknown_strand_id_does_not_create_bare_node(self):
+        """MATCH (not MERGE) means no strand node or edge is created for unknown IDs."""
+        from unittest.mock import MagicMock, call
+        from memory_service import memory_repo
+
+        mock_req = MagicMock()
+        mock_req.strand_ids = ["strand-does-not-exist"]
+        mock_req.person_ids = []
+        mock_req.related_ids = None
+        mock_req.fact = "Test fact."
+        mock_req.so_what = None
+        mock_req.text = "Test fact."
+        mock_req.type = MagicMock(value="fact")
+        mock_req.tags = []
+        mock_req.importance = 3
+        mock_req.agent_id = "agent-test"
+        mock_req.project_id = None
+        mock_req.cause_ids = []
+        mock_req.effect_ids = []
+
+        mock_session = MagicMock()
+        mock_session.run.return_value = MagicMock()
+        mock_session.run.return_value.single.return_value = None  # no auto-related neighbours
+
+        memory_repo.add_memory(
+            mock_session, mock_req,
+            memory_id="test-memory-id",
+            embedding=[0.1] * 384,
+            now="2026-03-31T00:00:00Z",
+            decay_rate=0.1,
+        )
+
+        # Find the call that handles strand linking
+        strand_calls = [
+            str(c) for c in mock_session.run.call_args_list
+            if "strand-does-not-exist" in str(c)
+        ]
+        assert len(strand_calls) == 1
+        # Must use MATCH, not MERGE
+        assert "MATCH" in strand_calls[0]
+        assert "MERGE" not in strand_calls[0]
+
 _STRANDS_RESPONSE = {
     "strands": [
         {
