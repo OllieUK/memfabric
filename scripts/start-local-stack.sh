@@ -21,4 +21,5 @@ fi
 exec python3 -m uvicorn memory_service.main:app \
   --host "${API_HOST:-0.0.0.0}" \
   --port "${API_PORT:-8000}" \
+  --log-config "memory_service/logging.ini" \
   "${reload_flag[@]}"

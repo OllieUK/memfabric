@@ -41,7 +41,7 @@ docker compose up -d
 pip install -r memory_service/requirements.txt
 
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 EMBEDDING_LOCAL_FILES_ONLY=true \
-python3 -m uvicorn memory_service.main:app --reload
+python3 -m uvicorn memory_service.main:app --reload --log-config memory_service/logging.ini
 ```
 
 If you need to download the embedding model for the first time, run once with
