@@ -261,7 +261,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
         tags=req.tags,
         agent_ids=req.agent_ids,
         project_ids=req.project_ids,
-        person_ids=getattr(req, "person_ids", None),
+        person_ids=req.person_ids,
         min_importance=req.min_importance,
     )
 
