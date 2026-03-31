@@ -26,6 +26,34 @@ runner = CliRunner()
 
 BASE = "http://localhost:8000"
 
+
+# ---------------------------------------------------------------------------
+# Unit tests for StrandItem Pydantic model (no live stack required)
+# ---------------------------------------------------------------------------
+
+
+class TestStrandItemModel:
+    """Unit tests for StrandItem Pydantic model — no live stack required."""
+
+    def test_strand_item_accepts_none_metadata(self):
+        """StrandItem must not raise when name/description/category are None."""
+        from memory_service.main import StrandItem
+        item = StrandItem(id="strand-bare", name=None, description=None, category=None)
+        assert item.id == "strand-bare"
+        assert item.name is None
+        assert item.description is None
+        assert item.category is None
+
+    def test_strand_item_accepts_full_metadata(self):
+        from memory_service.main import StrandItem
+        item = StrandItem(
+            id="strand-core-health",
+            name="Health",
+            description="Oliver's physical and mental health.",
+            category="Core Life Domains",
+        )
+        assert item.name == "Health"
+
 _STRANDS_RESPONSE = {
     "strands": [
         {
