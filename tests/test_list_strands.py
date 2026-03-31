@@ -54,6 +54,34 @@ class TestStrandItemModel:
         )
         assert item.name == "Health"
 
+
+class TestListStrandsRepoFilter:
+    """Unit tests for list_strands bare-node filtering — uses mock session."""
+
+    def test_bare_nodes_excluded_from_results(self):
+        """list_strands must exclude records where name IS NULL."""
+        from unittest.mock import MagicMock
+        from memory_service.memory_repo import list_strands
+
+        # Simulate a session that returns one bare node and one valid node
+        bare_record = {"id": "strand-bare", "name": None, "description": None, "category": None}
+        valid_record = {
+            "id": "strand-core-health",
+            "name": "Health",
+            "description": "Physical and mental health.",
+            "category": "Core Life Domains",
+        }
+
+        mock_session = MagicMock()
+        mock_session.run.return_value = [valid_record]  # bare node already filtered by Cypher
+
+        result = list_strands(mock_session)
+        assert len(result) == 1
+        assert result[0]["id"] == "strand-core-health"
+        # Verify the WHERE clause was passed in the query
+        call_args = mock_session.run.call_args[0][0]
+        assert "IS NOT NULL" in call_args
+
 _STRANDS_RESPONSE = {
     "strands": [
         {

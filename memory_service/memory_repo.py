@@ -348,13 +348,14 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
 
 
 def list_strands(session) -> list:
-    """Return all Strand nodes ordered by category then name.
+    """Return all Strand nodes with non-null name, ordered by category then name.
 
     Returns:
         List of dicts with keys: id, name, description, category
     """
     result = session.run(
-        "MATCH (s:Strand) RETURN s.id AS id, s.name AS name, "
+        "MATCH (s:Strand) WHERE s.name IS NOT NULL "
+        "RETURN s.id AS id, s.name AS name, "
         "s.description AS description, s.category AS category "
         "ORDER BY s.category, s.name"
     )
