@@ -63,15 +63,21 @@ def memory_search(
     query: str,
     tags: list[str] | None = None,
     agent_ids: list[str] | None = None,
+    person_ids: list[str] | None = None,
     limit: int = 10,
     traversal_direction: str = "none",
 ) -> list[dict]:
-    """Search the memory fabric by semantic similarity."""
+    """Search the memory fabric by semantic similarity.
+
+    Pass person_ids to restrict results to memories linked via ABOUT edges
+    to the specified Person nodes (e.g. ["mara", "oliver"]).
+    """
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.search_memory(
             query,
             tags=tags,
             agent_ids=agent_ids,
+            person_ids=person_ids,
             limit=limit,
             traversal_direction=traversal_direction,
         )
