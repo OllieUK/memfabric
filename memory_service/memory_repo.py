@@ -480,7 +480,7 @@ def update_memory(
         for strand_id in patch_fields["strand_ids"]:
             session.run(
                 """
-                MERGE (s:Strand {id: $strand_id})
+                MATCH (s:Strand {id: $strand_id})
                 WITH s
                 MATCH (m:Memory {id: $memory_id})
                 CREATE (m)-[:IN_STRAND {weight: 1.0}]->(s)

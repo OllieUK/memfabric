@@ -128,6 +128,33 @@ class TestAddMemoryUnknownStrand:
         assert "MATCH" in strand_calls[0]
         assert "MERGE" not in strand_calls[0]
 
+
+class TestPatchMemoryUnknownStrand:
+    """Unit test: update_memory strand_ids must not create bare Strand nodes."""
+
+    def test_unknown_strand_id_uses_match_not_merge(self):
+        from unittest.mock import MagicMock
+        from memory_service import memory_repo
+
+        mock_session = MagicMock()
+        mock_session.run.return_value = MagicMock()
+
+        memory_repo.update_memory(
+            mock_session,
+            memory_id="test-memory-id",
+            patch_fields={"strand_ids": ["strand-does-not-exist"]},
+            new_embedding=None,
+            now="2026-03-31T00:00:00Z",
+        )
+
+        strand_calls = [
+            str(c) for c in mock_session.run.call_args_list
+            if "strand-does-not-exist" in str(c)
+        ]
+        assert len(strand_calls) == 1
+        assert "MATCH" in strand_calls[0]
+        assert "MERGE" not in strand_calls[0]
+
 _STRANDS_RESPONSE = {
     "strands": [
         {
