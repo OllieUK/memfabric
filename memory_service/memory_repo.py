@@ -195,9 +195,10 @@ WHERE ($project_ids IS NULL OR p.id IN $project_ids)
 OPTIONAL MATCH (m)-[:ABOUT]->(per:Person)
 WITH m, distance, per
 WHERE ($person_ids IS NULL OR per.id IN $person_ids)
-WITH DISTINCT m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, m
+OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+WITH DISTINCT m, distance, collect(DISTINCT s.id) AS strand_ids
 {neighbour_clause}
-RETURN id, text, type, tags, importance, distance, {neighbour_return}
+RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, strand_ids, {neighbour_return}
 ORDER BY distance ASC\
 """
 
@@ -205,6 +206,8 @@ ORDER BY distance ASC\
 # Bypasses the vector index so all memories linked to the specified persons are
 # returned, not just those that happen to rank in the top-N by embedding distance.
 # Ordered by importance DESC, strength DESC (distance is irrelevant for this path).
+# Deduplication: aggregate on m after agent filter to collapse multiple Person rows;
+# strand_ids collected in the same aggregation step to avoid re-fan-out.
 _PERSON_SEARCH_QUERY_TEMPLATE = """\
 MATCH (m:Memory)-[:ABOUT]->(per:Person)
 WHERE per.id IN $person_ids
@@ -212,11 +215,12 @@ AND   (m.status IS NULL OR m.status = 'active')
 AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
 AND   ($min_importance IS NULL OR m.importance >= $min_importance)
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
-WITH m, per, a
+WITH m, a
 WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
-WITH DISTINCT m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, m
+OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+WITH DISTINCT m, collect(DISTINCT s.id) AS strand_ids
 {neighbour_clause}
-RETURN id, text, type, tags, importance, coalesce(m.strength, 0.0) AS strength, {neighbour_return}
+RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, coalesce(m.strength, 0.0) AS strength, strand_ids, {neighbour_return}
 ORDER BY importance DESC, strength DESC
 LIMIT $limit\
 """
@@ -299,17 +303,25 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
             min_importance=req.min_importance,
         )
 
-    return [
-        {
-            "id": record["id"],
-            "text": record["text"],
-            "type": record["type"],
-            "tags": record["tags"],
-            "importance": record["importance"],
-            "neighbours": record["neighbours"],
-        }
-        for record in result
-    ]
+    seen: set[str] = set()
+    rows = []
+    for record in result:
+        rid = record["id"]
+        if rid in seen:
+            continue
+        seen.add(rid)
+        rows.append(
+            {
+                "id": rid,
+                "text": record["text"],
+                "type": record["type"],
+                "tags": record["tags"],
+                "importance": record["importance"],
+                "strand_ids": list(record["strand_ids"]),
+                "neighbours": record["neighbours"],
+            }
+        )
+    return rows
 
 
 def _record_to_memory_dict(record) -> dict:
