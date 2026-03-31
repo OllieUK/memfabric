@@ -6,6 +6,7 @@ Exposes tools via FastMCP over STDIO transport:
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
   memory_update, memory_archive, memory_restore, memory_merge
 """
+from datetime import datetime, timezone
 from itertools import groupby
 
 from fastmcp import FastMCP
@@ -15,6 +16,17 @@ from mcp_server.config import settings
 
 
 mcp = FastMCP("graph-memory-fabric")
+
+
+def _format_memory_timestamp(created_at: str | None) -> str:
+    """Render created_at as a compact UTC label for wake-up output."""
+    if not created_at:
+        return ""
+    try:
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except ValueError:
+        return created_at
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 @mcp.tool
@@ -100,7 +112,9 @@ def _render_section(memories: list[dict]) -> list[str]:
             imp = mem.get("importance", "-")
             mem_type = mem.get("type", "")
             mem_text = mem.get("text", "")
-            lines.append(f"  [{imp}] {mem_type} — {mem_text}")
+            timestamp = _format_memory_timestamp(mem.get("created_at"))
+            timestamp_label = f" ({timestamp})" if timestamp else ""
+            lines.append(f"  [{imp}] {mem_type}{timestamp_label} — {mem_text}")
         lines.append("")  # blank line between strand groups
 
     # Remove trailing blank line

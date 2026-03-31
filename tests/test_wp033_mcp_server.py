@@ -12,12 +12,14 @@ CORE_MEMORY = {
     "type": "fact",
     "text": "test memory",
     "importance": 4,
+    "created_at": "2026-01-01T00:00:00+00:00",
 }
 TOPIC_MEMORY = {
     "strand_id": "strand-projects",
     "type": "observation",
     "text": "topic mem",
     "importance": 3,
+    "created_at": "2026-01-02T00:00:00+00:00",
 }
 
 
@@ -79,6 +81,7 @@ def test_u3_memory_wake_up_returns_plain_text():
     assert isinstance(result, str)
     assert "## Memory briefing" in result
     assert "test memory" in result
+    assert "2026-01-01 00:00 UTC" in result
     # No Rich markup
     assert "[bold]" not in result
     assert "[cyan]" not in result

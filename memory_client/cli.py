@@ -21,6 +21,17 @@ def _make_client() -> MemoryClient:
     return MemoryClient(base_url=settings.api_base_url)
 
 
+def _format_memory_timestamp(created_at: str | None) -> str:
+    """Render created_at as a compact UTC label for wake-up output."""
+    if not created_at:
+        return ""
+    try:
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    except ValueError:
+        return created_at
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
 @app.command("add-memory")
 def add_memory(
     fact: str = typer.Argument(..., help="Memory fact (the raw statement)"),
@@ -331,7 +342,11 @@ def wake_up(
             console.print(f"\n[dim]{strand_id}[/dim]")
             for mem in group:
                 imp = str(mem.get("importance") or "")
-                console.print(f"  [{imp}] [bold]{mem['type']}[/bold] — {mem['text']}")
+                timestamp = _format_memory_timestamp(mem.get("created_at"))
+                timestamp_label = f" [dim]({timestamp})[/dim]" if timestamp else ""
+                console.print(
+                    f"  [{imp}] [bold]{mem['type']}[/bold]{timestamp_label} — {mem['text']}"
+                )
 
     console.print("\n[bold cyan]### Core context[/bold cyan]")
     _render_section(core)

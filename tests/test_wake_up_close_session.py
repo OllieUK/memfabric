@@ -71,6 +71,10 @@ _WAKE_UP_RESPONSE = {
 _EMPTY_WAKE_UP_RESPONSE = {"memories": [], "topic_memories": []}
 
 
+def _normalize_whitespace(text: str) -> str:
+    return " ".join(text.split())
+
+
 # ---------------------------------------------------------------------------
 # U1–U3: MemoryClient.wake_up()
 # ---------------------------------------------------------------------------
@@ -153,6 +157,7 @@ class TestWakeUpCLI:
         assert "Memory briefing" in result.output
         assert "fact" in result.output
         assert "Oliver has ADHD" in result.output
+        assert "2026-01-01 00:00 UTC" in result.output
 
     @respx.mock
     def test_forwards_limit_and_topic(self):
@@ -311,7 +316,7 @@ class TestWakeUpCLIOutput:
         assert "### Core context" in result.output
         assert "### Relevant to today" in result.output
         # Topic memory text appears
-        assert "graph-memory-fabric project" in result.output
+        assert "graph-memory-fabric project" in _normalize_whitespace(result.output)
 
     @respx.mock
     def test_topic_section_omitted_when_no_topic_provided(self):
