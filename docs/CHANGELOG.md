@@ -4,6 +4,16 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-012 + WP-013 — Pin Dependency and Docker Image Versions (2026-03-31)
+
+- Added `<next_major` upper bounds to all three `requirements.txt` files (`memory_service`, `memory_client`, `mcp_server`); original lower bounds preserved
+- Replaced `memgraph/memgraph-mage:latest` and `memgraph/lab:latest` with `3.9.0` in `docker-compose.yml`
+- `pip check` shows no new conflicts introduced (pre-existing `pygobject`/`docling-core` warnings unchanged)
+
+**Retrospective:** Purely mechanical config change. The installed versions at time of pinning are: fastapi 0.135.1, uvicorn 0.42.0, neo4j 6.1.0, sentence-transformers 5.3.0, pydantic 2.12.5, fastmcp 3.1.1, memgraph 3.9.0. When any package crosses its ceiling, bump intentionally after reviewing the changelog.
+
+---
+
 ## WP-055 — Fix Long-Rest Edge Discovery Reporting Mismatch (2026-03-31)
 
 - Replaced per-node `count(r)` accumulation in the live rediscovery path of `long_rest()` with a single post-loop Cypher count query: `MATCH ()-[r:RELATED_TO]->() WHERE r.last_activated_at = $now_iso AND r.activation_count = 0 RETURN count(r)`
