@@ -112,6 +112,7 @@ class SearchMemoryRequest(BaseModel):
     tags: Optional[List[str]] = None
     agent_ids: Optional[List[str]] = None
     project_ids: Optional[List[str]] = None
+    person_ids: Optional[List[str]] = None
     limit: int = Field(default=10, ge=1, le=100)
     max_hops: int = Field(default=1, ge=0, le=3)
     traversal_direction: Literal["none", "causes", "effects", "both"] = "none"
