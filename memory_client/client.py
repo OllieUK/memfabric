@@ -63,6 +63,7 @@ class MemoryClient:
         tags: list[str] | None = None,
         agent_ids: list[str] | None = None,
         project_ids: list[str] | None = None,
+        person_ids: list[str] | None = None,
         limit: int = 10,
         max_hops: int = 1,
         traversal_direction: str = "none",
@@ -81,6 +82,8 @@ class MemoryClient:
             body["agent_ids"] = agent_ids
         if project_ids is not None:
             body["project_ids"] = project_ids
+        if person_ids is not None:
+            body["person_ids"] = person_ids
         if min_importance is not None:
             body["min_importance"] = min_importance
         response = self._http.post("/memory/search", json=body)
