@@ -201,6 +201,26 @@ RETURN id, text, type, tags, importance, distance, {neighbour_return}
 ORDER BY distance ASC\
 """
 
+# Used when person_ids is provided: start from Person nodes via ABOUT edges.
+# Bypasses the vector index so all memories linked to the specified persons are
+# returned, not just those that happen to rank in the top-N by embedding distance.
+# Ordered by importance DESC, strength DESC (distance is irrelevant for this path).
+_PERSON_SEARCH_QUERY_TEMPLATE = """\
+MATCH (m:Memory)-[:ABOUT]->(per:Person)
+WHERE per.id IN $person_ids
+AND   (m.status IS NULL OR m.status = 'active')
+AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
+AND   ($min_importance IS NULL OR m.importance >= $min_importance)
+OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
+WITH m, per, a
+WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
+WITH DISTINCT m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, m
+{neighbour_clause}
+RETURN id, text, type, tags, importance, coalesce(m.strength, 0.0) AS strength, {neighbour_return}
+ORDER BY importance DESC, strength DESC
+LIMIT $limit\
+"""
+
 
 def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> list:
     """Run vector search with optional filters and graph expansion.
@@ -249,21 +269,35 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
     else:
         neighbour_return = "[] AS neighbours"
 
-    query = _SEARCH_QUERY_TEMPLATE.format(
-        neighbour_clause=neighbour_clauses,
-        neighbour_return=neighbour_return,
-    )
-
-    result = session.run(
-        query,
-        query_vec=query_embedding,
-        limit=req.limit,
-        tags=req.tags,
-        agent_ids=req.agent_ids,
-        project_ids=req.project_ids,
-        person_ids=req.person_ids,
-        min_importance=req.min_importance,
-    )
+    if req.person_ids:
+        # Graph path: start from Person nodes, bypass vector index.
+        query = _PERSON_SEARCH_QUERY_TEMPLATE.format(
+            neighbour_clause=neighbour_clauses,
+            neighbour_return=neighbour_return,
+        )
+        result = session.run(
+            query,
+            person_ids=req.person_ids,
+            limit=req.limit,
+            tags=req.tags,
+            agent_ids=req.agent_ids,
+            min_importance=req.min_importance,
+        )
+    else:
+        query = _SEARCH_QUERY_TEMPLATE.format(
+            neighbour_clause=neighbour_clauses,
+            neighbour_return=neighbour_return,
+        )
+        result = session.run(
+            query,
+            query_vec=query_embedding,
+            limit=req.limit,
+            tags=req.tags,
+            agent_ids=req.agent_ids,
+            project_ids=req.project_ids,
+            person_ids=None,
+            min_importance=req.min_importance,
+        )
 
     return [
         {
