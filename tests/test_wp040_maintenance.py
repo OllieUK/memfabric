@@ -228,6 +228,75 @@ class TestLongRest:
                     with test_driver.session() as session:
                         session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
 
+    def test_long_rest_edges_discovered_matches_graph(self, client, test_driver):
+        """edges_discovered in the response equals the graph count of edges stamped by this run."""
+        from memory_service.embeddings import get_embedding
+        m1 = m2 = None
+        try:
+            emb1 = get_embedding("pineapple upside down cake recipe")
+            emb2 = get_embedding("baking an inverted pineapple dessert")
+            m1 = f"wp055-count-a-{uuid.uuid4()}"
+            m2 = f"wp055-count-b-{uuid.uuid4()}"
+
+            with test_driver.session() as session:
+                for mid, emb, fact in [
+                    (m1, emb1, "pineapple upside down cake recipe"),
+                    (m2, emb2, "baking an inverted pineapple dessert"),
+                ]:
+                    session.run(
+                        "CREATE (m:Memory {id: $id, fact: $fact, text: $fact, "
+                        "type: 'fact', tags: [], importance: 3, strength: 0.8, "
+                        "recall_count: 0, reinforcement_count: 0, "
+                        "last_reinforced_at: '2026-01-01T00:00:00+00:00', "
+                        "last_used_at: '2026-01-01T00:00:00+00:00', "
+                        "decay_rate: 0.01, embedding: $emb})",
+                        id=mid, fact=fact, emb=emb,
+                    )
+
+            # Remove any pre-existing edges
+            with test_driver.session() as session:
+                session.run(
+                    "MATCH (a:Memory {id: $a})-[r:RELATED_TO]-(b:Memory {id: $b}) DELETE r",
+                    a=m1, b=m2,
+                )
+
+            r = client.post("/memory/maintenance/long-rest")
+            assert r.status_code == 200
+            reported = r.json()["edges_discovered"]
+
+            # Retrieve the timestamp long_rest used (written to System node)
+            with test_driver.session() as session:
+                sys_row = session.run(
+                    "MATCH (sys:System {id: 'system'}) RETURN sys.last_long_rest_at AS ts"
+                ).single()
+            assert sys_row is not None
+            run_ts = sys_row["ts"]
+            assert run_ts is not None
+
+            # Count edges in the graph stamped by this run
+            with test_driver.session() as session:
+                count_row = session.run(
+                    "MATCH ()-[r:RELATED_TO]->() "
+                    "WHERE r.last_activated_at = $ts AND r.activation_count = 0 "
+                    "RETURN count(r) AS n",
+                    ts=run_ts,
+                ).single()
+            graph_count = count_row["n"] if count_row else 0
+
+            assert graph_count >= 1, (
+                "Expected at least one RELATED_TO edge to be discovered; "
+                "check that the seeded memories have similar enough embeddings"
+            )
+            assert reported == graph_count, (
+                f"edges_discovered={reported} but graph has {graph_count} "
+                f"edges stamped with ts={run_ts} and activation_count=0"
+            )
+        finally:
+            for mid in [m1, m2]:
+                if mid:
+                    with test_driver.session() as session:
+                        session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
+
 
 @pytest.mark.integration
 class TestDumpRestoreScript:

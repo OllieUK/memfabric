@@ -1247,7 +1247,7 @@ def long_rest(
             if row:
                 edges_discovered += row["would_discover"] or 0
         else:
-            result = session.run(
+            session.run(
                 """
                 CALL vector_search.search("mem_embedding_idx", $k, $query_vec)
                 YIELD node AS candidate, distance
@@ -1262,7 +1262,6 @@ def long_rest(
                               r.activation_count = 0,
                               r.last_activated_at = $now_iso,
                               r.decay_rate = $edge_decay_rate
-                RETURN count(r) AS discovered
                 """,
                 k=_AUTO_RELATED_K,
                 query_vec=node["embedding"],
@@ -1271,9 +1270,19 @@ def long_rest(
                 now_iso=now_iso,
                 edge_decay_rate=edge_decay_rate,
             )
-            row = result.single()
-            if row:
-                edges_discovered += row["discovered"] or 0
+
+    if not dry_run:
+        # activation_count=0 identifies edges created (ON CREATE) in this run —
+        # newly discovered edges are never incremented during long_rest itself.
+        count_row = session.run(
+            """
+            MATCH ()-[r:RELATED_TO]->()
+            WHERE r.last_activated_at = $now_iso AND r.activation_count = 0
+            RETURN count(r) AS n
+            """,
+            now_iso=now_iso,
+        ).single()
+        edges_discovered = count_row["n"] if count_row else 0
 
     # Step 3: Weak-edge pruning
     prune_rows = list(session.run(
