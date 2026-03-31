@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-080 — Server-side `min_importance` filter on memory search
+
+**Completed:** 2026-03-31
+
+- Added `min_importance: Optional[int]` (range 1–5) to `SearchMemoryRequest` in `memory_service/main.py`
+- Added `AND ($min_importance IS NULL OR m.importance >= $min_importance)` to `_SEARCH_QUERY_TEMPLATE` in `memory_service/memory_repo.py`
+- Passed `min_importance` through `search_memories()` to the Cypher query
+- Added `min_importance: int | None = None` keyword parameter to `MemoryClient.search_memory()` in `memory_client/client.py`
+- 5 integration tests added to `tests/test_search_memory.py` (`TestSearchMinImportance`)
+- When omitted, behaviour is unchanged (no filtering applied)
+
+**Retrospective:** Straightforward parameter threading. Consider extending the same pattern to `min_strength` if callers need decay-aware filtering server-side.
+
+---
+
 ## WP-079 — Importance recalibration pass
 
 **Date:** 2026-03-28
