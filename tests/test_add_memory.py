@@ -235,24 +235,26 @@ class TestPostMemoryWithPersons:
 
 class TestPostMemoryWithStrands:
     def test_strand_node_and_in_strand_edge(self, client, test_driver):
+        # Use a seeded strand — MATCH (not MERGE) requires the node to pre-exist
+        seeded_strand_id = "strand-core-health"
         response = client.post("/memory", json={
             "text": "memory in a strand",
             "type": "fact",
             "agent_id": _AGENT_ID,
-            "strand_ids": [_STRAND_ID],
+            "strand_ids": [seeded_strand_id],
         })
         memory_id = response.json()["memory_id"]
-        assert node_exists(test_driver, "Strand", _STRAND_ID)
-        assert edge_exists(test_driver, memory_id, "IN_STRAND", _STRAND_ID)
+        assert node_exists(test_driver, "Strand", seeded_strand_id)
+        assert edge_exists(test_driver, memory_id, "IN_STRAND", seeded_strand_id)
         with test_driver.session() as session:
             result = session.run(
                 "MATCH (m:Memory {id: $mid})-[r:IN_STRAND]->(s:Strand {id: $sid}) RETURN r.weight AS w",
                 mid=memory_id,
-                sid=_STRAND_ID,
+                sid=seeded_strand_id,
             )
             weight = result.single()["w"]
         assert weight == 1.0
-        _cleanup(test_driver, memory_id)
+        cleanup_nodes(test_driver, memory_id)
 
 
 class TestPostMemoryExplicitRelatedIds:
