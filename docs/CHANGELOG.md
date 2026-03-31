@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-083 — `person_ids` filter on `POST /memory/search`
+
+**Completed:** 2026-03-31
+
+- Added `person_ids: Optional[List[str]] = None` to `SearchMemoryRequest` in `memory_service/main.py`
+- Extended `_SEARCH_QUERY_TEMPLATE` in `memory_service/memory_repo.py` with `OPTIONAL MATCH (m)-[:ABOUT]->(per:Person)` / `WHERE ($person_ids IS NULL OR per.id IN $person_ids)` — identical pattern to existing `project_ids` filter
+- Propagated `person_ids` through `MemoryClient.search_memory` in `memory_client/client.py`
+- Exposed `person_ids` in MCP `memory_search` tool in `mcp_server/server.py` with docstring explaining semantics
+- Added `TestPersonIdsFilter` (4 integration tests) to `tests/test_search_memory.py`: single-person filter, multi-person OR, backward-compat with omitted filter, composition with `tags`
+- All 31 search tests passing
+
+**Retrospective:** The `project_ids` filter was an exact template for this change — implementation was mechanical once the pattern was identified. TDD caught a Pydantic silent-drop behaviour (unknown fields aren't rejected by default) which meant tests initially showed 2 passing instead of all failing; the correct TDD-red signal was 2 assertion failures on the filter-dependent tests. The `getattr` defensive guard introduced during implementation was caught in code review and replaced with direct attribute access — consistent with all adjacent params.
+
+---
+
 ## WP-012 + WP-013 — Pin Dependency and Docker Image Versions (2026-03-31)
 
 - Added `<next_major` upper bounds to all three `requirements.txt` files (`memory_service`, `memory_client`, `mcp_server`); original lower bounds preserved
