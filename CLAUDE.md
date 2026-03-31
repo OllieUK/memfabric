@@ -104,6 +104,14 @@ All tuneable values live in `.env` / `pydantic-settings`. Never hardcode hosts, 
 - Python driver for Memgraph: `neo4j` (Bolt-compatible, no native build step)
 - Target environment: WSL2 (Ubuntu 22.04) + Docker Desktop
 
+## Memgraph Cypher gotchas
+
+- `DETACH DELETE` does not support a `RETURN` clause — count nodes before deleting, not after
+- Strand linking uses `MATCH` (not `MERGE`): strand nodes must be pre-seeded via `seed_strands.py`; unknown `strand_ids` are silently skipped
+- Integration tests in `TestGetStrandsIntegration` skip via the `test_driver` fixture (not `@pytest.mark.integration`); new integration tests should add the mark explicitly for `-m integration` filtering
+- `test_core_wake_up_prefers_stronger_reinforced_memory` is a known pre-existing flaky test — not a regression indicator
+- The patch endpoint function is `update_memory` in `memory_repo.py` (not `patch_memory`)
+
 ## Data model quick-reference
 
 **Nodes:** `Memory`, `Strand`, `Agent`, `Person`, `Project`
