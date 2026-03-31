@@ -429,3 +429,122 @@ class TestSearchMinImportance:
         """min_importance=6 is above the valid range (1-5) and should return 422."""
         r = _search(client, "any query", min_importance=6)
         assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# WP-083: person_ids filter
+# ---------------------------------------------------------------------------
+
+_PERSON_ID_MARA = "test-search-person-mara"
+_PERSON_ID_OLIVER = "test-search-person-oliver"
+
+
+def _ensure_person(driver, person_id: str) -> None:
+    """Create a Person node if it does not exist."""
+    with driver.session() as session:
+        session.run(
+            "MERGE (p:Person {id: $id})",
+            id=person_id,
+        )
+
+
+def _cleanup_persons(driver, *person_ids) -> None:
+    with driver.session() as session:
+        for pid in person_ids:
+            session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=pid)
+
+
+def _add_with_person(client, driver, text: str, person_id: str) -> str:
+    """Insert a Memory linked to a Person node; return the memory id."""
+    _ensure_person(driver, person_id)
+    body = {
+        "text": text,
+        "type": "fact",
+        "agent_id": _AGENT_ID,
+        "person_ids": [person_id],
+    }
+    r = client.post("/memory", json=body)
+    assert r.status_code == 200, f"Failed to insert memory: {r.text}"
+    return r.json()["memory_id"]
+
+
+@pytest.mark.integration
+class TestPersonIdsFilter:
+    def test_person_ids_filters_to_correct_person(self, client, test_driver):
+        """Only memories ABOUT the specified person are returned."""
+        mid_mara = _add_with_person(client, test_driver,
+                                    "Mara tends to rush the last 20% of any task",
+                                    _PERSON_ID_MARA)
+        mid_oliver = _add_with_person(client, test_driver,
+                                      "Oliver prefers async communication over meetings",
+                                      _PERSON_ID_OLIVER)
+        try:
+            r = _search(client, "work habits", person_ids=[_PERSON_ID_MARA], limit=20)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert mid_mara in ids, "mara memory should be in results"
+            assert mid_oliver not in ids, "oliver memory must not appear when filtering for mara"
+        finally:
+            _cleanup(test_driver, mid_mara, mid_oliver)
+            _cleanup_persons(test_driver, _PERSON_ID_MARA, _PERSON_ID_OLIVER)
+
+    def test_person_ids_or_semantics_across_multiple_persons(self, client, test_driver):
+        """Passing two person_ids returns memories for either person."""
+        mid_mara = _add_with_person(client, test_driver,
+                                    "Mara is detail-oriented in written communication",
+                                    _PERSON_ID_MARA)
+        mid_oliver = _add_with_person(client, test_driver,
+                                      "Oliver communication style is clear and concise",
+                                      _PERSON_ID_OLIVER)
+        try:
+            r = _search(client, "communication style",
+                        person_ids=[_PERSON_ID_MARA, _PERSON_ID_OLIVER], limit=20)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert mid_mara in ids
+            assert mid_oliver in ids
+        finally:
+            _cleanup(test_driver, mid_mara, mid_oliver)
+            _cleanup_persons(test_driver, _PERSON_ID_MARA, _PERSON_ID_OLIVER)
+
+    def test_omitting_person_ids_returns_all_memories(self, client, test_driver):
+        """Omitting person_ids (None) does not filter by person — existing behaviour unchanged."""
+        mid_mara = _add_with_person(client, test_driver,
+                                    "Mara values clear boundaries in work hours",
+                                    _PERSON_ID_MARA)
+        mid_oliver = _add_with_person(client, test_driver,
+                                      "Oliver values clear boundaries in work hours",
+                                      _PERSON_ID_OLIVER)
+        try:
+            r = _search(client, "work hours boundaries", limit=20)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert mid_mara in ids
+            assert mid_oliver in ids
+        finally:
+            _cleanup(test_driver, mid_mara, mid_oliver)
+            _cleanup_persons(test_driver, _PERSON_ID_MARA, _PERSON_ID_OLIVER)
+
+    def test_person_ids_filter_composes_with_tags(self, client, test_driver):
+        """person_ids and tags filters apply together (AND semantics)."""
+        mid_tagged = _add_with_person(client, test_driver,
+                                      "Mara excels at rapid prototyping",
+                                      _PERSON_ID_MARA)
+        with test_driver.session() as session:
+            session.run(
+                "MATCH (m:Memory {id: $id}) SET m.tags = ['skills']",
+                id=mid_tagged,
+            )
+        mid_no_tag = _add_with_person(client, test_driver,
+                                      "Mara prefers detailed written specs",
+                                      _PERSON_ID_MARA)
+        try:
+            r = _search(client, "rapid prototyping",
+                        person_ids=[_PERSON_ID_MARA], tags=["skills"], limit=20)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert mid_tagged in ids, "tagged mara memory should appear"
+            assert mid_no_tag not in ids, "untagged mara memory must not appear"
+        finally:
+            _cleanup(test_driver, mid_tagged, mid_no_tag)
+            _cleanup_persons(test_driver, _PERSON_ID_MARA)
