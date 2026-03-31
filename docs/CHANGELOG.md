@@ -4,6 +4,17 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-055 — Fix Long-Rest Edge Discovery Reporting Mismatch (2026-03-31)
+
+- Replaced per-node `count(r)` accumulation in the live rediscovery path of `long_rest()` with a single post-loop Cypher count query: `MATCH ()-[r:RELATED_TO]->() WHERE r.last_activated_at = $now_iso AND r.activation_count = 0 RETURN count(r)`
+- `edges_discovered` now equals the count of edges verifiable in the graph by timestamp + activation_count, eliminating the mismatch observed on 2026-03-27 (reported 8, graph had 15)
+- Dry-run path unchanged: continues accumulating `would_discover` per-node as a forward-looking estimate
+- Added `test_long_rest_edges_discovered_matches_graph` integration test to `TestLongRest`
+
+**Retrospective:** Straightforward single-query replacement. The post-loop count pattern is more trustworthy than per-MERGE accumulation for any future maintenance operations that write edges in bulk.
+
+---
+
 ## WP-080 — Server-side `min_importance` filter on memory search
 
 **Completed:** 2026-03-31

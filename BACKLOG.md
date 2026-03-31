@@ -11,7 +11,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-055 | Fix long-rest edge discovery reporting mismatch | R1 | M | L | — | Integrating fix for edge_discovered counting mismatch |
 
 ---
 
