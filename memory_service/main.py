@@ -242,9 +242,9 @@ async def wake_up(
 
 class StrandItem(BaseModel):
     id: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    category: Optional[str] = None
+    name: str
+    description: str
+    category: str
 
 
 class StrandsResponse(BaseModel):
