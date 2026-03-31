@@ -192,6 +192,9 @@ WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
 OPTIONAL MATCH (m)-[:ABOUT]->(p:Project)
 WITH m, distance, p
 WHERE ($project_ids IS NULL OR p.id IN $project_ids)
+OPTIONAL MATCH (m)-[:ABOUT]->(per:Person)
+WITH m, distance, per
+WHERE ($person_ids IS NULL OR per.id IN $person_ids)
 WITH DISTINCT m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, m
 {neighbour_clause}
 RETURN id, text, type, tags, importance, distance, {neighbour_return}
@@ -204,7 +207,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
 
     Args:
         session: open neo4j Session
-        req: SearchMemoryRequest (query, tags, agent_ids, project_ids, limit, max_hops,
+        req: SearchMemoryRequest (query, tags, agent_ids, project_ids, person_ids, limit, max_hops,
              traversal_direction, min_importance)
         query_embedding: pre-computed embedding for req.query
         neighbour_cap: max neighbours returned per traversal direction; total per hit
@@ -258,6 +261,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
         tags=req.tags,
         agent_ids=req.agent_ids,
         project_ids=req.project_ids,
+        person_ids=getattr(req, "person_ids", None),
         min_importance=req.min_importance,
     )
 
