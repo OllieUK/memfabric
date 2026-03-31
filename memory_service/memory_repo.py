@@ -1272,8 +1272,13 @@ def long_rest(
             )
 
     if not dry_run:
-        # activation_count=0 identifies edges created (ON CREATE) in this run —
-        # newly discovered edges are never incremented during long_rest itself.
+        # Invariant: activation_count=0 on a RELATED_TO edge means it was created
+        # (ON CREATE) but never subsequently reinforced. long_rest is the only writer
+        # of these edges during a run, and now_iso is unique per API call, so the
+        # conjunction (last_activated_at = now_iso AND activation_count = 0) exactly
+        # identifies edges written by this invocation. If future code initialises
+        # activation_count=0 on RELATED_TO edges via another path, this count will
+        # need a more specific sentinel (e.g. a run-id property).
         count_row = session.run(
             """
             MATCH ()-[r:RELATED_TO]->()

@@ -74,9 +74,10 @@
 | 47 | R2 | WP-068 | Neighbourhood summarisation and semantic labels | M | M | 1.0 | — | Summarise embedding neighbourhoods or clusters as higher-order concepts instead of only inspecting individual memories. Turn local semantic density into narrative labels, overview pages, or review queues. |
 | 48 | R2 | WP-076 | Cybersecurity knowledge layer: integration and separation tests | M | M | 1.0 | WP-069–WP-075, WP-024 | Full integration + separation tests. Critical: autouse conftest separation test (POST /memory/search never returns knowledge-layer nodes; runs every session). Dual-org jurisdiction test. merge_memory ABOUT_CONTROL rewiring test. long_rest non-interference test. Prerequisite: WP-024. See detail below. |
 | 49 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
-| 50 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
-| 51 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
-| 52 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
+| 50 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
+| 51 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
+| 52 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
+| 53 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 
 > **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
 > Old v2+ WP-034 and WP-035 were renumbered WP-041 and WP-042 to avoid collision with the current WP-034/035/036 items.
