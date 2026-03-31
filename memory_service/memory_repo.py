@@ -185,6 +185,7 @@ YIELD node AS m, distance
 WITH m, distance
 WHERE (m.status IS NULL OR m.status = 'active')
 AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
+AND   ($min_importance IS NULL OR m.importance >= $min_importance)
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
 WITH m, distance, a
 WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
@@ -204,7 +205,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
     Args:
         session: open neo4j Session
         req: SearchMemoryRequest (query, tags, agent_ids, project_ids, limit, max_hops,
-             traversal_direction)
+             traversal_direction, min_importance)
         query_embedding: pre-computed embedding for req.query
         neighbour_cap: max neighbours returned per traversal direction; total per hit
             is at most 3 × neighbour_cap (RELATED_TO + causes + effects)
@@ -257,6 +258,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
         tags=req.tags,
         agent_ids=req.agent_ids,
         project_ids=req.project_ids,
+        min_importance=req.min_importance,
     )
 
     return [

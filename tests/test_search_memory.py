@@ -356,3 +356,76 @@ class TestSearchTraversalDirection:
             "traversal_direction": "invalid_value",
         })
         assert r.status_code == 422
+
+
+@pytest.mark.integration
+class TestSearchMinImportance:
+    """Server-side importance filtering via min_importance parameter."""
+
+    def _add_with_importance(self, client, text, importance):
+        """Insert a Memory with an explicit importance level and return its id."""
+        r = client.post("/memory", json={
+            "text": text,
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "importance": importance,
+        })
+        assert r.status_code == 200, f"Failed to insert memory: {r.text}"
+        return r.json()["memory_id"]
+
+    def test_min_importance_excludes_below_threshold(self, client, test_driver):
+        """Memories with importance < min_importance are not returned."""
+        low_id = self._add_with_importance(
+            client, "low importance zebra fact alpha", importance=2
+        )
+        high_id = self._add_with_importance(
+            client, "high importance zebra fact alpha", importance=4
+        )
+        try:
+            r = _search(client, "zebra fact alpha", min_importance=3, limit=50)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert low_id not in ids, "Memory with importance=2 should be excluded by min_importance=3"
+            assert high_id in ids, "Memory with importance=4 should be included by min_importance=3"
+        finally:
+            _cleanup(test_driver, low_id, high_id)
+
+    def test_min_importance_includes_at_threshold(self, client, test_driver):
+        """A memory whose importance equals min_importance is included."""
+        exact_id = self._add_with_importance(
+            client, "exact importance zebra threshold beta", importance=3
+        )
+        try:
+            r = _search(client, "exact importance zebra threshold beta", min_importance=3, limit=10)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert exact_id in ids, "Memory with importance=3 should be included by min_importance=3"
+        finally:
+            _cleanup(test_driver, exact_id)
+
+    def test_min_importance_omitted_returns_all(self, client, test_driver):
+        """When min_importance is omitted, all importances are returned."""
+        low_id = self._add_with_importance(
+            client, "omitted filter zebra fact gamma", importance=1
+        )
+        high_id = self._add_with_importance(
+            client, "omitted filter zebra fact gamma high", importance=5
+        )
+        try:
+            r = _search(client, "omitted filter zebra fact gamma", limit=50)
+            assert r.status_code == 200
+            ids = [m["id"] for m in r.json()["memories"]]
+            assert low_id in ids, "importance=1 memory should appear when min_importance is omitted"
+            assert high_id in ids, "importance=5 memory should appear when min_importance is omitted"
+        finally:
+            _cleanup(test_driver, low_id, high_id)
+
+    def test_min_importance_zero_rejected(self, client, test_driver):
+        """min_importance=0 is below the valid range (1-5) and should return 422."""
+        r = _search(client, "any query", min_importance=0)
+        assert r.status_code == 422
+
+    def test_min_importance_six_rejected(self, client, test_driver):
+        """min_importance=6 is above the valid range (1-5) and should return 422."""
+        r = _search(client, "any query", min_importance=6)
+        assert r.status_code == 422

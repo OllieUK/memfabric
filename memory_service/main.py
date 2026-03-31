@@ -115,6 +115,7 @@ class SearchMemoryRequest(BaseModel):
     limit: int = Field(default=10, ge=1, le=100)
     max_hops: int = Field(default=1, ge=0, le=3)
     traversal_direction: Literal["none", "causes", "effects", "both"] = "none"
+    min_importance: Optional[int] = Field(default=None, ge=1, le=5)
 
 
 class MemoryHit(BaseModel):

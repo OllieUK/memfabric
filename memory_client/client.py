@@ -66,6 +66,7 @@ class MemoryClient:
         limit: int = 10,
         max_hops: int = 1,
         traversal_direction: str = "none",
+        min_importance: int | None = None,
     ) -> list[dict]:
         """POST /memory/search. Returns list of MemoryHit dicts."""
         body: dict = {
@@ -80,6 +81,8 @@ class MemoryClient:
             body["agent_ids"] = agent_ids
         if project_ids is not None:
             body["project_ids"] = project_ids
+        if min_importance is not None:
+            body["min_importance"] = min_importance
         response = self._http.post("/memory/search", json=body)
         response.raise_for_status()
         return response.json()["memories"]
