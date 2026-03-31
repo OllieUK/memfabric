@@ -88,7 +88,7 @@ class TestAddMemoryUnknownStrand:
 
     def test_unknown_strand_id_does_not_create_bare_node(self):
         """MATCH (not MERGE) means no strand node or edge is created for unknown IDs."""
-        from unittest.mock import MagicMock, call
+        from unittest.mock import MagicMock
         from memory_service import memory_repo
 
         mock_req = MagicMock()
