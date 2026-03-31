@@ -377,3 +377,32 @@ class TestGetStrandsIntegration:
         assert pairs == sorted(pairs), (
             "Strands should be returned ordered by category then name"
         )
+
+    # I4: unknown strand_id does not cause 500 or pollute GET /strands
+    @pytest.mark.integration
+    def test_unknown_strand_id_does_not_cause_500(self, client, test_driver):
+        """POST /memory with an unknown strand_id must not pollute GET /strands."""
+        # POST with a strand_id that does not exist in the DB
+        response = client.post("/memory", json={
+            "fact": "Test fact for bare-strand regression.",
+            "type": "fact",
+            "agent_id": "test-agent-bare-strand",
+            "strand_ids": ["strand-does-not-exist-xyz"],
+        })
+        assert response.status_code == 200
+        memory_id = response.json()["memory_id"]
+
+        # GET /strands must return 200 and must not contain the unknown strand
+        strands_response = client.get("/strands")
+        assert strands_response.status_code == 200
+        strand_ids = [s["id"] for s in strands_response.json()["strands"]]
+        assert "strand-does-not-exist-xyz" not in strand_ids
+
+        # Cleanup
+        with test_driver.session() as session:
+            session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_id)
+            # Belt-and-braces: remove bare strand if somehow created
+            session.run(
+                "MATCH (s:Strand {id: $id}) DETACH DELETE s",
+                id="strand-does-not-exist-xyz",
+            )
