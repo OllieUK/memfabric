@@ -98,14 +98,16 @@ def add_memory(
             memory_id=memory_id,
         )
 
-    # Step 4 — Upsert each Strand + IN_STRAND edge
+    # Step 4 — IN_STRAND edges (only for strands that already exist)
+    # We do not auto-create Strand nodes here — strands must be seeded via the
+    # seed_strands script so they carry valid name/description/category metadata.
+    # Silently skips unknown strand IDs rather than creating bare nodes.
     for strand_id in req.strand_ids:
         session.run(
             """
-            MERGE (s:Strand {id: $strand_id})
-            WITH s
+            MATCH (s:Strand {id: $strand_id})
             MATCH (m:Memory {id: $memory_id})
-            CREATE (m)-[:IN_STRAND {weight: 1.0}]->(s)
+            MERGE (m)-[:IN_STRAND {weight: 1.0}]->(s)
             """,
             strand_id=strand_id,
             memory_id=memory_id,
