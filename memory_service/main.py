@@ -188,10 +188,68 @@ class WakeUpMemoryItem(BaseModel):
     strand_id: Optional[str] = None
 
 
+class MaintenanceStatus(BaseModel):
+    short_rest_overdue: bool
+    long_rest_overdue: bool
+    short_rest_days_ago: Optional[float] = None
+    long_rest_days_ago: Optional[float] = None
+    recommended_action: Optional[str] = None
+
+
+def _compute_maintenance_status(
+    last_short_rest_at: Optional[str],
+    last_long_rest_at: Optional[str],
+    now_iso: str,
+    short_rest_recency_days: int,
+    long_rest_recency_days: int,
+) -> dict:
+    """Compute structured maintenance status for the wake-up response.
+
+    Returns a dict matching MaintenanceStatus fields.
+    recommended_action is None when no action is needed.
+    """
+    now = memory_repo._parse_iso(now_iso)
+
+    def _days_since(ts: Optional[str]) -> Optional[float]:
+        if ts is None:
+            return None
+        try:
+            return (now - memory_repo._parse_iso(ts)).total_seconds() / 86400.0
+        except (ValueError, TypeError):
+            return None
+
+    short_days = _days_since(last_short_rest_at)
+    long_days = _days_since(last_long_rest_at)
+
+    short_overdue = short_days is None or short_days > short_rest_recency_days
+    long_overdue = long_days is None or long_days > long_rest_recency_days
+
+    if last_long_rest_at is None:
+        action = "long-rest has never run — run `memory long-rest` before this session"
+    elif last_short_rest_at is None:
+        action = "short-rest has never run — run `memory short-rest`"
+    elif short_overdue and long_overdue:
+        action = "both short-rest and long-rest are overdue — run `memory long-rest` (covers both)"
+    elif long_overdue:
+        action = f"long-rest is overdue ({long_days:.0f}d) — run `memory long-rest`"
+    elif short_overdue:
+        action = f"short-rest is overdue ({short_days:.0f}d) — run `memory short-rest`"
+    else:
+        action = None
+
+    return {
+        "short_rest_overdue": short_overdue,
+        "long_rest_overdue": long_overdue,
+        "short_rest_days_ago": round(short_days, 1) if short_days is not None else None,
+        "long_rest_days_ago": round(long_days, 1) if long_days is not None else None,
+        "recommended_action": action,
+    }
+
+
 class WakeUpResponse(BaseModel):
     memories: List[WakeUpMemoryItem]          # core (importance-ranked)
     topic_memories: List[WakeUpMemoryItem]    # topic-only; empty when no --topic
-    maintenance_warning: Optional[str] = None
+    maintenance_status: MaintenanceStatus
 
 
 @app.get("/memory/wake-up", response_model=WakeUpResponse)
@@ -215,31 +273,31 @@ async def wake_up(
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 
     # Check maintenance staleness — best-effort, do not fail wake-up if this errors
-    maintenance_warning = None
+    maintenance_status_data = {
+        "short_rest_overdue": False,
+        "long_rest_overdue": False,
+        "short_rest_days_ago": None,
+        "long_rest_days_ago": None,
+        "recommended_action": None,
+    }
     try:
         with request.app.state.driver.session() as maint_session:
             ts = memory_repo.get_system_timestamps(maint_session)
-        last_long = ts.get("last_long_rest_at")
-        if last_long is None:
-            maintenance_warning = (
-                "Note: long-rest has never run — consider running "
-                "`memory long-rest` before this session."
-            )
-        else:
-            last_dt = memory_repo._parse_iso(last_long)
-            days_ago = (datetime.now(tz=timezone.utc) - last_dt).total_seconds() / 86400.0
-            if days_ago > settings.long_rest_recency_days:
-                maintenance_warning = (
-                    f"Note: long-rest last ran {days_ago:.0f} day(s) ago — "
-                    "consider running `memory long-rest` before this session."
-                )
+        now_iso = datetime.now(tz=timezone.utc).isoformat()
+        maintenance_status_data = _compute_maintenance_status(
+            last_short_rest_at=ts.get("last_short_rest_at"),
+            last_long_rest_at=ts.get("last_long_rest_at"),
+            now_iso=now_iso,
+            short_rest_recency_days=settings.short_rest_recency_days,
+            long_rest_recency_days=settings.long_rest_recency_days,
+        )
     except Exception:
         pass  # best-effort; never surface maintenance errors to wake-up
 
     return WakeUpResponse(
         memories=[WakeUpMemoryItem(**r) for r in result["core"]],
         topic_memories=[WakeUpMemoryItem(**r) for r in result["topic"]],
-        maintenance_warning=maintenance_warning,
+        maintenance_status=MaintenanceStatus(**maintenance_status_data),
     )
 
 

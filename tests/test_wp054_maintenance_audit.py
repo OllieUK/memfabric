@@ -326,3 +326,90 @@ class TestMaintenanceLogEndpoint:
                 response = client.get("/memory/maintenance/log")
         assert response.status_code == 200
         assert response.json() == {"entries": []}
+
+
+class TestMaintenanceStatus:
+    def _compute_status(self, last_short=None, last_long=None, now_iso="2026-04-01T10:00:00+00:00", short_recency=1, long_recency=1):
+        """Call the helper being tested."""
+        from memory_service.main import _compute_maintenance_status
+        return _compute_maintenance_status(
+            last_short_rest_at=last_short,
+            last_long_rest_at=last_long,
+            now_iso=now_iso,
+            short_rest_recency_days=short_recency,
+            long_rest_recency_days=long_recency,
+        )
+
+    def test_both_never_run(self):
+        status = self._compute_status()
+        assert status["long_rest_overdue"] is True
+        assert status["short_rest_overdue"] is True
+        assert status["long_rest_days_ago"] is None
+        assert status["short_rest_days_ago"] is None
+        assert "long-rest has never run" in status["recommended_action"]
+
+    def test_long_rest_overdue_short_rest_ok(self):
+        # short ran 0.5 days ago (within 1-day recency), long ran 3 days ago (overdue)
+        from datetime import datetime, timezone, timedelta
+        now = datetime(2026, 4, 1, 10, 0, 0, tzinfo=timezone.utc)
+        short_ts = (now - timedelta(hours=12)).isoformat()
+        long_ts = (now - timedelta(days=3)).isoformat()
+        status = self._compute_status(last_short=short_ts, last_long=long_ts)
+        assert status["long_rest_overdue"] is True
+        assert status["short_rest_overdue"] is False
+        assert "long-rest is overdue" in status["recommended_action"]
+
+    def test_short_rest_overdue_long_rest_ok(self):
+        from datetime import datetime, timezone, timedelta
+        now = datetime(2026, 4, 1, 10, 0, 0, tzinfo=timezone.utc)
+        short_ts = (now - timedelta(days=3)).isoformat()
+        long_ts = (now - timedelta(hours=6)).isoformat()
+        status = self._compute_status(last_short=short_ts, last_long=long_ts)
+        assert status["short_rest_overdue"] is True
+        assert status["long_rest_overdue"] is False
+        assert "short-rest is overdue" in status["recommended_action"]
+
+    def test_both_overdue(self):
+        from datetime import datetime, timezone, timedelta
+        now = datetime(2026, 4, 1, 10, 0, 0, tzinfo=timezone.utc)
+        short_ts = (now - timedelta(days=3)).isoformat()
+        long_ts = (now - timedelta(days=3)).isoformat()
+        status = self._compute_status(last_short=short_ts, last_long=long_ts)
+        assert status["short_rest_overdue"] is True
+        assert status["long_rest_overdue"] is True
+        assert "both short-rest and long-rest are overdue" in status["recommended_action"]
+
+    def test_neither_overdue(self):
+        from datetime import datetime, timezone, timedelta
+        now = datetime(2026, 4, 1, 10, 0, 0, tzinfo=timezone.utc)
+        short_ts = (now - timedelta(hours=6)).isoformat()
+        long_ts = (now - timedelta(hours=6)).isoformat()
+        status = self._compute_status(last_short=short_ts, last_long=long_ts)
+        assert status["short_rest_overdue"] is False
+        assert status["long_rest_overdue"] is False
+        assert status["recommended_action"] is None
+
+    def test_wake_up_response_includes_maintenance_status(self):
+        """WakeUpResponse has maintenance_status field (not maintenance_warning)."""
+        from fastapi.testclient import TestClient
+        from unittest.mock import patch, MagicMock
+        from memory_service.main import app
+
+        mock_driver = MagicMock()
+        mock_session = MagicMock()
+        mock_driver.session.return_value.__enter__ = lambda s: mock_session
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+        app.state.driver = mock_driver
+
+        with patch("memory_service.main.memory_repo.wake_up", return_value={"core": [], "topic": []}):
+            with patch("memory_service.main.memory_repo.get_system_timestamps", return_value={"last_short_rest_at": None, "last_long_rest_at": None}):
+                with TestClient(app) as client:
+                    response = client.get("/memory/wake-up")
+        assert response.status_code == 200
+        data = response.json()
+        assert "maintenance_status" in data
+        assert "maintenance_warning" not in data
+        ms = data["maintenance_status"]
+        assert "short_rest_overdue" in ms
+        assert "long_rest_overdue" in ms
+        assert "recommended_action" in ms
