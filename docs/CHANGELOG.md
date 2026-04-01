@@ -4,6 +4,24 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-054 — Maintenance audit trail and startup escalation loop
+
+**Completed:** 2026-04-01
+
+- Added `get_maintenance_log(session) -> list` and `append_maintenance_log(session, entry)` to `memory_service/memory_repo.py` — stores JSON audit entries on the `System` node (`maintenance_log` property, capped at 100)
+- Wired `append_maintenance_log` into `short_rest()` and `long_rest()` — entries written on real runs only (not dry-run)
+- Added `GET /memory/maintenance/log` endpoint, `MaintenanceLogEntry` and `MaintenanceLogResponse` Pydantic models to `memory_service/main.py`
+- Replaced `maintenance_warning: Optional[str]` on `WakeUpResponse` with `maintenance_status: MaintenanceStatus` — structured object with `short_rest_overdue`, `long_rest_overdue`, `short_rest_days_ago`, `long_rest_days_ago`, `recommended_action`; checks both maintenance types (previously only long-rest)
+- Added `_compute_maintenance_status()` pure helper in `main.py` with priority-ordered `recommended_action` logic
+- Added `maintenance_log()` to `memory_client/client.py`; updated `wake_up_split()` return to 3-tuple including `maintenance_status`
+- Updated `memory_wake_up` MCP tool to surface maintenance alert block prominently at top of briefing when action is needed; added `memory_maintenance_log` MCP tool
+- Updated stale WP-040 tests that checked for the old `maintenance_warning` field
+- 29 unit tests + 4 integration tests (live stack), all passing
+
+**Retrospective:** Replacing the single string `maintenance_warning` with a structured `MaintenanceStatus` object was the right call — it lets the MCP surface a clear actionable prompt rather than a passive note, and it exposes both short-rest and long-rest overdue state (the old implementation only checked long-rest). The JSON-on-System-node approach for the audit log keeps the schema minimal (no new node type), which fits v1 constraints well. Watch for: if the audit log needs richer queries (filter by operation type, date range), a dedicated `Operation` node would be warranted — WP-056 is already planned for this.
+
+---
+
 ## WP-052 — Expose `person_ids` in MCP `memory_update`
 
 **Completed:** 2026-04-01
