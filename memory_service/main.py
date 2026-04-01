@@ -87,15 +87,33 @@ class AddMemoryRequest(BaseModel):
 
 class AddMemoryResponse(BaseModel):
     memory_id: str
+    deduplicated: bool = False
 
 
 @app.post("/memory", response_model=AddMemoryResponse)
 async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryResponse:
     embedding = get_embedding(req.text)
-    memory_id = str(uuid.uuid4())
     now = datetime.now(tz=timezone.utc).isoformat()
     try:
         with request.app.state.driver.session() as session:
+            existing_id = memory_repo.find_duplicate_memory(
+                session,
+                req.fact,
+                embedding,
+                settings.memory_dedup_threshold,
+            )
+            if existing_id is not None:
+                memory_repo.reinforce_memory(
+                    session,
+                    existing_id,
+                    strength_increment=settings.explicit_strength_increment,
+                    edge_increment=settings.edge_explicit_increment,
+                    co_recalled_ids=[],
+                    now_iso=now,
+                    consolidated_decay_rate=settings.memory_consolidated_decay_rate,
+                )
+                return AddMemoryResponse(memory_id=existing_id, deduplicated=True)
+            memory_id = str(uuid.uuid4())
             memory_repo.add_memory(
                 session, req, memory_id, embedding, now,
                 decay_rate=settings.memory_initial_decay_rate,

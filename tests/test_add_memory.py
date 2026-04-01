@@ -86,47 +86,59 @@ class TestPostMemoryFactSoWhat:
     """Integration: fact/so_what storage on Memory node."""
 
     def test_fact_and_so_what_stored_on_node(self, client, test_driver):
+        # Use a UUID suffix to avoid dedup collisions with real memory data.
+        suffix = uuid.uuid4()
+        fact = f"Oliver has ADHD {suffix}."
+        so_what = f"Structure and short feedback loops matter more than motivation {suffix}."
         response = client.post("/memory", json={
-            "fact": "Oliver has ADHD.",
-            "so_what": "Structure and short feedback loops matter more than motivation.",
+            "fact": fact,
+            "so_what": so_what,
             "type": "fact",
             "agent_id": _AGENT_ID,
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
+        assert response.json()["deduplicated"] is False
         node = get_memory_node(test_driver, memory_id)
-        assert node["fact"] == "Oliver has ADHD."
-        assert node["so_what"] == "Structure and short feedback loops matter more than motivation."
-        assert node["text"] == "Oliver has ADHD. Structure and short feedback loops matter more than motivation."
+        assert node["fact"] == fact
+        assert node["so_what"] == so_what
+        assert node["text"] == f"{fact} {so_what}"
         assert isinstance(node["embedding"], list)
         _cleanup(test_driver, memory_id)
 
     def test_fact_only_stores_correctly(self, client, test_driver):
+        # Use a UUID suffix to avoid dedup collisions with real memory data.
+        suffix = uuid.uuid4()
+        fact = f"Oliver prefers async communication {suffix}."
         response = client.post("/memory", json={
-            "fact": "Oliver prefers async communication.",
+            "fact": fact,
             "type": "observation",
             "agent_id": _AGENT_ID,
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
+        assert response.json()["deduplicated"] is False
         node = get_memory_node(test_driver, memory_id)
-        assert node["fact"] == "Oliver prefers async communication."
+        assert node["fact"] == fact
         assert node.get("so_what") is None
-        assert node["text"] == "Oliver prefers async communication."
+        assert node["text"] == fact
         _cleanup(test_driver, memory_id)
 
     def test_deprecated_text_alias_stores_fact(self, client, test_driver):
+        # Use a UUID suffix to avoid dedup collisions with real memory data.
+        suffix = uuid.uuid4()
+        fact = f"legacy text field {suffix}"
         response = client.post("/memory", json={
-            "text": "legacy text field",
+            "text": fact,
             "type": "fact",
             "agent_id": _AGENT_ID,
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
         node = get_memory_node(test_driver, memory_id)
-        assert node["fact"] == "legacy text field"
+        assert node["fact"] == fact
         assert node.get("so_what") is None
-        assert node["text"] == "legacy text field"
+        assert node["text"] == fact
         _cleanup(test_driver, memory_id)
 
     def test_neither_fact_nor_text_returns_422(self, client, test_driver):
