@@ -589,3 +589,79 @@ class TestMcpUpdates:
             result = memory_maintenance_log()
 
         assert "No maintenance runs recorded yet." in result
+
+
+@pytest.mark.integration
+class TestMaintenanceAuditIntegration:
+    """Integration tests — require live Memgraph + FastAPI service (pytest -m integration)."""
+
+    BASE_URL = "http://localhost:8000"
+
+    def test_short_rest_creates_audit_entry(self):
+        """Running short-rest adds an entry to the maintenance log."""
+        import httpx
+
+        # Get baseline log length
+        r = httpx.get(f"{self.BASE_URL}/memory/maintenance/log")
+        assert r.status_code == 200
+        before = len(r.json()["entries"])
+
+        # Run short-rest (not dry-run)
+        r = httpx.post(f"{self.BASE_URL}/memory/maintenance/short-rest")
+        assert r.status_code == 200
+
+        # Log should have grown by 1
+        r = httpx.get(f"{self.BASE_URL}/memory/maintenance/log")
+        assert r.status_code == 200
+        entries = r.json()["entries"]
+        assert len(entries) == before + 1
+        latest = entries[-1]
+        assert latest["operation"] == "short_rest"
+        assert latest["dry_run"] is False
+        assert "ran_at" in latest
+
+    def test_long_rest_creates_audit_entry(self):
+        """Running long-rest adds an entry with edges_discovered field."""
+        import httpx
+
+        r = httpx.get(f"{self.BASE_URL}/memory/maintenance/log")
+        before = len(r.json()["entries"])
+
+        r = httpx.post(f"{self.BASE_URL}/memory/maintenance/long-rest")
+        assert r.status_code == 200
+
+        r = httpx.get(f"{self.BASE_URL}/memory/maintenance/log")
+        entries = r.json()["entries"]
+        assert len(entries) == before + 1
+        latest = entries[-1]
+        assert latest["operation"] == "long_rest"
+        assert "edges_discovered" in latest
+        assert "edges_pruned" in latest
+
+    def test_dry_run_does_not_create_audit_entry(self):
+        """dry_run=True must not write an audit entry."""
+        import httpx
+
+        r = httpx.get(f"{self.BASE_URL}/memory/maintenance/log")
+        before = len(r.json()["entries"])
+
+        r = httpx.post(f"{self.BASE_URL}/memory/maintenance/short-rest?dry_run=true")
+        assert r.status_code == 200
+        assert r.json()["dry_run"] is True
+
+        r = httpx.get(f"{self.BASE_URL}/memory/maintenance/log")
+        assert len(r.json()["entries"]) == before  # unchanged
+
+    def test_wake_up_maintenance_status_structured(self):
+        """GET /memory/wake-up returns maintenance_status (not maintenance_warning)."""
+        import httpx
+
+        r = httpx.get(f"{self.BASE_URL}/memory/wake-up")
+        assert r.status_code == 200
+        data = r.json()
+        assert "maintenance_status" in data
+        assert "maintenance_warning" not in data
+        ms = data["maintenance_status"]
+        assert "short_rest_overdue" in ms
+        assert "long_rest_overdue" in ms
+        assert "recommended_action" in ms
