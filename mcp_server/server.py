@@ -90,10 +90,22 @@ def memory_wake_up(
 ) -> str:
     """Return the session wake-up briefing as plain text. Read fully before responding to the user."""
     with MemoryClient(base_url=settings.api_base_url) as client:
-        core, topic_memories = client.wake_up_split(limit=limit, topic=topic)
+        core, topic_memories, maintenance_status = client.wake_up_split(limit=limit, topic=topic)
+
+    lines = []
+
+    # Maintenance alert — shown prominently at the top when action needed
+    action = maintenance_status.get("recommended_action") if maintenance_status else None
+    if action:
+        lines += [
+            "## ⚠ Maintenance required",
+            "",
+            f"  {action}",
+            "",
+        ]
 
     heading = f"## Memory briefing — {topic if topic else 'general session'}"
-    lines = [heading, "", "### Core context", ""]
+    lines += [heading, "", "### Core context", ""]
     lines.extend(_render_section(core))
 
     if topic and topic_memories:
@@ -199,6 +211,34 @@ def memory_maintenance_stats() -> dict:
     """Return a health snapshot of the memory fabric including node/edge stats and maintenance timestamps."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.maintenance_stats()
+
+
+@mcp.tool
+def memory_maintenance_log() -> str:
+    """Return the maintenance audit log as plain text (most recent runs first)."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        entries = client.maintenance_log()
+
+    if not entries:
+        return "No maintenance runs recorded yet."
+
+    lines = ["## Maintenance audit log", ""]
+    for entry in reversed(entries):  # most recent first
+        dr = " (dry-run)" if entry.get("dry_run") else ""
+        op = entry.get("operation", "unknown").replace("_", "-")
+        ran_at = entry.get("ran_at", "unknown")[:19].replace("T", " ")
+        nodes = entry.get("nodes_affected", 0)
+        edges = entry.get("edges_affected", 0)
+        discovered = entry.get("edges_discovered", 0)
+        pruned = entry.get("edges_pruned", 0)
+        summary = f"{nodes} nodes, {edges} edges decayed"
+        if discovered:
+            summary += f", {discovered} edges discovered"
+        if pruned:
+            summary += f", {pruned} edges pruned"
+        lines.append(f"  {ran_at}  {op}{dr}: {summary}")
+
+    return "\n".join(lines)
 
 
 _CLOSE_SESSION_SCAFFOLD = """\

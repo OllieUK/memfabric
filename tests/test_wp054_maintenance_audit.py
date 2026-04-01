@@ -484,3 +484,108 @@ class TestMemoryClientUpdates:
 
         assert len(result) == 1
         assert result[0]["operation"] == "short_rest"
+
+
+class TestMcpUpdates:
+    def test_memory_wake_up_shows_maintenance_alert(self):
+        """memory_wake_up includes a maintenance alert block when action is recommended."""
+        from unittest.mock import MagicMock, patch
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.wake_up_split.return_value = (
+            [],  # core
+            [],  # topic
+            {
+                "short_rest_overdue": True,
+                "long_rest_overdue": True,
+                "short_rest_days_ago": 3.0,
+                "long_rest_days_ago": 3.0,
+                "recommended_action": "both short-rest and long-rest are overdue — run `memory long-rest` (covers both)",
+            },
+        )
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_wake_up
+            result = memory_wake_up()
+
+        assert "overdue" in result.lower()
+        assert "long-rest" in result
+
+    def test_memory_wake_up_no_alert_when_healthy(self):
+        """memory_wake_up omits maintenance block when all is fine."""
+        from unittest.mock import MagicMock, patch
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.wake_up_split.return_value = (
+            [],
+            [],
+            {
+                "short_rest_overdue": False,
+                "long_rest_overdue": False,
+                "short_rest_days_ago": 0.5,
+                "long_rest_days_ago": 0.5,
+                "recommended_action": None,
+            },
+        )
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_wake_up
+            result = memory_wake_up()
+
+        assert "overdue" not in result.lower()
+
+    def test_memory_maintenance_log_tool(self):
+        """memory_maintenance_log returns formatted plain-text summary."""
+        from unittest.mock import MagicMock, patch
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.maintenance_log.return_value = [
+            {
+                "operation": "short_rest",
+                "ran_at": "2026-04-01T10:00:00+00:00",
+                "dry_run": False,
+                "nodes_affected": 5,
+                "edges_affected": 2,
+                "edges_discovered": 0,
+                "edges_pruned": 0,
+            },
+            {
+                "operation": "long_rest",
+                "ran_at": "2026-03-30T08:00:00+00:00",
+                "dry_run": False,
+                "nodes_affected": 20,
+                "edges_affected": 10,
+                "edges_discovered": 3,
+                "edges_pruned": 1,
+            },
+        ]
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_maintenance_log
+            result = memory_maintenance_log()
+
+        assert "short-rest" in result.lower() or "short_rest" in result
+        assert "long-rest" in result.lower() or "long_rest" in result
+        assert "5" in result  # nodes_affected for short_rest
+        assert "20" in result  # nodes_affected for long_rest
+
+    def test_memory_maintenance_log_empty(self):
+        """memory_maintenance_log returns appropriate message when no runs recorded."""
+        from unittest.mock import MagicMock, patch
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = lambda s: mock_client
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.maintenance_log.return_value = []
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            from mcp_server.server import memory_maintenance_log
+            result = memory_maintenance_log()
+
+        assert "No maintenance runs recorded yet." in result
