@@ -101,8 +101,8 @@ class TestAppendMaintenanceLog:
         assert parsed[-1]["nodes_affected"] == 999
         assert parsed[0]["nodes_affected"] == 2  # entry with i=2 is now first
 
-    def test_skipped_when_dry_run(self):
-        """append_maintenance_log is not called when dry_run=True."""
+    def test_writes_dry_run_entries_when_called(self):
+        """append_maintenance_log writes the entry even when dry_run=True in the entry dict; the caller decides whether to invoke it."""
         # This is tested at the short_rest/long_rest level (Task 2)
         # Here just verify append_maintenance_log itself still writes dry_run entries
         # (the caller decides whether to call it)

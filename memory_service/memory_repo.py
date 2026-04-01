@@ -1105,6 +1105,11 @@ _MAINTENANCE_LOG_CAP = 100
 
 
 def get_maintenance_log(session) -> list:
+    """Return the maintenance audit log from the System node as a list of dicts.
+
+    Returns a parsed list. Empty list if not set, null, or unparseable.
+    System node is expected to be a singleton (id="system").
+    """
     result = session.run(
         """
         OPTIONAL MATCH (sys:System {id: "system"})
@@ -1124,6 +1129,12 @@ def get_maintenance_log(session) -> list:
 
 
 def append_maintenance_log(session, entry: dict) -> None:
+    """Append an audit entry to the System node maintenance_log (capped at 100).
+
+    Reads current log, appends entry, caps at _MAINTENANCE_LOG_CAP (oldest dropped),
+    and writes back within the same session. entry must be JSON-serialisable.
+    System node is expected to be a singleton (id="system").
+    """
     existing = get_maintenance_log(session)
     existing.append(entry)
     if len(existing) > _MAINTENANCE_LOG_CAP:
