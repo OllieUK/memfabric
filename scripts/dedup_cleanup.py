@@ -134,13 +134,18 @@ def main() -> None:
     parser.add_argument(
         "--similarity-threshold",
         type=float,
-        default=0.05,
-        help="Cosine distance threshold for semantic dedup (default 0.05)",
+        default=None,
+        help="Cosine distance threshold for semantic dedup (default: memory_dedup_threshold from config)",
     )
     args = parser.parse_args()
 
     settings = Settings()
     driver = get_driver(settings)
+    threshold = (
+        args.similarity_threshold
+        if args.similarity_threshold is not None
+        else settings.memory_dedup_threshold
+    )
 
     with driver.session() as session:
         memories = _fetch_active_memories(session)
@@ -151,7 +156,7 @@ def main() -> None:
         return
 
     exact_groups, grouped_ids = _find_exact_groups(memories)
-    semantic_groups = _find_semantic_groups(memories, args.similarity_threshold, grouped_ids)
+    semantic_groups = _find_semantic_groups(memories, threshold, grouped_ids)
     all_groups = exact_groups + semantic_groups
 
     if not all_groups:
