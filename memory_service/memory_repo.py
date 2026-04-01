@@ -1553,7 +1553,7 @@ def maintenance_stats(
 def find_duplicate_memory(
     session,
     fact: str,
-    embedding: list,
+    embedding: list[float],
     threshold: float,
 ) -> str | None:
     """Return the id of an existing active Memory with identical or near-identical fact.
@@ -1585,6 +1585,7 @@ def find_duplicate_memory(
         """
         CALL vector_search.search("mem_embedding_idx", 1, $query_vec)
         YIELD node, distance
+        WITH node, distance
         WHERE (node.status IS NULL OR node.status = 'active')
           AND distance <= $threshold
         RETURN node.id AS id

@@ -8,7 +8,7 @@ class TestSettings:
         assert Settings().memory_dedup_threshold == 0.05
 
 
-from unittest.mock import MagicMock, call as mock_call
+from unittest.mock import MagicMock
 
 
 class TestFindDuplicateUnit:
@@ -60,7 +60,7 @@ class TestFindDuplicateUnit:
         first_query = session.run.call_args_list[0][0][0]
         assert "active" in first_query
 
-    def test_vector_check_excludes_non_active_statuses(self):
+    def test_vector_query_contains_active_status_filter(self):
         from memory_service.memory_repo import find_duplicate_memory
         session = MagicMock()
         r = MagicMock(); r.single.return_value = None
