@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     memory_index_capacity: int = 5000
     ctrl_index_capacity: int = 5000
     chunk_index_capacity: int = 10000
+    memory_dedup_threshold: float = 0.05
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
