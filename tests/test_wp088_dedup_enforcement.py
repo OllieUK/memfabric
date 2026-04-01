@@ -114,6 +114,7 @@ class TestPreWriteDedup:
         fact = f"WP-088 reinforce test {_uuid.uuid4()}"
         body = {"fact": fact, "type": "fact", "agent_id": _DEDUP_AGENT}
         r1 = client.post("/memory", json=body)
+        assert r1.status_code == 200
         mid = r1.json()["memory_id"]
 
         client.post("/memory", json=body)  # duplicate write

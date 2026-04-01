@@ -120,9 +120,9 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                 initial_strength_factor=settings.initial_strength_factor,
                 importance_floor_factor=settings.importance_floor_factor,
             )
+            return AddMemoryResponse(memory_id=memory_id)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
-    return AddMemoryResponse(memory_id=memory_id)
 
 
 class SearchMemoryRequest(BaseModel):
