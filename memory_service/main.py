@@ -448,6 +448,30 @@ async def maintenance_stats(request: Request) -> MaintenanceStatsResponse:
     return MaintenanceStatsResponse(**result)
 
 
+class MaintenanceLogEntry(BaseModel):
+    operation: str
+    ran_at: str
+    dry_run: bool
+    nodes_affected: int
+    edges_affected: int
+    edges_discovered: int
+    edges_pruned: int
+
+
+class MaintenanceLogResponse(BaseModel):
+    entries: List[MaintenanceLogEntry]
+
+
+@app.get("/memory/maintenance/log", response_model=MaintenanceLogResponse)
+async def maintenance_log(request: Request) -> MaintenanceLogResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            entries = memory_repo.get_maintenance_log(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return MaintenanceLogResponse(entries=[MaintenanceLogEntry(**e) for e in entries])
+
+
 class UpdateMemoryRequest(BaseModel):
     fact: Optional[str] = None
     so_what: Optional[str] = None

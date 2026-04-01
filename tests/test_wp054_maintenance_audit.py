@@ -274,3 +274,55 @@ class TestLongRestLogsAuditEntry:
                 prune=False,
             )
         assert len(logged) == 0
+
+
+class TestMaintenanceLogEndpoint:
+    def test_maintenance_log_endpoint_returns_entries(self):
+        """GET /memory/maintenance/log returns list of audit entries."""
+        from fastapi.testclient import TestClient
+        from unittest.mock import patch, MagicMock
+        from memory_service.main import app
+
+        entries = [
+            {
+                "operation": "short_rest",
+                "ran_at": "2026-04-01T10:00:00+00:00",
+                "dry_run": False,
+                "nodes_affected": 5,
+                "edges_affected": 2,
+                "edges_discovered": 0,
+                "edges_pruned": 0,
+            }
+        ]
+        mock_driver = MagicMock()
+        mock_session = MagicMock()
+        mock_driver.session.return_value.__enter__ = lambda s: mock_session
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+        app.state.driver = mock_driver
+
+        with patch("memory_service.main.memory_repo.get_maintenance_log", return_value=entries):
+            with TestClient(app) as client:
+                response = client.get("/memory/maintenance/log")
+        assert response.status_code == 200
+        data = response.json()
+        assert "entries" in data
+        assert len(data["entries"]) == 1
+        assert data["entries"][0]["operation"] == "short_rest"
+
+    def test_maintenance_log_endpoint_empty(self):
+        """GET /memory/maintenance/log returns empty list when no log exists."""
+        from fastapi.testclient import TestClient
+        from unittest.mock import patch, MagicMock
+        from memory_service.main import app
+
+        mock_driver = MagicMock()
+        mock_session = MagicMock()
+        mock_driver.session.return_value.__enter__ = lambda s: mock_session
+        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+        app.state.driver = mock_driver
+
+        with patch("memory_service.main.memory_repo.get_maintenance_log", return_value=[]):
+            with TestClient(app) as client:
+                response = client.get("/memory/maintenance/log")
+        assert response.status_code == 200
+        assert response.json() == {"entries": []}
