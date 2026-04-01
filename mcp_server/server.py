@@ -32,22 +32,27 @@ def _format_memory_timestamp(created_at: str | None) -> str:
 @mcp.tool
 def memory_add(
     fact: str,
+    agent_id: str,
     type: str = "fact",
     strand_ids: list[str] | None = None,
     tags: list[str] | None = None,
     importance: int = 3,
-    agent_id: str | None = None,
     so_what: str | None = None,
     cause_ids: list[str] | None = None,
     effect_ids: list[str] | None = None,
 ) -> str:
-    """Add a memory to the fabric. Returns the created memory ID."""
-    resolved_agent_id = agent_id or settings.agent_id
+    """Add a memory to the fabric.
+
+    agent_id is required — pass your own agent identifier (e.g. "claude-code",
+    "engineering-implementer"). Do NOT omit it or pass "claude-code" unless you
+    ARE the main Claude Code session. Returns the memory_id (existing if a
+    duplicate was detected).
+    """
     with MemoryClient(base_url=settings.api_base_url) as client:
         mid = client.add_memory(
             fact,
             type,
-            resolved_agent_id,
+            agent_id,
             so_what=so_what,
             cause_ids=cause_ids,
             effect_ids=effect_ids,

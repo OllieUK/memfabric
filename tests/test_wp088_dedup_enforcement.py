@@ -157,3 +157,33 @@ class TestPreWriteSemanticDedup:
         )
         assert r2.json()["deduplicated"] is True
         _cleanup_dedup(test_driver, mid1)
+
+
+class TestMcpAgentIdRequired:
+    def test_memory_add_without_agent_id_raises(self):
+        """Calling memory_add without agent_id must raise TypeError — no fallback."""
+        from mcp_server.server import memory_add
+        with pytest.raises(TypeError):
+            memory_add(fact="some fact", type="fact")  # agent_id omitted
+
+    def test_memory_add_passes_explicit_agent_id_to_client(self):
+        """The explicit agent_id must be forwarded verbatim — settings.agent_id not used."""
+        from unittest.mock import patch, MagicMock
+        from mcp_server.server import memory_add
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.add_memory.return_value = "new-memory-id"
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_add(fact="some fact", type="fact", agent_id="my-custom-agent")
+        assert result == "new-memory-id"
+        call_kwargs = mock_client.add_memory.call_args
+        # agent_id is the 3rd positional arg (fact, type, agent_id) to client.add_memory
+        passed_agent_id = call_kwargs[0][2]
+        assert passed_agent_id == "my-custom-agent"
+
+    def test_settings_agent_id_not_used_as_fallback(self):
+        """Even if settings.agent_id is set, it must NOT be used when agent_id is not passed."""
+        from mcp_server.server import memory_add
+        with pytest.raises(TypeError):
+            memory_add(fact="fact")  # no agent_id

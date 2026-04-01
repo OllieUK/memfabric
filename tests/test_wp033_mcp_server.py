@@ -24,11 +24,10 @@ TOPIC_MEMORY = {
 
 
 # ---------------------------------------------------------------------------
-# U1: memory_add resolves agent_id and calls client correctly
+# U1: memory_add passes explicit agent_id to client correctly
 # ---------------------------------------------------------------------------
-def test_u1_memory_add_resolves_agent_id():
+def test_u1_memory_add_passes_explicit_agent_id():
     from mcp_server.server import memory_add
-    from mcp_server.config import settings
 
     mock_client = MagicMock()
     mock_client.__enter__ = MagicMock(return_value=mock_client)
@@ -36,11 +35,11 @@ def test_u1_memory_add_resolves_agent_id():
     mock_client.add_memory.return_value = "uuid-1234"
 
     with patch("mcp_server.server.MemoryClient", return_value=mock_client):
-        result = memory_add(fact="hello", type="fact")
+        result = memory_add(fact="hello", type="fact", agent_id="test-agent-wp033")
 
     # agent_id is the third positional arg (index 2 after self is excluded)
     call_args = mock_client.add_memory.call_args
-    assert call_args.args[2] == settings.agent_id
+    assert call_args.args[2] == "test-agent-wp033"
     assert result == "uuid-1234"
 
 
@@ -210,6 +209,7 @@ def test_i2_memory_add_returns_uuid():
     result = memory_add(
         fact="WP-033 integration test memory",
         type="fact",
+        agent_id="test-agent-wp033",
         importance=1,
     )
     assert isinstance(result, str)
@@ -259,6 +259,7 @@ def test_i6_memory_update_person_ids_replaces_about_edges(test_driver):
         memory_id = memory_add(
             fact="WP-052 integration test memory for person_ids",
             type="fact",
+            agent_id="test-agent-wp033",
             importance=1,
         )
         assert isinstance(memory_id, str) and len(memory_id) == 36
