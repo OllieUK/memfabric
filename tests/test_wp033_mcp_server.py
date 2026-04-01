@@ -158,6 +158,38 @@ def test_u7_memory_wake_up_no_topic_omits_relevant_section():
 
 
 # ---------------------------------------------------------------------------
+# U8: memory_update passes person_ids through to the client
+# ---------------------------------------------------------------------------
+def test_u8_memory_update_passes_person_ids():
+    from mcp_server.server import memory_update
+
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.update_memory.return_value = {
+        "memory_id": "uuid-abc",
+        "updated_at": "2026-01-01T00:00:00+00:00",
+    }
+
+    with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+        result = memory_update(
+            memory_id="uuid-abc",
+            person_ids=["person-alice", "person-bob"],
+        )
+
+    mock_client.update_memory.assert_called_once_with(
+        "uuid-abc",
+        fact=None,
+        so_what=None,
+        tags=None,
+        importance=None,
+        person_ids=["person-alice", "person-bob"],
+        strand_ids=None,
+    )
+    assert result["memory_id"] == "uuid-abc"
+
+
+# ---------------------------------------------------------------------------
 # Integration tests — require live Memgraph + FastAPI service
 # ---------------------------------------------------------------------------
 @pytest.mark.integration
@@ -212,3 +244,45 @@ def test_i5_memory_close_session_returns_scaffold():
     result = memory_close_session()
     assert isinstance(result, str)
     assert "## Session close-out" in result
+
+
+@pytest.mark.integration
+def test_i6_memory_update_person_ids_replaces_about_edges(test_driver):
+    """person_ids passed via MCP memory_update replaces ABOUT->Person edges on the live stack."""
+    from mcp_server.server import memory_add, memory_update
+    from mcp_server.config import settings
+    from tests.conftest import cleanup_nodes, edge_exists
+
+    memory_id = None
+    try:
+        # 1. Create a memory, then link it to person-wp052-a via memory_update
+        memory_id = memory_add(
+            fact="WP-052 integration test memory for person_ids",
+            type="fact",
+            importance=1,
+        )
+        assert isinstance(memory_id, str) and len(memory_id) == 36
+        memory_update(memory_id=memory_id, person_ids=["person-wp052-a"])
+        assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp052-a")
+
+        # 2. Use MCP memory_update to replace person link with person-wp052-b
+        result = memory_update(
+            memory_id=memory_id,
+            person_ids=["person-wp052-b"],
+        )
+        assert result["memory_id"] == memory_id
+
+        # 3. Verify new edge exists and old edge is gone
+        assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp052-b")
+        assert not edge_exists(test_driver, memory_id, "ABOUT", "person-wp052-a")
+    finally:
+        if memory_id:
+            cleanup_nodes(
+                test_driver,
+                memory_id,
+                extra_ids={"Person": "person-wp052-a"},
+            )
+            cleanup_nodes(
+                test_driver,
+                extra_ids={"Person": "person-wp052-b"},
+            )
