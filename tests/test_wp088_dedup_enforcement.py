@@ -187,3 +187,92 @@ class TestMcpAgentIdRequired:
         from mcp_server.server import memory_add
         with pytest.raises(TypeError):
             memory_add(fact="fact")  # no agent_id
+
+
+import subprocess
+import sys
+
+_CLEANUP_AGENT = "test-wp088-cleanup-agent"
+_CLEANUP_CONTEXT = {"Agent": _CLEANUP_AGENT}
+
+
+def _insert_raw_memories(driver, facts: list[str], agent_id: str = _CLEANUP_AGENT) -> list[str]:
+    """Insert Memory nodes directly via Cypher (bypassing pre-write dedup for test setup)."""
+    from datetime import datetime, timezone
+    ids = []
+    with driver.session() as session:
+        for fact in facts:
+            mid = str(_uuid.uuid4())
+            session.run(
+                """
+                MERGE (a:Agent {id: $agent_id})
+                CREATE (m:Memory {
+                    id: $id, fact: $fact, text: $fact, type: 'fact',
+                    tags: [], importance: 3,
+                    created_at: $now, last_used_at: $now,
+                    embedding: [],
+                    strength: 0.4, min_strength: 0.12,
+                    recall_count: 0, reinforcement_count: 0,
+                    last_reinforced_at: $now, decay_rate: 0.07,
+                    status: 'active'
+                })
+                CREATE (m)-[:PRODUCED_BY]->(a)
+                """,
+                agent_id=agent_id,
+                id=mid,
+                fact=fact,
+                now=datetime.now(timezone.utc).isoformat(),
+            )
+            ids.append(mid)
+    return ids
+
+
+@pytest.mark.integration
+class TestCleanupScript:
+    def test_dry_run_prints_count_makes_no_changes(self, test_driver):
+        shared_fact = f"WP-088 cleanup dry-run {_uuid.uuid4()}"
+        ids = _insert_raw_memories(test_driver, [shared_fact, shared_fact, shared_fact])
+        try:
+            result = subprocess.run(
+                [sys.executable, "scripts/dedup_cleanup.py", "--dry-run"],
+                capture_output=True, text=True,
+                cwd="/home/oliver/projects/graph-memory-fabric",
+            )
+            assert result.returncode == 0, result.stderr
+            assert "dry-run" in result.stdout.lower()
+            # All 3 nodes must still exist
+            with test_driver.session() as session:
+                count = session.run(
+                    "MATCH (m:Memory) WHERE m.id IN $ids RETURN count(m) AS cnt",
+                    ids=ids,
+                ).single()["cnt"]
+            assert count == 3
+        finally:
+            cleanup_nodes(test_driver, *ids, extra_ids=_CLEANUP_CONTEXT)
+
+    def test_merge_run_leaves_one_node_with_reinforcement(self, test_driver):
+        shared_fact = f"WP-088 cleanup merge {_uuid.uuid4()}"
+        ids = _insert_raw_memories(test_driver, [shared_fact, shared_fact, shared_fact])
+        try:
+            result = subprocess.run(
+                [sys.executable, "scripts/dedup_cleanup.py"],
+                capture_output=True, text=True,
+                cwd="/home/oliver/projects/graph-memory-fabric",
+            )
+            assert result.returncode == 0, result.stderr
+            with test_driver.session() as session:
+                active = session.run(
+                    "MATCH (m:Memory) WHERE m.id IN $ids AND (m.status IS NULL OR m.status='active') RETURN count(m) AS cnt",
+                    ids=ids,
+                ).single()["cnt"]
+                canonical_row = session.run(
+                    "MATCH (m:Memory) WHERE m.id IN $ids AND (m.status IS NULL OR m.status='active') RETURN m.id AS id LIMIT 1",
+                    ids=ids,
+                ).single()
+                canonical_id = canonical_row["id"]
+                node = get_memory_node(test_driver, canonical_id)
+            assert active == 1
+            assert node["reinforcement_count"] >= 1
+        finally:
+            # Clean up all ids (some may now be status='merged', DETACH DELETE handles them)
+            cleanup_nodes(test_driver, *ids, extra_ids=_CLEANUP_CONTEXT)
