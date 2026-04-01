@@ -1,5 +1,11 @@
 """WP-088: Deduplication and agent-ID enforcement. Requires live stack for integration tests."""
+import pathlib
+import subprocess
+import sys
+
 import pytest
+
+_PROJECT_ROOT = str(pathlib.Path(__file__).parent.parent)
 
 
 class TestSettings:
@@ -189,9 +195,6 @@ class TestMcpAgentIdRequired:
             memory_add(fact="fact")  # no agent_id
 
 
-import subprocess
-import sys
-
 _CLEANUP_AGENT = "test-wp088-cleanup-agent"
 _CLEANUP_CONTEXT = {"Agent": _CLEANUP_AGENT}
 
@@ -236,7 +239,7 @@ class TestCleanupScript:
             result = subprocess.run(
                 [sys.executable, "scripts/dedup_cleanup.py", "--dry-run"],
                 capture_output=True, text=True,
-                cwd="/home/oliver/projects/graph-memory-fabric",
+                cwd=_PROJECT_ROOT,
             )
             assert result.returncode == 0, result.stderr
             assert "dry-run" in result.stdout.lower()
@@ -257,7 +260,7 @@ class TestCleanupScript:
             result = subprocess.run(
                 [sys.executable, "scripts/dedup_cleanup.py"],
                 capture_output=True, text=True,
-                cwd="/home/oliver/projects/graph-memory-fabric",
+                cwd=_PROJECT_ROOT,
             )
             assert result.returncode == 0, result.stderr
             with test_driver.session() as session:

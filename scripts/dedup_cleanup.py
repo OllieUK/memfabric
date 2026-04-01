@@ -84,6 +84,8 @@ def _find_semantic_groups(
         parent[find(x)] = find(y)
 
     ids = [m["id"] for m in remaining]
+    # O(n²) comparisons — acceptable for one-time cleanup.
+    # For very large graphs, replace with HNSW-based batch search.
     for i in range(len(ids)):
         for j in range(i + 1, len(ids)):
             a, b = ids[i], ids[j]
