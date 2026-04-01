@@ -25,64 +25,157 @@
 
 | Priority | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |----------|---------|----|-------|-------|--------|----------------|------------|-------|
-| 1 | R1 | WP-052 | Expose `person_ids` in MCP `memory_update` | M | L | 2.0 | WP-038 ✅ | HTTP API and Python client already support replacing `person_ids`, but the MCP tool surface does not. Bring MCP parity to avoid lifecycle edits behaving differently by entrypoint; add MCP tests alongside the tool signature update. |
-| 2 | R1 | WP-054 | Maintenance audit trail and startup escalation loop | M | L | 2.0 | WP-040 ✅ | Record maintenance runs and outcomes so the fabric shows whether it is actually being tended. Extend startup/session health checks so overdue maintenance escalates from a warning to an explicit action prompt or optional auto-run path, rather than relying on the operator to remember. |
-| 3 | R1 | WP-056 | Process log for lifecycle and maintenance operations | M | L | 2.0 | WP-038 ✅, WP-040 ✅ | Add explicit process/event logging for operations like update, merge, archive, restore, short-rest, and long-rest. The goal is traceability beyond node/edge timestamps: who/what ran it, when, what changed, and the outcome summary. Could be a dedicated `Operation` node/edge model, append-only event log, or both. |
-| 4 | R1 | WP-034 | Add version/build hash to `/health` response | M | L | 2.0 | — | Detect stale or mismatched service instances at mandatory session startup. Promoted from low value because startup operability is part of the core working loop. Batch with WP-035/036. |
-| 5 | R1 | WP-078 | Project node CRUD endpoints | M | L | 2.0 | — | Add `GET /project` (list) and `POST /project` (upsert) endpoints mirroring the existing `/person` pattern. Add `name` and `description` properties to Project nodes (currently only `id` is stored). Extend MCP with a `memory_create_project` tool. Makes project management a first-class operation rather than a side effect of `add_memory`. |
-| 8 | R1 | WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | H | M | 1.5 | WP-040 ✅ | Move maintenance from manual CLI usage to real routine care. Add a scheduler or documented host-level automation path that runs `short-rest` on a frequent cadence and `long-rest` on a slower cadence, with safe defaults, dry-run support for rollout, and clear operational docs. |
-| 9 | R1 | WP-047 | Near-duplicate detection for memory review | H | M | 1.5 | WP-038 | Surface semantically similar memories (cosine similarity above configurable threshold) so they can be reviewed and merged via WP-038 merge endpoint. Feeds into short-rest/long-rest cleanup loop. See detail below. |
-| 10 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.5 | WP-038 | Prevent test artefacts polluting live context. See detail below. |
-| 11 | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.5 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
-| 12 | R2 | WP-008 | API-based LLM provider abstraction | H | M | 1.5 | WP-007 ✅ | Replace the IDE-tied framing with a runtime `LLMClient` provider layer for Anthropic/OpenAI/Ollama. The goal is to let the fabric and future agents run outside VS Code while keeping provider choice swappable behind one interface. |
-| 13 | R2 | WP-009 | Headless agent runtime outside VS Code | H | M | 1.5 | WP-008 | Build `BaseAgent` on top of `memory_client` + `LLMClient` so scheduled/event-driven agents can run without an editor session. This is the execution foundation for all higher-level agents that should share the same fabric. |
-| 14 | R2 | WP-057 | Graph-vs-vector agreement diagnostics | H | M | 1.5 | WP-029 ✅ | Compare each memory's nearest embedding neighbours with its actual `RELATED_TO` / `LEADS_TO` neighbourhood. Surface where the explicit graph matches semantic reality, where it lags, and where it appears overlinked. |
-| 15 | R2 | WP-058 | Latent cluster discovery vs strand membership | H | M | 1.5 | — | Cluster memory embeddings offline to discover emergent themes, then compare them with explicit `Strand` assignments. Use this to identify overly broad strands, missing strands, and mislabeled memories. |
-| 16 | R2 | WP-059 | Bridge-memory detection across semantic regions | H | M | 1.5 | — | Identify memories that connect otherwise separate embedding clusters or graph communities. These are likely high-leverage bridge memories linking domains like work, identity, relationships, or decision history. |
-| 17 | R2 | WP-070 | Cybersecurity knowledge layer: standards & document write API | H | M | 1.5 | WP-069 | FastAPI router (`cybersec_routes.py`) + Cypher (`cybersec_repo.py`). Upserts Standard/Control/Document/Chunk/BusinessAttribute/Organisation/Jurisdiction. IMPLEMENTS edge (Document→Control), APPLIES_IN/OPERATES_IN jurisdiction scoping, OWNED_BY org scoping, MAPPED_TO cross-framework edges. MERGE+text_hash idempotency. Anchor Memory writes on standard ingest. See detail below. |
-| 18 | R2 | WP-071 | Cybersecurity knowledge layer: search API | H | M | 1.5 | WP-070 | Vector search over ctrl_embedding_idx and chunk_embedding_idx. Dual modes: unscoped (generic/public, no org required) and org-scoped (jurisdiction-filtered via OPERATES_IN ∩ APPLIES_IN). lang filter for language-specific queries; cross-lingual by default. include_universal flag for globally-applicable standards. /knowledge/incomplete-jurisdictions diagnostic endpoint. See detail below. |
-| 19 | R2 | WP-072 | Cybersecurity knowledge layer: cross-layer Memory edges | H | M | 1.5 | WP-070, WP-071 | Extend add_memory/update_memory with ABOUT_CONTROL {relationship_type, org_id} and CITES_DOC edges. Critical: add ABOUT_CONTROL/CITES_DOC to merge_memory rewiring to prevent edge orphaning on merge. Extend MemoryHit response. Extend MCP memory_add/memory_update. See detail below. |
-| 20 | R2 | WP-074 | Cybersecurity knowledge layer: CLI, MCP tools, and ETL | H | M | 1.5 | WP-070, WP-071, WP-072 | knowledge_* MCP tools (narrow, single-purpose, LLM-directed docstrings). CLI commands. MemoryClient extension. ingest_framework.py bulk ETL with YAML validation. YAML data files (NIST CSF, ISO 27001, jurisdictions, business attributes). CLI review tool for SUPPORTS edge validation. CYBERSEC_LAYER.md. See detail below. |
-| 21 | R2 | WP-075 | Cybersecurity knowledge layer: SABSA bidirectional traceability | H | M | 1.5 | WP-072, WP-074 | trace-up (control → attributes → standards), trace-down (control → documents → chunks → evidence/gap memories), attribute coverage (BAP-style scorecard), gap analysis. Both generic and org-scoped modes. Three-way reconciliation: implemented+supported / implemented-not-supported / supported-not-implemented. include_archived flag for historical evidence. See detail below. |
-| 22 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
-| 23 | R2 | WP-035 | Return `strand_ids` in `add-memory` API response | L | L | 1.0 | — | Reduce friction when chaining related memories. Batch with WP-034/036. |
-| 24 | R2 | WP-036 | Document `
-### Relevant to today` suppression in COMPANION.md | L | L | 1.0 | — | Avoid companion confusion on small DBs. Batch with WP-034/035. Not covered by the three-tier memory model addition (2026-03-22) — still needed for wake-up output behaviour on sparse graphs. |
-| 25 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
-| 26 | R2 | WP-077 | Extract shared schema-init utilities | L | L | 1.0 | WP-069 | `create_constraint()` and `get_embedding_dimension()` are copy-pasted identically in `init_schema.py` and `init_cybersec_schema.py`. Extract to `scripts/schema_utils.py`. Found in WP-069 /simplify review. |
-| 27 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
-| 28 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 29 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
-| 30 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
-| 31 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
-| 32 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
-| 33 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
-| 34 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
-| 35 | R2 | WP-050 | Domain knowledge store | H | H | 1.0 | WP-041 | **Superseded by WP-069–WP-076.** The concrete realisation of domain knowledge store: cybersecurity standards/frameworks with SABSA traceability, org/jurisdiction scoping, multilingual support, and cross-layer Memory linkage. Close when WP-076 is complete. See detail below (historical spec). |
-| 36 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
-| 37 | R2 | WP-073 | Cybersecurity knowledge layer: document ingestion pipeline | H | H | 1.0 | WP-071 | PDF (pdfplumber) + Markdown → Document + Chunk nodes. Heading-aware chunking; HAS_NEXT edges for context expansion. chunk_review_mode (default on) prevents silent auto-SUPPORTS. Conservative threshold (distance < 0.20) for auto-inference; SUPPORTS edges start status=”auto-inferred”. Embedding invalidation on control re-embed. See detail below. |
-| 38 | R2 | WP-060 | Vector outlier and anomaly detection | M | M | 1.0 | — | Detect memories that sit far from any semantic neighbourhood or have poor agreement between embedding similarity and graph placement. Useful for spotting noise, malformed memories, or genuinely novel information. |
-| 39 | R2 | WP-061 | Semantic family analysis beyond near-duplicates | M | M | 1.0 | WP-047 | Group related memories into semantic families rather than only pairwise duplicate candidates. Support review of repeated framings, adjacent formulations, and candidate summarisation targets. |
-| 40 | R2 | WP-063 | Strand cohesion diagnostics from embedding space | M | M | 1.0 | — | Measure how semantically tight or fragmented each strand is. Flag strands whose members are too dispersed or naturally split into sub-clusters, and strands whose explicit taxonomy no longer fits the data. |
-| 41 | R2 | WP-064 | Hybrid missing-edge suggestions | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Suggest `RELATED_TO`, `LEADS_TO`, or contextual links from a combination of embedding similarity, time ordering, shared context, and graph topology. Keep this as a suggestion/review flow rather than silent auto-linking. |
-| 42 | R2 | WP-065 | Hybrid memory centrality scoring | M | M | 1.0 | WP-029 ✅ | Rank memories using a blended score from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation. Use it to surface truly core memories more reliably than any single metric. |
-| 43 | R2 | WP-066 | Semantic gravity-well / echo-chamber detection | M | M | 1.0 | WP-029 ✅ | Detect regions of the graph that become overly dense, self-reinforcing, or disproportionately dominant in retrieval. Use this to spot over-saturation and to design damping/diversification strategies. |
-| 44 | R2 | WP-067 | Semantic timelines and concept recurrence | M | M | 1.0 | — | Track how semantic neighbourhoods recur, disappear, or shift across time. Useful for long-running strands like career, health, or relationship dynamics, and for identifying topic resurgence. |
-| 45 | R2 | WP-068 | Neighbourhood summarisation and semantic labels | M | M | 1.0 | — | Summarise embedding neighbourhoods or clusters as higher-order concepts instead of only inspecting individual memories. Turn local semantic density into narrative labels, overview pages, or review queues. |
-| 46 | R2 | WP-076 | Cybersecurity knowledge layer: integration and separation tests | M | M | 1.0 | WP-069–WP-075, WP-024 | Full integration + separation tests. Critical: autouse conftest separation test (POST /memory/search never returns knowledge-layer nodes; runs every session). Dual-org jurisdiction test. merge_memory ABOUT_CONTROL rewiring test. long_rest non-interference test. Prerequisite: WP-024. See detail below. |
-| 47 | R2 | WP-082 | Associative pull-through in search results | M | M | 1.0 | WP-029 ✅ | For each vector-search hit, follow its strongest `RELATED_TO` and `LEADS_TO` edges (by `weight` descending) and return the top-K linked memories as a hydrated `associated` list alongside the primary hit. Mirrors human associative recall: the direct match surfaces first, then its strongest connections arrive involuntarily. Fixes cases where the most-recent *observation about a fact* scores highest in vector search while the original linked *fact* is silently omitted. See detail below. |
-| 48 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
-| 49 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
-| 50 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
-| 51 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
-| 52 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
+| 1 | R1 | WP-054 | Maintenance audit trail and startup escalation loop | M | L | 2.0 | WP-040 ✅ | Record maintenance runs and outcomes so the fabric shows whether it is actually being tended. Extend startup/session health checks so overdue maintenance escalates from a warning to an explicit action prompt or optional auto-run path, rather than relying on the operator to remember. |
+| 2 | R1 | WP-056 | Process log for lifecycle and maintenance operations | M | L | 2.0 | WP-038 ✅, WP-040 ✅ | Add explicit process/event logging for operations like update, merge, archive, restore, short-rest, and long-rest. The goal is traceability beyond node/edge timestamps: who/what ran it, when, what changed, and the outcome summary. Could be a dedicated `Operation` node/edge model, append-only event log, or both. |
+| 3 | R1 | WP-084 | API health and response polish (WP-034 + WP-035 + WP-036) | M | L | 2.0 | — | Batch of three small improvements best done together: (1) add version/build hash to `/health` response to detect stale service instances at startup; (2) return `strand_ids` in `add-memory` API response to reduce friction when chaining related memories; (3) document `### Relevant to today` suppression in `COMPANION.md` for small/sparse DBs so wake-up output is not confusing. Combined effort is still Low. |
+| 4 | R1 | WP-078 | Project node CRUD endpoints | M | L | 2.0 | — | Add `GET /project` (list) and `POST /project` (upsert) endpoints mirroring the existing `/person` pattern. Add `name` and `description` properties to Project nodes (currently only `id` is stored). Extend MCP with a `memory_create_project` tool. Makes project management a first-class operation rather than a side effect of `add_memory`. |
+| 5 | R1 | WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | H | M | 1.5 | WP-040 ✅ | Move maintenance from manual CLI usage to real routine care. Add a scheduler or documented host-level automation path that runs `short-rest` on a frequent cadence and `long-rest` on a slower cadence, with safe defaults, dry-run support for rollout, and clear operational docs. |
+| 6 | R1 | WP-047 | Near-duplicate detection for memory review | H | M | 1.5 | WP-038 ✅ | Surface semantically similar memories (cosine similarity above configurable threshold) so they can be reviewed and merged via WP-038 merge endpoint. Feeds into short-rest/long-rest cleanup loop. See detail below. |
+| 7 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.5 | WP-038 ✅ | Prevent test artefacts polluting live context. See detail below. |
+| 8 | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.5 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
+| 9 | R2 | WP-008 | API-based LLM provider abstraction | H | M | 1.5 | WP-007 ✅ | Replace the IDE-tied framing with a runtime `LLMClient` provider layer for Anthropic/OpenAI/Ollama. The goal is to let the fabric and future agents run outside VS Code while keeping provider choice swappable behind one interface. |
+| 10 | R2 | WP-009 | Headless agent runtime outside VS Code | H | M | 1.5 | WP-008 | Build `BaseAgent` on top of `memory_client` + `LLMClient` so scheduled/event-driven agents can run without an editor session. This is the execution foundation for all higher-level agents that should share the same fabric. |
+| 11 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | H | M | 1.5 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
+| 12 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
+| 13 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
+| 14 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
+| 15 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
+| 16 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 17 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
+| 18 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
+| 19 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
+| 20 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
+| 21 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
+| 22 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
+| 24 | R2 | WP-082 | Associative pull-through in search results | M | M | 1.0 | WP-029 ✅ | For each vector-search hit, follow its strongest `RELATED_TO` and `LEADS_TO` edges (by `weight` descending) and return the top-K linked memories as a hydrated `associated` list alongside the primary hit. Mirrors human associative recall: the direct match surfaces first, then its strongest connections arrive involuntarily. Fixes cases where the most-recent *observation about a fact* scores highest in vector search while the original linked *fact* is silently omitted. See detail below. |
+| 25 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
+| 26 | R2 | WP-077 | Extract shared schema-init utilities | L | L | 1.0 | WP-069 | `create_constraint()` and `get_embedding_dimension()` are copy-pasted identically in `init_schema.py` and `init_cybersec_schema.py`. Extract to `scripts/schema_utils.py`. Found in WP-069 /simplify review. Best done before WP-070 builds further on these scripts. |
+| 27 | R2 | WP-070 | Cybersecurity knowledge layer: standards & document write API | H | M | 1.5 | WP-069 | FastAPI router (`cybersec_routes.py`) + Cypher (`cybersec_repo.py`). Upserts Standard/Control/Document/Chunk/BusinessAttribute/Organisation/Jurisdiction. IMPLEMENTS edge (Document→Control), APPLIES_IN/OPERATES_IN jurisdiction scoping, OWNED_BY org scoping, MAPPED_TO cross-framework edges. MERGE+text_hash idempotency. Anchor Memory writes on standard ingest. See detail below. |
+| 28 | R2 | WP-071 | Cybersecurity knowledge layer: search API | H | M | 1.5 | WP-070 | Vector search over ctrl_embedding_idx and chunk_embedding_idx. Dual modes: unscoped (generic/public, no org required) and org-scoped (jurisdiction-filtered via OPERATES_IN ∩ APPLIES_IN). lang filter for language-specific queries; cross-lingual by default. include_universal flag for globally-applicable standards. /knowledge/incomplete-jurisdictions diagnostic endpoint. See detail below. |
+| 29 | R2 | WP-072 | Cybersecurity knowledge layer: cross-layer Memory edges | H | M | 1.5 | WP-070, WP-071 | Extend add_memory/update_memory with ABOUT_CONTROL {relationship_type, org_id} and CITES_DOC edges. Critical: add ABOUT_CONTROL/CITES_DOC to merge_memory rewiring to prevent edge orphaning on merge. Extend MemoryHit response. Extend MCP memory_add/memory_update. See detail below. |
+| 30 | R2 | WP-074 | Cybersecurity knowledge layer: CLI, MCP tools, and ETL | H | M | 1.5 | WP-070, WP-071, WP-072 | knowledge_* MCP tools (narrow, single-purpose, LLM-directed docstrings). CLI commands. MemoryClient extension. ingest_framework.py bulk ETL with YAML validation. YAML data files (NIST CSF, ISO 27001, jurisdictions, business attributes). CLI review tool for SUPPORTS edge validation. CYBERSEC_LAYER.md. See detail below. |
+| 31 | R2 | WP-075 | Cybersecurity knowledge layer: SABSA bidirectional traceability | H | M | 1.5 | WP-072, WP-074 | trace-up (control → attributes → standards), trace-down (control → documents → chunks → evidence/gap memories), attribute coverage (BAP-style scorecard), gap analysis. Both generic and org-scoped modes. Three-way reconciliation: implemented+supported / implemented-not-supported / supported-not-implemented. include_archived flag for historical evidence. See detail below. |
+| 32 | R2 | WP-073 | Cybersecurity knowledge layer: document ingestion pipeline | H | H | 1.0 | WP-071 | PDF (pdfplumber) + Markdown → Document + Chunk nodes. Heading-aware chunking; HAS_NEXT edges for context expansion. chunk_review_mode (default on) prevents silent auto-SUPPORTS. Conservative threshold (distance < 0.20) for auto-inference; SUPPORTS edges start status=”auto-inferred”. Embedding invalidation on control re-embed. See detail below. |
+| 33 | R2 | WP-076 | Cybersecurity knowledge layer: integration and separation tests | M | M | 1.0 | WP-069–WP-075, WP-024 | Full integration + separation tests. Critical: autouse conftest separation test (POST /memory/search never returns knowledge-layer nodes; runs every session). Dual-org jurisdiction test. merge_memory ABOUT_CONTROL rewiring test. long_rest non-interference test. Prerequisite: WP-024. See detail below. |
+| 34 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
+| 35 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
+| 36 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
+| 37 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
+| 38 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 
 > **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
-> Old v2+ WP-034 and WP-035 were renumbered WP-041 and WP-042 to avoid collision with the current WP-034/035/036 items.
 
 ---
 
 ## Detail Specs
+
+### WP-085 — Analytics Phase Sprint 1: graph-vs-vector diagnostics, cluster discovery, bridge detection
+
+> Consolidates: WP-057, WP-058, WP-059
+
+#### Motivation
+
+As the fabric grows, the explicit graph (`RELATED_TO`/`LEADS_TO` edges) and the embedding space can silently diverge. Sprint 1 of the Analytics Phase builds the core diagnostic layer that checks this agreement, discovers emergent clusters that the Strand taxonomy may not capture, and surfaces bridge memories that serve as high-leverage connectors between otherwise separate domains.
+
+#### Design
+
+**WP-057 — Graph-vs-vector agreement diagnostics**
+- For each Memory node, query the vector index for its top-K nearest neighbours (by embedding cosine distance).
+- Compare the result set against the node's actual `RELATED_TO`/`LEADS_TO` edges (both directions).
+- Produce a per-node agreement score: fraction of vector-top-K that are also graph neighbours.
+- Output: list of memories ranked by *disagreement* (low score = graph lags behind or overlinks semantic reality).
+- Endpoint: `GET /analytics/graph-vector-agreement?limit=50&threshold=0.85`
+- CLI: `memory analytics graph-vector-agreement`
+
+**WP-058 — Latent cluster discovery vs strand membership**
+- Cluster all Memory embeddings offline using a configurable algorithm (e.g. HDBSCAN or k-means with silhouette selection).
+- For each discovered cluster, report its dominant `Strand` assignments (via `IN_STRAND` edges) and the degree of overlap.
+- Flag clusters with high strand fragmentation (many different strands) and strands with low cluster coherence (spread across many clusters).
+- Output: cluster membership report + suggested strand splits/merges.
+- Endpoint: `GET /analytics/cluster-strand-alignment?min_cluster_size=5`
+- CLI: `memory analytics cluster-strand-alignment`
+
+**WP-059 — Bridge-memory detection across semantic regions**
+- Identify memories with high *betweenness* in the graph and/or memories that lie between distinct embedding clusters.
+- Bridge score = combination of: graph betweenness centrality (via MAGE), embedding-space inter-cluster proximity.
+- Output: ranked list of bridge memories with their bridged cluster/strand pairs.
+- Endpoint: `GET /analytics/bridge-memories?limit=20`
+- CLI: `memory analytics bridge-memories`
+
+All three endpoints share a common analytics router (`memory_service/analytics_routes.py`) and utility module (`memory_service/analytics_utils.py`).
+
+#### Definition of Success
+
+- [ ] `GET /analytics/graph-vector-agreement` returns per-memory agreement scores, ranked by disagreement
+- [ ] `GET /analytics/cluster-strand-alignment` clusters embeddings and compares with Strand membership
+- [ ] `GET /analytics/bridge-memories` identifies cross-cluster connector memories with bridge scores
+- [ ] `analytics_routes.py` and `analytics_utils.py` exist as the shared analytics layer
+- [ ] CLI commands operational for all three endpoints
+- [ ] Integration tests: seed diverse memories across multiple strands; verify all three endpoints return non-empty results with correct structure
+
+---
+
+### WP-086 — Analytics Phase Sprint 2: outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation
+
+> Consolidates: WP-060, WP-061, WP-063, WP-064, WP-065, WP-066, WP-067, WP-068
+
+#### Motivation
+
+Sprint 2 extends the analytics layer (built in WP-085) with eight additional capabilities that share the same diagnostic output pattern. Together they provide comprehensive tools for understanding the memory fabric's health, topology, and temporal evolution. They are batched together because each is relatively self-contained once the Sprint 1 infrastructure is in place, and delivering them as a unit avoids eight separate "add one analytics endpoint" WPs drifting out of sequence.
+
+#### Design
+
+**WP-060 — Vector outlier and anomaly detection**
+- Identify memories whose embedding distance to all top-K neighbours exceeds a configurable threshold.
+- Useful for spotting noise, malformed memories, or genuinely novel information.
+- Endpoint: `GET /analytics/outliers?distance_threshold=0.95&limit=20`
+
+**WP-061 — Semantic family analysis** *(depends on WP-047)*
+- Group related memories into semantic families beyond pairwise duplicate candidates.
+- A family is a connected component in a similarity graph built at a given threshold.
+- Support review of repeated framings, adjacent formulations, and candidate summarisation targets.
+- Endpoint: `GET /analytics/semantic-families?threshold=0.85&min_size=2`
+
+**WP-063 — Strand cohesion diagnostics**
+- Measure how semantically tight or fragmented each strand is (intra-strand embedding variance).
+- Flag strands whose members are too dispersed or naturally split into sub-clusters.
+- Endpoint: `GET /analytics/strand-cohesion`
+
+**WP-064 — Hybrid missing-edge suggestions**
+- Suggest `RELATED_TO` or `LEADS_TO` edges from a combination of embedding similarity, shared context, and time ordering — for node pairs that have no existing edge.
+- Returns as a suggestion/review list; does not auto-link.
+- Endpoint: `GET /analytics/missing-edges?limit=30`
+
+**WP-065 — Hybrid memory centrality scoring**
+- Blended centrality rank: graph degree + betweenness + embedding density + strength + recall count + edge activation.
+- Provides a more reliable "core memory" signal than any single metric.
+- Endpoint: `GET /analytics/centrality?limit=50`
+
+**WP-066 — Semantic gravity-well / echo-chamber detection**
+- Detect embedding regions that are over-saturated: disproportionately dense, self-reinforcing in retrieval, or dominating wake-up output.
+- Endpoint: `GET /analytics/echo-chambers?density_threshold=0.8`
+
+**WP-067 — Semantic timelines and concept recurrence**
+- Track how semantic neighbourhoods recur, disappear, or shift across time (using `created_at`/`last_used_at`).
+- Useful for long-running strands (career, health, relationships) and for identifying topic resurgence.
+- Endpoint: `GET /analytics/semantic-timeline?strand_id=<id>&bucket=week`
+
+**WP-068 — Neighbourhood summarisation and semantic labels**
+- For each embedding cluster or neighbourhood, produce a short natural-language label derived from the dominant terms/facts.
+- Turns semantic density into navigable overview labels and review queues.
+- Endpoint: `GET /analytics/neighbourhood-labels?min_cluster_size=5`
+
+All endpoints are added to `analytics_routes.py` (from WP-085). No new routers needed.
+
+#### Definition of Success
+
+- [ ] All eight endpoints operational in `analytics_routes.py`
+- [ ] CLI commands for all eight endpoints
+- [ ] WP-061 (`semantic-families`) depends on WP-047 duplicate infrastructure being in place
+- [ ] Integration tests: each endpoint returns structurally correct results against a seeded live database
+- [ ] No existing `POST /memory/search` or wake-up behaviour changed
+
+---
 
 ### WP-082 — Associative pull-through in search results
 

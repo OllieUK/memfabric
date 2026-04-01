@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-052 — Expose `person_ids` in MCP `memory_update`
+
+**Completed:** 2026-04-01
+
+- Added `person_ids: list[str] | None = None` parameter to `memory_update` MCP tool in `mcp_server/server.py`
+- Updated tool docstring to clarify that `person_ids` is a full replacement (existing ABOUT edges are removed and recreated)
+- Threaded `person_ids` through to the underlying `MemoryClient.update_memory()` call which already supported the parameter
+- Added unit test U8 to `tests/test_wp033_mcp_server.py`: verifies the parameter is passed through to the client correctly via mock
+- Added integration test I6 to `tests/test_wp033_mcp_server.py`: creates a memory linked to one person, updates via MCP to link to a different person, verifies old link is gone and new link is present via HTTP search filter
+- All 8 unit tests and 6 integration tests passing
+
+**Retrospective:** Minimal change — single parameter addition to an existing tool; HTTP API, repo layer, and Python client already handled `person_ids` correctly. The implementation surface was straightforward once the pattern was identified. The test plan validated that HTTP PATCH, Python client, and MCP tool all needed to expose the same parameter for true parity, and all three now do.
+
+---
+
 ## WP-045 — Make Local Startup Deterministic Offline
 
 **Completed:** 2026-04-01
