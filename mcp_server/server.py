@@ -233,11 +233,12 @@ def memory_update(
     so_what: str | None = None,
     tags: list[str] | None = None,
     importance: int | None = None,
+    person_ids: list[str] | None = None,
     strand_ids: list[str] | None = None,
 ) -> dict:
     """Update an existing active memory's content. Only include fields you want to change.
-    fact/so_what changes trigger embedding recomputation. strand_ids is a full replacement.
-    Returns {memory_id, updated_at}."""
+    fact/so_what changes trigger embedding recomputation. person_ids and strand_ids are full
+    replacements (existing edges are removed and recreated). Returns {memory_id, updated_at}."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.update_memory(
             memory_id,
@@ -245,6 +246,7 @@ def memory_update(
             so_what=so_what,
             tags=tags,
             importance=importance,
+            person_ids=person_ids,
             strand_ids=strand_ids,
         )
 
