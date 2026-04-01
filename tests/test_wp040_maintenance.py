@@ -393,18 +393,25 @@ class TestMaintenanceStats:
         assert isinstance(data["maintenance"]["long_rest_overdue"], bool)
 
 
-class TestWakeUpMaintenanceWarning:
-    def test_wake_up_response_model_has_maintenance_warning(self):
-        """WakeUpResponse model should include maintenance_warning field."""
+class TestWakeUpMaintenanceStatus:
+    def test_wake_up_response_model_has_maintenance_status(self):
+        """WakeUpResponse model should include maintenance_status field (WP-054: replaced maintenance_warning)."""
         from memory_service.main import WakeUpResponse
         fields = WakeUpResponse.model_fields
-        assert "maintenance_warning" in fields
+        assert "maintenance_status" in fields
+        assert "maintenance_warning" not in fields
 
-    def test_wake_up_response_maintenance_warning_is_optional(self):
-        """maintenance_warning can be None."""
-        from memory_service.main import WakeUpResponse
-        r = WakeUpResponse(memories=[], topic_memories=[], maintenance_warning=None)
-        assert r.maintenance_warning is None
+    def test_wake_up_response_maintenance_status_has_required_fields(self):
+        """maintenance_status must have overdue flags and recommended_action."""
+        from memory_service.main import WakeUpResponse, MaintenanceStatus
+        ms = MaintenanceStatus(
+            short_rest_overdue=False,
+            long_rest_overdue=True,
+            recommended_action="long-rest is overdue (3d) — run `memory long-rest`",
+        )
+        r = WakeUpResponse(memories=[], topic_memories=[], maintenance_status=ms)
+        assert r.maintenance_status.long_rest_overdue is True
+        assert r.maintenance_status.recommended_action is not None
 
 
 class TestMcpMaintenance:
