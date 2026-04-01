@@ -150,3 +150,127 @@ class TestGetMaintenanceLog:
         result = memory_repo.get_maintenance_log(session)
         assert len(result) == 1
         assert result[0]["operation"] == "short_rest"
+
+
+class TestShortRestLogsAuditEntry:
+    def test_audit_log_written_on_real_run(self):
+        """short_rest writes an audit entry when dry_run=False."""
+        with pytest.MonkeyPatch.context() as mp:
+            logged = []
+            mp.setattr(
+                memory_repo,
+                "append_maintenance_log",
+                lambda session, entry: logged.append(entry),
+            )
+            session = MagicMock()
+            session.run.return_value.__iter__ = lambda s: iter([])
+            session.run.return_value.single.return_value = None
+            memory_repo.short_rest(
+                session,
+                now_iso="2026-04-01T10:00:00+00:00",
+                recency_days=7,
+                min_strength=0.0,
+                edge_modulation_factor=0.5,
+                edge_modulation_cap=10.0,
+                dry_run=False,
+            )
+        assert len(logged) == 1
+        assert logged[0]["operation"] == "short_rest"
+        assert logged[0]["dry_run"] is False
+        assert "ran_at" in logged[0]
+        assert "nodes_affected" in logged[0]
+        assert "edges_affected" in logged[0]
+
+    def test_audit_log_not_written_on_dry_run(self):
+        """short_rest does NOT write an audit entry when dry_run=True."""
+        with pytest.MonkeyPatch.context() as mp:
+            logged = []
+            mp.setattr(
+                memory_repo,
+                "append_maintenance_log",
+                lambda session, entry: logged.append(entry),
+            )
+            session = MagicMock()
+            session.run.return_value.__iter__ = lambda s: iter([])
+            session.run.return_value.single.return_value = None
+            memory_repo.short_rest(
+                session,
+                now_iso="2026-04-01T10:00:00+00:00",
+                recency_days=7,
+                min_strength=0.0,
+                edge_modulation_factor=0.5,
+                edge_modulation_cap=10.0,
+                dry_run=True,
+            )
+        assert len(logged) == 0
+
+
+class TestLongRestLogsAuditEntry:
+    def test_audit_log_written_on_real_run(self):
+        """long_rest writes an audit entry when dry_run=False."""
+        with pytest.MonkeyPatch.context() as mp:
+            logged = []
+            mp.setattr(
+                memory_repo,
+                "append_maintenance_log",
+                lambda session, entry: logged.append(entry),
+            )
+            # Mock decay_pass to return minimal result
+            mp.setattr(
+                memory_repo,
+                "decay_pass",
+                lambda *a, **kw: {"nodes_updated": 2, "edges_updated": 1},
+            )
+            session = MagicMock()
+            session.run.return_value.__iter__ = lambda s: iter([])
+            session.run.return_value.single.return_value = None
+            memory_repo.long_rest(
+                session,
+                now_iso="2026-04-01T10:00:00+00:00",
+                min_strength=0.0,
+                edge_modulation_factor=0.5,
+                edge_modulation_cap=10.0,
+                rediscovery_strength_threshold=0.3,
+                edge_hard_prune_floor=0.01,
+                edge_hard_prune_min_days=90,
+                edge_decay_rate=0.005,
+                dry_run=False,
+                prune=False,
+            )
+        assert len(logged) == 1
+        assert logged[0]["operation"] == "long_rest"
+        assert logged[0]["dry_run"] is False
+        assert "edges_discovered" in logged[0]
+        assert "edges_pruned" in logged[0]
+
+    def test_audit_log_not_written_on_dry_run(self):
+        """long_rest does NOT write an audit entry when dry_run=True."""
+        with pytest.MonkeyPatch.context() as mp:
+            logged = []
+            mp.setattr(
+                memory_repo,
+                "append_maintenance_log",
+                lambda session, entry: logged.append(entry),
+            )
+            mp.setattr(
+                memory_repo,
+                "decay_pass",
+                lambda *a, **kw: {"nodes_updated": 0, "edges_updated": 0},
+            )
+            session = MagicMock()
+            session.run.return_value.__iter__ = lambda s: iter([])
+            session.run.return_value.single.return_value = None
+            memory_repo.long_rest(
+                session,
+                now_iso="2026-04-01T10:00:00+00:00",
+                min_strength=0.0,
+                edge_modulation_factor=0.5,
+                edge_modulation_cap=10.0,
+                rediscovery_strength_threshold=0.3,
+                edge_hard_prune_floor=0.01,
+                edge_hard_prune_min_days=90,
+                edge_decay_rate=0.005,
+                dry_run=True,
+                prune=False,
+            )
+        assert len(logged) == 0

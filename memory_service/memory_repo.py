@@ -1270,6 +1270,15 @@ def short_rest(
 
     if not dry_run:
         upsert_system_node(session, last_short_rest_at=now_iso)
+        append_maintenance_log(session, {
+            "operation": "short_rest",
+            "ran_at": now_iso,
+            "dry_run": False,
+            "nodes_affected": len(node_updates),
+            "edges_affected": len(edge_updates),
+            "edges_discovered": 0,
+            "edges_pruned": 0,
+        })
 
     return {
         "nodes_decayed": len(node_updates),
@@ -1424,6 +1433,15 @@ def long_rest(
     # Step 4: Update System node
     if not dry_run:
         upsert_system_node(session, last_long_rest_at=now_iso)
+        append_maintenance_log(session, {
+            "operation": "long_rest",
+            "ran_at": now_iso,
+            "dry_run": False,
+            "nodes_affected": nodes_decayed,
+            "edges_affected": edges_decayed,
+            "edges_discovered": edges_discovered,
+            "edges_pruned": edges_pruned,
+        })
 
     return {
         "nodes_decayed": nodes_decayed,
