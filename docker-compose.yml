@@ -10,7 +10,7 @@ services:
     command: ["--log-level=INFO"]
     healthcheck:
       test: ["CMD", "python3", "-c",
-             "import socket, sys; s=socket.create_connection(('127.0.0.1',7687),timeout=2); s.close()"]
+             "import socket; s=socket.create_connection(('127.0.0.1',7687),timeout=2); s.close()"]
       interval: 10s
       timeout: 5s
       retries: 10
