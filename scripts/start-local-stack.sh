@@ -28,7 +28,7 @@ wait_for_memgraph() {
     if (( elapsed >= timeout )); then
       echo "ERROR: Memgraph did not become healthy within ${timeout}s (last status: ${status})." >&2
       echo "Check logs with: docker logs ${container}" >&2
-      exit 1
+      return 1
     fi
 
     echo "  status=${status} — waiting ${interval}s (${elapsed}/${timeout}s elapsed)..."
