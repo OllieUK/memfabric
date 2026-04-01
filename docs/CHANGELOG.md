@@ -4,6 +4,18 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-045 — Make Local Startup Deterministic Offline
+
+**Completed:** 2026-04-01
+
+- Replaced the TCP-only bash healthcheck (`exec 3<>/dev/tcp`) in `docker-compose.yml` with a Python `socket.create_connection` check; increased `start_period` to 30s and `retries` to 10 for more robust cold-start behaviour
+- Added `wait_for_memgraph()` to `scripts/start-local-stack.sh` — polls `docker inspect` until the container is `healthy` before launching uvicorn; configurable timeout via `MEMGRAPH_WAIT_TIMEOUT` (default 60s); uses `return 1` (not `exit 1`) for composability with `set -e`
+- Documented `HF_HUB_OFFLINE`, `TRANSFORMERS_OFFLINE`, `EMBEDDING_PRELOAD_ON_STARTUP`, and `MEMORY_SERVICE_RELOAD` in `.env.example` with accurate comments; added context comment on `EMBEDDING_LOCAL_FILES_ONLY` as the primary offline control
+
+**Retrospective:** Purely operational — no API or schema changes. The code review surfaced that `exit 1` inside a bash function bypasses trap handlers and the unused `sys` import in the healthcheck one-liner was dead code. Both caught pre-merge. The `.env.example` comment for `HF_HUB_OFFLINE`/`TRANSFORMERS_OFFLINE` initially misrepresented the control flow (the embeddings module derives these from `EMBEDDING_LOCAL_FILES_ONLY`, not the other way around) — code review caught it. Good signal that doc changes need the same review rigour as code.
+
+---
+
 ## WP-083 — `person_ids` filter on `POST /memory/search`
 
 **Completed:** 2026-03-31
