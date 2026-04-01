@@ -1548,3 +1548,53 @@ def maintenance_stats(
             "long_rest_overdue": _is_overdue(last_long, long_rest_recency_days),
         },
     }
+
+
+def find_duplicate_memory(
+    session,
+    fact: str,
+    embedding: list,
+    threshold: float,
+) -> str | None:
+    """Return the id of an existing active Memory with identical or near-identical fact.
+
+    Checks in order:
+    1. Exact case-insensitive match on the 'fact' field.
+    2. Vector similarity — nearest neighbour with cosine distance <= threshold.
+
+    Returns None if no duplicate is found.
+    Excludes merged and archived nodes from both checks.
+    """
+    # Step 1: exact match
+    result = session.run(
+        """
+        MATCH (m:Memory)
+        WHERE toLower(m.fact) = toLower($fact)
+          AND (m.status IS NULL OR m.status = 'active')
+        RETURN m.id AS id
+        LIMIT 1
+        """,
+        fact=fact,
+    )
+    record = result.single()
+    if record:
+        return record["id"]
+
+    # Step 2: vector similarity (only if exact match missed)
+    result = session.run(
+        """
+        CALL vector_search.search("mem_embedding_idx", 1, $query_vec)
+        YIELD node, distance
+        WHERE (node.status IS NULL OR node.status = 'active')
+          AND distance <= $threshold
+        RETURN node.id AS id
+        LIMIT 1
+        """,
+        query_vec=embedding,
+        threshold=threshold,
+    )
+    record = result.single()
+    if record:
+        return record["id"]
+
+    return None
