@@ -3,6 +3,7 @@
 # Repository layer: all Cypher operations for the /memory endpoint.
 # All functions receive an already-open neo4j.Session; callers own the session lifecycle.
 
+import json
 import math
 from datetime import datetime, timezone
 
@@ -1097,6 +1098,43 @@ def upsert_system_node(session, **kwargs) -> None:
         SET {set_clause}
         """,
         **kwargs,
+    )
+
+
+_MAINTENANCE_LOG_CAP = 100
+
+
+def get_maintenance_log(session) -> list:
+    result = session.run(
+        """
+        OPTIONAL MATCH (sys:System {id: "system"})
+        RETURN sys.maintenance_log AS maintenance_log
+        """
+    )
+    record = result.single()
+    if record is None:
+        return []
+    raw = record["maintenance_log"]
+    if raw is None:
+        return []
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return []
+
+
+def append_maintenance_log(session, entry: dict) -> None:
+    existing = get_maintenance_log(session)
+    existing.append(entry)
+    if len(existing) > _MAINTENANCE_LOG_CAP:
+        existing = existing[-_MAINTENANCE_LOG_CAP:]
+    log_json = json.dumps(existing)
+    session.run(
+        """
+        MERGE (sys:System {id: "system"})
+        SET sys.maintenance_log = $log_json
+        """,
+        log_json=log_json,
     )
 
 
