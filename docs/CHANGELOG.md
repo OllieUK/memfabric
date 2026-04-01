@@ -4,6 +4,28 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-088 — Graph dedup enforcement and agent-ID attribution
+
+**Completed:** 2026-04-01
+
+- Added `memory_dedup_threshold: float = 0.05` to `Settings` in `memory_service/config.py`
+- Added `find_duplicate_memory(session, fact, embedding, threshold) -> str | None` to `memory_service/memory_repo.py` — two-stage check: exact case-insensitive `fact` match first, then vector similarity via `vector_search.search`; excludes merged/archived nodes
+- Extended `AddMemoryResponse` with `deduplicated: bool = False` (backward-compatible)
+- Updated `POST /memory` handler: generates embedding before dedup check; on hit reinforces canonical and returns early with `deduplicated=True`; UUID generation moved after dedup check to avoid scoping issues
+- Made `agent_id` a required positional parameter in MCP `memory_add` tool (`mcp_server/server.py`) — removed `or settings.agent_id` silent fallback
+- Created `scripts/dedup_cleanup.py` — one-time batch script: finds exact and semantic duplicate groups using union-find + cosine distance (stdlib `math`), merges each group into canonical node (oldest `created_at`; tie-break: highest `importance`), reinforces canonical once per group; supports `--dry-run` and `--similarity-threshold` flags
+- Updated `tests/test_add_memory.py::TestPostMemoryFactSoWhat` to UUID-suffix fact strings (pre-existing fragility exposed by the dedup gate)
+- Updated `tests/test_wp033_mcp_server.py` to pass explicit `agent_id` (old fallback test updated to test new required behaviour)
+- 17 new tests (11 unit, 6 integration); 135 integration tests passing; 0 new regressions
+
+**New backlog items from /simplify:**
+- WP-089: Fix 3 pre-existing failing tests in `test_wp033_mcp_server.py` (test_u3, test_u6, test_u7) — `memory_wake_up` mock expects 2-tuple but `wake_up_split` now returns 3-tuple (M value, L effort)
+- WP-090: Handle non-`ServiceUnavailable` exceptions in `find_duplicate_memory` (e.g. MAGE not loaded) — currently propagates as 500 instead of 503 (L value, L effort)
+
+**Retrospective:** The dedup gate immediately exposed a latent fragility: several integration tests in `test_add_memory.py` used well-known fact strings ("Oliver has ADHD.") that matched live DB data. UUID-suffixing is the correct fix. The pre-write semantic dedup threshold (0.05) works well with `all-MiniLM-L6-v2` but needed empirical phrase selection for the integration test — the plan's suggested phrases were too distant with UUID suffixes. The `WITH node, distance` Cypher fix (missed in initial implementation, caught by code review) validates the value of the `WITH`-before-`WHERE` codebase pattern. Requiring explicit `agent_id` in the MCP tool is a breaking change that will immediately surface any callers that were relying on the silent fallback — this is the intended effect.
+
+---
+
 ## WP-054 — Maintenance audit trail and startup escalation loop
 
 **Completed:** 2026-04-01
