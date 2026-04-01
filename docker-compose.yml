@@ -9,11 +9,12 @@ services:
       - "7444:7444"   # HTTP / REST
     command: ["--log-level=INFO"]
     healthcheck:
-      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/127.0.0.1/7687"]
+      test: ["CMD", "python3", "-c",
+             "import socket, sys; s=socket.create_connection(('127.0.0.1',7687),timeout=2); s.close()"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 30s
     volumes:
       - memgraph_lib:/var/lib/memgraph
       - memgraph_log:/var/log/memgraph
