@@ -348,6 +348,15 @@ class TestMaintenanceStatus:
         assert status["short_rest_days_ago"] is None
         assert "long-rest has never run" in status["recommended_action"]
 
+    def test_short_rest_never_run_long_rest_ok(self):
+        from datetime import datetime, timezone, timedelta
+        now = datetime(2026, 4, 1, 10, 0, 0, tzinfo=timezone.utc)
+        long_ts = (now - timedelta(hours=6)).isoformat()
+        status = self._compute_status(last_short=None, last_long=long_ts)
+        assert status["short_rest_overdue"] is True
+        assert status["long_rest_overdue"] is False
+        assert "short-rest has never run" in status["recommended_action"]
+
     def test_long_rest_overdue_short_rest_ok(self):
         # short ran 0.5 days ago (within 1-day recency), long ran 3 days ago (overdue)
         from datetime import datetime, timezone, timedelta
