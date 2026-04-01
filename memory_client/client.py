@@ -101,11 +101,12 @@ class MemoryClient:
 
     def wake_up_split(
         self, *, limit: int = 20, topic: str | None = None
-    ) -> tuple[list[dict], list[dict]]:
-        """GET /memory/wake-up. Returns (core_memories, topic_memories) tuple.
+    ) -> tuple[list[dict], list[dict], dict]:
+        """GET /memory/wake-up. Returns (core_memories, topic_memories, maintenance_status) tuple.
 
         core_memories: importance-ranked list (always populated if DB has memories)
         topic_memories: topic-only results (empty when no topic provided)
+        maintenance_status: structured overdue info dict
         """
         params: dict = {"limit": limit}
         if topic is not None:
@@ -113,7 +114,7 @@ class MemoryClient:
         response = self._http.get("/memory/wake-up", params=params)
         response.raise_for_status()
         data = response.json()
-        return data["memories"], data.get("topic_memories", [])
+        return data["memories"], data.get("topic_memories", []), data.get("maintenance_status", {})
 
     def list_strands(self) -> list[dict]:
         """GET /strands. Returns list of strand dicts with id, name, description, category."""
@@ -236,6 +237,12 @@ class MemoryClient:
         response = self._http.get("/memory/maintenance/stats")
         response.raise_for_status()
         return response.json()
+
+    def maintenance_log(self) -> list[dict]:
+        """GET /memory/maintenance/log. Returns list of audit entry dicts."""
+        response = self._http.get("/memory/maintenance/log")
+        response.raise_for_status()
+        return response.json()["entries"]
 
     def get_graph(
         self,

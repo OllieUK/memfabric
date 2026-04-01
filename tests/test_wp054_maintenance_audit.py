@@ -422,3 +422,65 @@ class TestMaintenanceStatus:
         assert "short_rest_overdue" in ms
         assert "long_rest_overdue" in ms
         assert "recommended_action" in ms
+
+
+class TestMemoryClientUpdates:
+    def test_wake_up_split_returns_maintenance_status(self):
+        """wake_up_split returns (core, topic, maintenance_status) 3-tuple."""
+        from unittest.mock import patch, MagicMock
+        from memory_client.client import MemoryClient
+
+        response_data = {
+            "memories": [{"id": "abc", "fact": "test", "text": "test", "type": "fact", "importance": 3, "strength": 0.8, "tags": [], "created_at": None, "strand_id": None}],
+            "topic_memories": [],
+            "maintenance_status": {
+                "short_rest_overdue": True,
+                "long_rest_overdue": False,
+                "short_rest_days_ago": 2.5,
+                "long_rest_days_ago": 0.5,
+                "recommended_action": "short-rest is overdue (2d) — run `memory short-rest`",
+            },
+        }
+        mock_response = MagicMock()
+        mock_response.json.return_value = response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with MemoryClient(base_url="http://localhost:8000") as client:
+            with patch.object(client._http, "get", return_value=mock_response):
+                result = client.wake_up_split(limit=20)
+
+        assert len(result) == 3
+        core, topic, status = result
+        assert len(core) == 1
+        assert topic == []
+        assert status["short_rest_overdue"] is True
+        assert status["recommended_action"] is not None
+
+    def test_maintenance_log_client_method(self):
+        """maintenance_log() returns list of audit entries."""
+        from unittest.mock import patch, MagicMock
+        from memory_client.client import MemoryClient
+
+        response_data = {
+            "entries": [
+                {
+                    "operation": "short_rest",
+                    "ran_at": "2026-04-01T10:00:00+00:00",
+                    "dry_run": False,
+                    "nodes_affected": 5,
+                    "edges_affected": 2,
+                    "edges_discovered": 0,
+                    "edges_pruned": 0,
+                }
+            ]
+        }
+        mock_response = MagicMock()
+        mock_response.json.return_value = response_data
+        mock_response.raise_for_status = MagicMock()
+
+        with MemoryClient(base_url="http://localhost:8000") as client:
+            with patch.object(client._http, "get", return_value=mock_response):
+                result = client.maintenance_log()
+
+        assert len(result) == 1
+        assert result[0]["operation"] == "short_rest"
