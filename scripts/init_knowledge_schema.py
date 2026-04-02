@@ -1,8 +1,8 @@
 """
-init_cybersec_schema.py — Create Memgraph constraints and vector indexes for the cybersecurity knowledge layer.
+init_knowledge_schema.py — Create Memgraph constraints and vector indexes for the information security knowledge layer.
 
 Run after init_schema.py, once the knowledge layer is needed:
-    python scripts/init_cybersec_schema.py
+    python scripts/init_knowledge_schema.py
 
 Idempotent: re-running on an already-initialised DB will not error.
 """
@@ -15,7 +15,7 @@ from memory_service.config import Settings, get_driver
 
 
 # New uniqueness constraints: (label, property)
-CYBERSEC_CONSTRAINTS = [
+KNOWLEDGE_CONSTRAINTS = [
     ("Standard", "id"),
     ("Control", "id"),
     ("Document", "id"),
@@ -63,7 +63,6 @@ def validate_vector_index(
         for record in result:
             label = record.get("label") or record.get("Label") or ""
             prop = record.get("property") or record.get("Property") or ""
-            # Memgraph returns the column as "index type" (with a space)
             index_type = str(
                 record.get("index type")
                 or record.get("type")
@@ -172,13 +171,13 @@ def main() -> int:
         print(f"[FAIL] Could not connect to Memgraph: {exc}")
         return 1
 
-    print(f"Loading embedding model '{settings.embedding_model}' to determine vector dimension ...")
+    print(f"Loading knowledge embedding model '{settings.knowledge_embedding_model}' to determine vector dimension ...")
     try:
-        dim = get_embedding_dimension(settings.embedding_model)
+        dim = get_embedding_dimension(settings.knowledge_embedding_model)
         print(f"  Embedding dimension: {dim}")
     except Exception as exc:
         driver.close()
-        print(f"[FAIL] Could not load embedding model '{settings.embedding_model}': {exc}")
+        print(f"[FAIL] Could not load knowledge embedding model '{settings.knowledge_embedding_model}': {exc}")
         return 1
 
     success = True
@@ -186,7 +185,7 @@ def main() -> int:
         with driver.session() as session:
             # --- Uniqueness constraints ---
             print("\nCreating uniqueness constraints ...")
-            for label, prop in CYBERSEC_CONSTRAINTS:
+            for label, prop in KNOWLEDGE_CONSTRAINTS:
                 try:
                     create_constraint(session, label, prop)
                 except Exception as exc:
@@ -242,10 +241,10 @@ def main() -> int:
         driver.close()
 
     if success:
-        print("\nCybersecurity schema initialisation complete.")
+        print("\nKnowledge layer schema initialisation complete.")
         return 0
     else:
-        print("\nCybersecurity schema initialisation finished with errors.")
+        print("\nKnowledge layer schema initialisation finished with errors.")
         return 1
 
 

@@ -1,5 +1,5 @@
 """
-tests/test_wp069_cybersec_schema.py — Tests for WP-069: cybersecurity knowledge layer schema.
+tests/test_wp069_knowledge_schema.py — Tests for WP-069 + WP-094: knowledge layer schema.
 
 Unit tests verify enum values, allowlists, and schema constants without a live DB.
 Integration tests (require live Memgraph + FastAPI) verify that constraints and vector
@@ -9,7 +9,7 @@ indexes are created correctly and that the separation invariant holds.
 import pytest
 
 from memory_service import main as service_main
-from memory_service.cybersec_schemas import (
+from memory_service.knowledge_schemas import (
     CONTROL_DOMAINS,
     CONTROL_RELATIONSHIP_TYPES,
     DOCUMENT_POLICY_LEVELS,
@@ -21,7 +21,42 @@ from scripts import dump_db, restore_db
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — cybersec_schemas constants
+# Unit tests — config new settings (WP-094)
+# ---------------------------------------------------------------------------
+
+def test_config_has_knowledge_embedding_model():
+    from memory_service.config import Settings
+    s = Settings()
+    assert s.knowledge_embedding_model == "paraphrase-multilingual-MiniLM-L12-v2"
+
+
+def test_config_has_enable_knowledge_layer_default_false():
+    from memory_service.config import Settings
+    s = Settings()
+    assert s.enable_knowledge_layer is False
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — migrate_embeddings (WP-094)
+# ---------------------------------------------------------------------------
+
+def test_migrate_embeddings_does_not_include_memory_label():
+    """Memory nodes must not be in EMBEDDABLE_LABELS — episodic migration is independent."""
+    from scripts.migrate_embeddings import EMBEDDABLE_LABELS
+    labels = [label for label, _ in EMBEDDABLE_LABELS]
+    assert "Memory" not in labels, "Memory must not be in EMBEDDABLE_LABELS after WP-094"
+
+
+def test_migrate_embeddings_includes_knowledge_labels():
+    """Control and Chunk nodes must remain in EMBEDDABLE_LABELS."""
+    from scripts.migrate_embeddings import EMBEDDABLE_LABELS
+    labels = [label for label, _ in EMBEDDABLE_LABELS]
+    assert "Control" in labels
+    assert "Chunk" in labels
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — knowledge_schemas constants
 # ---------------------------------------------------------------------------
 
 def test_sabsa_layers_non_empty():
@@ -56,11 +91,11 @@ def test_organisation_types():
 # Unit tests — NodeLabel enum
 # ---------------------------------------------------------------------------
 
-def test_node_label_has_all_cybersec_labels():
+def test_node_label_has_all_knowledge_labels():
     NodeLabel = service_main.NodeLabel
-    cybersec_labels = {"Standard", "Control", "Document", "Chunk", "BusinessAttribute", "Organisation", "Jurisdiction"}
+    knowledge_labels = {"Standard", "Control", "Document", "Chunk", "BusinessAttribute", "Organisation", "Jurisdiction"}
     existing = {e.value for e in NodeLabel}
-    assert cybersec_labels.issubset(existing), f"Missing from NodeLabel: {cybersec_labels - existing}"
+    assert knowledge_labels.issubset(existing), f"Missing from NodeLabel: {knowledge_labels - existing}"
 
 
 def test_node_label_preserves_original_labels():
@@ -97,7 +132,7 @@ def test_restore_db_allowlist_includes_knowledge_edge_types():
 
 
 # ---------------------------------------------------------------------------
-# Unit tests — config new capacity settings
+# Unit tests — config index capacity settings
 # ---------------------------------------------------------------------------
 
 def test_config_has_index_capacity_settings():
@@ -112,7 +147,7 @@ def test_config_has_index_capacity_settings():
 # Integration tests — live Memgraph
 # ---------------------------------------------------------------------------
 
-_CYBERSEC_CONSTRAINTS = [
+_KNOWLEDGE_CONSTRAINTS = [
     ("Standard", "id"),
     ("Control", "id"),
     ("Document", "id"),
@@ -130,7 +165,6 @@ def _get_constraints(driver) -> set[tuple[str, str]]:
         constraints = set()
         for record in result:
             label = record.get("label") or record.get("Label") or ""
-            # Memgraph returns "constraint type" (with space) and "properties" as a list
             ctype = str(
                 record.get("constraint type")
                 or record.get("type")
@@ -166,21 +200,21 @@ def _get_vector_indexes(driver) -> dict[str, tuple[str, str]]:
 
 
 @pytest.mark.integration
-def test_cybersec_schema_constraints_created(test_driver):
-    """All 7 cybersecurity uniqueness constraints must exist after init_cybersec_schema."""
-    from scripts.init_cybersec_schema import main as init_main
+def test_knowledge_schema_constraints_created(test_driver):
+    """All 7 knowledge layer uniqueness constraints must exist after init_knowledge_schema."""
+    from scripts.init_knowledge_schema import main as init_main
     rc = init_main()
-    assert rc == 0, "init_cybersec_schema.py returned non-zero exit code"
+    assert rc == 0, "init_knowledge_schema.py returned non-zero exit code"
 
     constraints = _get_constraints(test_driver)
-    for label, prop in _CYBERSEC_CONSTRAINTS:
+    for label, prop in _KNOWLEDGE_CONSTRAINTS:
         assert (label, prop) in constraints, f"Missing constraint: {label}.{prop} IS UNIQUE"
 
 
 @pytest.mark.integration
-def test_cybersec_schema_vector_indexes_created(test_driver):
+def test_knowledge_schema_vector_indexes_created(test_driver):
     """ctrl_embedding_idx and chunk_embedding_idx must exist with correct label+property."""
-    from scripts.init_cybersec_schema import main as init_main
+    from scripts.init_knowledge_schema import main as init_main
     init_main()
 
     indexes = _get_vector_indexes(test_driver)
@@ -191,11 +225,34 @@ def test_cybersec_schema_vector_indexes_created(test_driver):
 
 
 @pytest.mark.integration
-def test_cybersec_schema_idempotent(test_driver):
-    """Running init_cybersec_schema twice must not error."""
-    from scripts.init_cybersec_schema import main as init_main
+def test_knowledge_schema_idempotent(test_driver):
+    """Running init_knowledge_schema twice must not error."""
+    from scripts.init_knowledge_schema import main as init_main
     assert init_main() == 0
     assert init_main() == 0
+
+
+@pytest.mark.integration
+def test_knowledge_schema_uses_knowledge_embedding_model(test_driver):
+    """init_knowledge_schema must use knowledge_embedding_model, not embedding_model.
+
+    Verifies ADR-001 guardrail 2: independent embedding models per layer.
+    We patch embedding_model to a non-existent model name; init must still succeed
+    because it only reads knowledge_embedding_model.
+    """
+    from unittest.mock import patch
+    from memory_service.config import Settings
+    from scripts.init_knowledge_schema import main as init_main
+
+    # If init_knowledge_schema incorrectly used settings.embedding_model, it would
+    # attempt to load "nonexistent-model-xyz" and fail. Patching Settings ensures
+    # a fresh instance is created inside main() with our overrides.
+    with patch.dict("os.environ", {
+        "EMBEDDING_MODEL": "nonexistent-model-xyz",
+        "KNOWLEDGE_EMBEDDING_MODEL": Settings().knowledge_embedding_model,
+    }):
+        rc = init_main()
+    assert rc == 0, "init_knowledge_schema failed — it may be using EMBEDDING_MODEL instead of KNOWLEDGE_EMBEDDING_MODEL"
 
 
 @pytest.mark.integration
@@ -210,7 +267,6 @@ def test_separation_memory_search_excludes_knowledge_nodes(client, test_driver):
     control_id = "test-wp069-ctrl-001"
     chunk_id = "test-wp069-chunk-001"
     try:
-        # Seed a Control and Chunk with embeddings directly
         from memory_service.embeddings import get_embedding
         emb = get_embedding("access control policy user authentication")
         with test_driver.session() as s:

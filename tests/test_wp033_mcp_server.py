@@ -290,3 +290,70 @@ def test_i6_memory_update_person_ids_replaces_about_edges(test_driver):
                 test_driver,
                 extra_ids={"Person": "person-wp052-b"},
             )
+
+
+# ---------------------------------------------------------------------------
+# U9: memory_add passes person_ids to client (WP-087)
+# ---------------------------------------------------------------------------
+def test_u9_memory_add_passes_person_ids():
+    from mcp_server.server import memory_add
+
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.add_memory.return_value = {"memory_id": "uuid-new"}
+
+    with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+        result = memory_add(
+            fact="Test memory with persons",
+            agent_id="test-agent",
+            person_ids=["person-alice", "person-bob"],
+        )
+
+    mock_client.add_memory.assert_called_once_with(
+        "Test memory with persons",
+        "fact",
+        "test-agent",
+        so_what=None,
+        cause_ids=None,
+        effect_ids=None,
+        tags=None,
+        importance=3,
+        strand_ids=None,
+        person_ids=["person-alice", "person-bob"],
+    )
+    assert result["memory_id"] == "uuid-new"
+
+
+# ---------------------------------------------------------------------------
+# I7: memory_add with person_ids creates ABOUT edges on live stack (WP-087)
+# ---------------------------------------------------------------------------
+@pytest.mark.integration
+def test_i7_memory_add_person_ids_creates_about_edges(test_driver):
+    """person_ids passed via MCP memory_add creates ABOUT->Person edges on the live stack."""
+    from mcp_server.server import memory_add
+    from tests.conftest import cleanup_nodes, edge_exists
+
+    memory_id = None
+    try:
+        raw = memory_add(
+            fact="WP-087 integration: memory with person_ids via MCP",
+            type="fact",
+            agent_id="test-agent-wp087",
+            importance=1,
+            person_ids=["person-wp087-a", "person-wp087-b"],
+        )
+        memory_id = raw["memory_id"]
+        assert isinstance(memory_id, str) and len(memory_id) == 36
+
+        # Verify ABOUT edges to both persons
+        assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp087-a")
+        assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp087-b")
+    finally:
+        cleanup_nodes(
+            test_driver,
+            *(memory_id,) if memory_id else (),
+            extra_ids={"Person": "person-wp087-a"},
+        )
+        cleanup_nodes(test_driver, extra_ids={"Person": "person-wp087-b"})
+        cleanup_nodes(test_driver, extra_ids={"Agent": "test-agent-wp087"})

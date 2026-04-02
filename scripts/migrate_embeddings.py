@@ -1,12 +1,12 @@
 """
-migrate_embeddings.py — Re-embed all nodes whose embedding was produced by a different model.
+migrate_embeddings.py — Re-embed knowledge-layer nodes whose embedding was produced by a different model.
 
-Run once after changing EMBEDDING_MODEL in .env (e.g. switching from
-all-MiniLM-L6-v2 to paraphrase-multilingual-MiniLM-L12-v2):
+Run once after changing KNOWLEDGE_EMBEDDING_MODEL in .env (e.g. switching models):
 
     python scripts/migrate_embeddings.py [--dry-run] [--batch-size 50]
 
 Idempotent: nodes already using the current model are skipped.
+Episodic Memory embeddings are managed separately via EMBEDDING_MODEL.
 """
 
 import argparse
@@ -18,12 +18,11 @@ from memory_service.embeddings import get_embedding
 
 # Node labels that carry embeddings and the reconstruction strategy for each.
 # Text reconstruction is done in _reconstruct_text() below.
+# Memory embeddings are managed independently via EMBEDDING_MODEL — not migrated here.
 EMBEDDABLE_LABELS = [
     # (label, text_property_or_None)
-    # For Memory: text = fact + so_what (same as add_memory)
     # For Control: text = code + " " + title + " " + body
     # For Chunk:   text = heading + " " + body
-    ("Memory", None),   # special: reconstruct from fact + so_what
     ("Control", None),  # special: reconstruct from code + title + body
     ("Chunk", None),    # special: reconstruct from heading + body
 ]
@@ -31,13 +30,6 @@ EMBEDDABLE_LABELS = [
 
 def _reconstruct_text(label: str, node: dict) -> str | None:
     """Return the text that should be embedded for this node, or None to skip."""
-    if label == "Memory":
-        fact = (node.get("fact") or "").strip()
-        so_what = (node.get("so_what") or "").strip()
-        if not fact:
-            return None
-        return (fact + " " + so_what).strip() if so_what else fact
-
     if label == "Control":
         code = (node.get("code") or "").strip()
         title = (node.get("title") or "").strip()
@@ -168,7 +160,7 @@ def main() -> int:
     args = parser.parse_args()
 
     settings = Settings()
-    model_name = settings.embedding_model
+    model_name = settings.knowledge_embedding_model
     uri = f"bolt://{settings.memgraph_host}:{settings.memgraph_port}"
 
     print(f"Connecting to Memgraph at {uri} ...")
@@ -179,7 +171,7 @@ def main() -> int:
         print(f"[FAIL] Could not connect to Memgraph: {exc}")
         return 1
 
-    print(f"Embedding model: '{model_name}'")
+    print(f"Embedding model (knowledge layer): '{model_name}'")
     if args.dry_run:
         print("[DRY RUN] No writes will be made.")
     print(f"Batch size: {args.batch_size}")

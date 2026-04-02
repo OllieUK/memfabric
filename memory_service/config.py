@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     ctrl_index_capacity: int = 5000
     chunk_index_capacity: int = 10000
     memory_dedup_threshold: float = 0.05
+    knowledge_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
+    enable_knowledge_layer: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
