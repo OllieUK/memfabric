@@ -123,3 +123,52 @@ class TestPostProjectEndpoint:
         """POST /project without name returns 422."""
         response = client.post("/project", json={"id": _PROJECT_ID_A})
         assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — Unit tests: MemoryClient.list_projects / create_project
+# ---------------------------------------------------------------------------
+class TestClientListProjects:
+    @respx.mock
+    def test_list_projects_returns_list(self):
+        respx.get(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json=_PROJECTS_RESPONSE)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            projects = client.list_projects()
+        assert len(projects) == 2
+        assert projects[0]["id"] == "test-project-wp078-a"
+
+    @respx.mock
+    def test_list_projects_empty(self):
+        respx.get(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json={"projects": []})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            projects = client.list_projects()
+        assert projects == []
+
+
+class TestClientCreateProject:
+    @respx.mock
+    def test_create_project_minimal(self):
+        respx.post(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json=_CREATE_PROJECT_RESPONSE)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            result = client.create_project("test-project-wp078-a", "Test Project A")
+        assert result["id"] == "test-project-wp078-a"
+        assert result["name"] == "Test Project A"
+
+    @respx.mock
+    def test_create_project_with_description(self):
+        expected = {**_CREATE_PROJECT_RESPONSE, "description": "A desc"}
+        respx.post(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json=expected)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            result = client.create_project("test-project-wp078-a", "Test Project A", description="A desc")
+        assert result["description"] == "A desc"
+        # Verify description was sent in request body
+        req_body = json.loads(respx.calls.last.request.content)
+        assert req_body["description"] == "A desc"
