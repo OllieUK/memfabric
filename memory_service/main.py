@@ -374,6 +374,22 @@ class CreatePersonRequest(BaseModel):
     description: Optional[str] = None
 
 
+class ProjectItem(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+
+class ProjectsResponse(BaseModel):
+    projects: List[ProjectItem]
+
+
+class CreateProjectRequest(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+
 @app.get("/strands", response_model=StrandsResponse)
 async def list_strands(request: Request) -> StrandsResponse:
     try:
