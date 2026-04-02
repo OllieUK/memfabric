@@ -16,7 +16,7 @@ from memory_service.config import Settings, get_driver
 
 # New uniqueness constraints: (label, property)
 KNOWLEDGE_CONSTRAINTS = [
-    ("Standard", "id"),
+    ("Norm", "id"),
     ("Control", "id"),
     ("Document", "id"),
     ("Chunk", "id"),

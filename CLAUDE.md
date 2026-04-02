@@ -104,6 +104,7 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 | ADR | Decision | Review triggers |
 |-----|----------|-----------------|
 | [ADR-001](docs/architecture/ADR-001-knowledge-layer-placement.md) | InfoSec knowledge layer lives inside this project as a feature-flagged peer module with separate embedding config and a bridge module for cross-layer edges | Multi-user requirement, knowledge code >50% of total, non-InfoSec domain requested, cross-layer edges >10k |
+| [ADR-002](docs/architecture/ADR-002-knowledge-layer-graph-model.md) | Knowledge layer graph model: control tree as spine, norm trees, precepts as convergence layer, frameworks (structural) vs norms (prescriptive), threat intelligence with JEOPARDISES→Precept→BusinessAttribute strategic path, metric-based fulfilment, org-scoping on edges, temporal norm lifecycle | Metric schemas need dedicated nodes, CONTAINS overload causes ambiguity, non-SABSA framework adopted, CMDB integration needed, Norm/Framework distinction untenable |
 
 ## Key constraints (v1)
 

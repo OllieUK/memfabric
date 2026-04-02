@@ -5,6 +5,7 @@
 | Status | Accepted |
 | Date | 2026-04-02 |
 | Scope | WP-069 through WP-076 |
+| See also | [ADR-002](ADR-002-knowledge-layer-graph-model.md) (graph model, node/edge types, scoping) |
 
 ## Decision
 
@@ -38,7 +39,7 @@ Cross-layer edges (Memory <-> Control, Memory <-> Document) are the differentiat
 1. **Label-based isolation is sufficient.** Memgraph's label-scoped vector indexes (`mem_embedding_idx ON :Memory`, `ctrl_embedding_idx ON :Control`) provide structural separation without needing a `layer` property or separate database.
 2. **Scope is Information Security, not enterprise GRC.** Growth stays within infosec subdomains (IT, OT, IoT, Physical, Human). No legal, financial, or HR compliance layers.
 3. **Cross-layer edges are append-only.** No bulk migration or schema evolution of cross-layer edges is anticipated.
-4. **Knowledge data is reference, not episodic.** Standards, Controls, Documents do not decay, have no strength scores, and do not participate in recall counting. Ingested once, queried indefinitely.
+4. **Knowledge data is reference, not episodic.** Norms, Controls, Documents do not decay, have no strength scores, and do not participate in recall counting. Ingested once, queried indefinitely.
 5. **Embedding models are independently configurable per layer.** Both layers may eventually use multilingual models, but they can migrate on independent timelines. Cross-layer vector similarity is not needed; explicit edges serve that purpose.
 
 ### Implicit (now explicit)
@@ -93,7 +94,7 @@ The bridge module makes the coupling surface explicit and auditable.
 
 A standalone `infosec-knowledge-fabric` with its own FastAPI service.
 
-**Rejected because:** The core value proposition (cross-layer edges enabling gap analysis and traceability) becomes a distributed join problem. Gap analysis requires traversing Memory -> Control -> Standard -> BusinessAttribute in a single query; across service boundaries this becomes an orchestration nightmare. Operational overhead is disproportionate for a single-user, single-machine deployment.
+**Rejected because:** The core value proposition (cross-layer edges enabling gap analysis and traceability) becomes a distributed join problem. Gap analysis requires traversing Memory -> Control -> Norm -> BusinessAttribute in a single query; across service boundaries this becomes an orchestration nightmare. Operational overhead is disproportionate for a single-user, single-machine deployment.
 
 ### Implement and carve out later (rejected as distinct from chosen approach)
 
