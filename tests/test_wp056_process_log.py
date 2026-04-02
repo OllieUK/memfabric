@@ -141,7 +141,7 @@ class TestUpdateHandlerLogsEntry:
         monkeypatch.setattr(
             memory_repo,
             "get_memory_for_update",
-            lambda session, memory_id: None,
+            lambda session, memory_id: {"fact": "existing fact", "so_what": None},
         )
         monkeypatch.setattr(
             memory_repo,
