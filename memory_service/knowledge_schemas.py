@@ -1,7 +1,7 @@
 """
-memory_service/cybersec_schemas.py — Validated enum sets for the cybersecurity knowledge layer.
+memory_service/knowledge_schemas.py — Validated enum sets for the information security knowledge layer.
 
-Shared by cybersec_routes.py (request validation) and ETL scripts (ingest validation).
+Shared by knowledge_routes.py (request validation) and ETL scripts (ingest validation).
 All values are normalised to lowercase on write.
 """
 
