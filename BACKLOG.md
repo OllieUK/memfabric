@@ -255,6 +255,20 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ---
 
+### WP-087 — Expose `person_ids` in MCP `memory_add` ✅
+
+> **Completed 2026-04-02.**
+
+- Added `person_ids: list[str] | None = None` to `memory_add` signature in `mcp_server/server.py`
+- Pass-through `person_ids=person_ids` to `client.add_memory(...)` — identical pattern to WP-052
+- Unit test `test_u9_memory_add_passes_person_ids` — mock verifies full kwarg pass-through
+- Integration test `test_i7_memory_add_person_ids_creates_about_edges` — live stack confirms ABOUT edges created for both supplied person IDs
+- Simplify: replaced raw Cypher cleanup in test with `cleanup_nodes` helper (consistent with `test_i6`)
+
+**Retrospective:** Minimal, clean change. WP-052 pattern made this trivial. Simplify surfaced a test-cleanup inconsistency that was easy to fix. Two-stage review passed with no spec gaps.
+
+---
+
 ### WP-094 — ADR-001 alignment: rename, feature flag, independent embedding model ✅
 
 > **Completed 2026-04-02.**
