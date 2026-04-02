@@ -1,7 +1,12 @@
 # tests/test_wp093_agent_search.py
 """Tests for WP-093: agent-optimised search."""
-import pytest
+import json
 
+import httpx
+import pytest
+import respx
+
+from memory_client.client import MemoryClient
 from tests.conftest import cleanup_nodes
 
 _AGENT_ID = "test-agent-wp093"
@@ -312,12 +317,6 @@ class TestAssociatedExpansion:
 # ---------------------------------------------------------------------------
 # Task 4 — Unit: MemoryClient passes new params
 # ---------------------------------------------------------------------------
-import json
-import httpx
-import respx
-
-from memory_client.client import MemoryClient
-
 _BASE_URL = "http://localhost:8000"
 
 
