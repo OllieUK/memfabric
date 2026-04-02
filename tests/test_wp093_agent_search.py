@@ -74,3 +74,87 @@ class TestScoreExposure:
                 _cleanup(test_driver, mid)
             with test_driver.session() as session:
                 session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+
+
+# ---------------------------------------------------------------------------
+# Task 2 — Integration: min_score filter
+# ---------------------------------------------------------------------------
+class TestMinScoreFilter:
+    @pytest.mark.integration
+    def test_min_score_filters_low_hits(self, client, test_driver):
+        """Only hits with score >= min_score are returned."""
+        mid = None
+        try:
+            r = client.post("/memory", json=_add_body("WP093 min_score test unique abc"))
+            mid = r.json()["memory_id"]
+
+            # Search with impossibly high min_score
+            r2 = client.post("/memory/search", json={
+                "query": "completely unrelated topic about marine biology",
+                "min_score": 0.99,
+                "limit": 10,
+            })
+            assert r2.status_code == 200
+            hits = r2.json()["memories"]
+            # All returned hits should have score >= 0.99
+            for h in hits:
+                assert h["score"] >= 0.99
+        finally:
+            if mid:
+                _cleanup(test_driver, mid)
+
+    @pytest.mark.integration
+    def test_min_score_empty_list_valid(self, client, test_driver):
+        """min_score that excludes everything returns empty list, not error."""
+        r = client.post("/memory/search", json={
+            "query": "random query for wp093",
+            "min_score": 0.9999,
+            "limit": 10,
+        })
+        assert r.status_code == 200
+        # Empty list is valid
+        assert isinstance(r.json()["memories"], list)
+
+    @pytest.mark.integration
+    def test_min_score_ignored_with_person_ids(self, client, test_driver):
+        """min_score is ignored when person_ids is set."""
+        mid = None
+        person_id = "person-wp093-minscore"
+        try:
+            r = client.post("/memory", json=_add_body(
+                "WP093 person min_score bypass", person_ids=[person_id],
+            ))
+            mid = r.json()["memory_id"]
+
+            r2 = client.post("/memory/search", json={
+                "query": "anything",
+                "person_ids": [person_id],
+                "min_score": 0.99,
+                "limit": 10,
+            })
+            assert r2.status_code == 200
+            hits = r2.json()["memories"]
+            hit_ids = [h["id"] for h in hits]
+            assert mid in hit_ids
+        finally:
+            if mid:
+                _cleanup(test_driver, mid)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+
+    @pytest.mark.integration
+    def test_no_min_score_returns_all(self, client, test_driver):
+        """Omitting min_score returns all results (backward compatible)."""
+        mid = None
+        try:
+            r = client.post("/memory", json=_add_body("WP093 no min_score test"))
+            mid = r.json()["memory_id"]
+
+            r2 = client.post("/memory/search", json={
+                "query": "WP093 no min_score test", "limit": 10,
+            })
+            assert r2.status_code == 200
+            assert len(r2.json()["memories"]) >= 1
+        finally:
+            if mid:
+                _cleanup(test_driver, mid)

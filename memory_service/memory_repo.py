@@ -304,6 +304,9 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
             min_importance=req.min_importance,
         )
 
+    min_score = getattr(req, "min_score", None)
+    use_min_score = min_score is not None and not req.person_ids
+
     seen: set[str] = set()
     rows = []
     for record in result:
@@ -311,6 +314,12 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
         if rid in seen:
             continue
         seen.add(rid)
+
+        score = round(1.0 - record["distance"], 4) if "distance" in record.keys() else None
+
+        if use_min_score and score is not None and score < min_score:
+            continue
+
         rows.append(
             {
                 "id": rid,
@@ -320,7 +329,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
                 "importance": record["importance"],
                 "strand_ids": list(record["strand_ids"]),
                 "neighbours": record["neighbours"],
-                "score": round(1.0 - record["distance"], 4) if "distance" in record.keys() else None,
+                "score": score,
             }
         )
     return rows

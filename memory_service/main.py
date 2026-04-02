@@ -163,6 +163,7 @@ class SearchMemoryRequest(BaseModel):
     max_hops: int = Field(default=1, ge=0, le=3)
     traversal_direction: Literal["none", "causes", "effects", "both"] = "none"
     min_importance: Optional[int] = Field(default=None, ge=1, le=5)
+    min_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class MemoryHit(BaseModel):
