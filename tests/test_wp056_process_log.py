@@ -324,6 +324,104 @@ class TestOperationLogClientMethod:
         assert result == []
 
 
+_AGENT_ID = "engineering-implementer"
+_TAG = "wp056-integration-test"
+
+
+@pytest.mark.integration
+class TestOperationLogIntegration:
+    """Live-stack integration tests for GET /memory/operation/log."""
+
+    def _add_memory(self, client, text: str) -> str:
+        r = client.post("/memory", json={"text": text, "type": "fact", "agent_id": _AGENT_ID})
+        assert r.status_code == 200, r.text
+        return r.json()["memory_id"]
+
+    def _find_entry(self, client, *, operation: str, memory_id: str) -> dict | None:
+        r = client.get("/memory/operation/log")
+        assert r.status_code == 200, r.text
+        entries = r.json()["entries"]
+        matches = [e for e in entries if e.get("operation") == operation and e.get("memory_id") == memory_id]
+        return matches[-1] if matches else None
+
+    def test_log_endpoint_returns_200(self, client, test_driver):
+        r = client.get("/memory/operation/log")
+        assert r.status_code == 200
+        assert "entries" in r.json()
+
+    def test_update_creates_log_entry(self, client, test_driver):
+        from tests.conftest import cleanup_nodes
+        mid = None
+        try:
+            mid = self._add_memory(client, f"wp056 integration update test {_TAG}")
+            r = client.patch(f"/memory/{mid}", json={"tags": [_TAG]})
+            assert r.status_code == 200, r.text
+            entry = self._find_entry(client, operation="update", memory_id=mid)
+            assert entry is not None, "No log entry found for update operation"
+            assert "tags" in entry["fields_updated"]
+        finally:
+            if mid:
+                cleanup_nodes(test_driver, mid, extra_ids={"Agent": _AGENT_ID})
+
+    def test_archive_creates_log_entry(self, client, test_driver):
+        from tests.conftest import cleanup_nodes
+        mid = None
+        try:
+            mid = self._add_memory(client, f"wp056 integration archive test {_TAG}")
+            r = client.post(f"/memory/{mid}/archive")
+            assert r.status_code == 200, r.text
+            entry = self._find_entry(client, operation="archive", memory_id=mid)
+            assert entry is not None, "No log entry found for archive operation"
+        finally:
+            if mid:
+                cleanup_nodes(test_driver, mid, extra_ids={"Agent": _AGENT_ID})
+
+    def test_restore_creates_log_entry(self, client, test_driver):
+        from tests.conftest import cleanup_nodes
+        mid = None
+        try:
+            mid = self._add_memory(client, f"wp056 integration restore test {_TAG}")
+            client.post(f"/memory/{mid}/archive")
+            r = client.post(f"/memory/{mid}/restore")
+            assert r.status_code == 200, r.text
+            entry = self._find_entry(client, operation="restore", memory_id=mid)
+            assert entry is not None, "No log entry found for restore operation"
+        finally:
+            if mid:
+                cleanup_nodes(test_driver, mid, extra_ids={"Agent": _AGENT_ID})
+
+    def test_merge_creates_log_entry(self, client, test_driver):
+        from tests.conftest import cleanup_nodes
+        import uuid
+        src_id = None
+        tgt_id = None
+        try:
+            uid = uuid.uuid4().hex[:8]
+            src_id = self._add_memory(client, f"wp056 merge log source alpha {uid}")
+            tgt_id = self._add_memory(client, f"wp056 merge log target beta {uid}")
+            r = client.post(f"/memory/{src_id}/merge", json={"target_id": tgt_id, "strategy": "replace"})
+            assert r.status_code == 200, r.text
+            entry = self._find_entry(client, operation="merge", memory_id=src_id)
+            assert entry is not None, "No log entry found for merge operation"
+            assert entry["target_id"] == tgt_id
+        finally:
+            cleanup_nodes(test_driver, src_id, tgt_id, extra_ids={"Agent": _AGENT_ID})
+
+    def test_failed_op_does_not_write_log_entry(self, client, test_driver):
+        r_before = client.get("/memory/operation/log")
+        assert r_before.status_code == 200
+        count_before = len(r_before.json()["entries"])
+
+        # Patch with fact triggers the existence check path, returning 404 for unknown ids
+        r = client.patch("/memory/00000000-0000-0000-0000-000000000000", json={"fact": "x"})
+        assert r.status_code == 404
+
+        r_after = client.get("/memory/operation/log")
+        assert r_after.status_code == 200
+        count_after = len(r_after.json()["entries"])
+        assert count_after == count_before
+
+
 class TestMcpOperationLogTool:
     def test_returns_formatted_entries(self, monkeypatch):
         from mcp_server.server import memory_operation_log
