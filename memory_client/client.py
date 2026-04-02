@@ -271,6 +271,19 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["entries"]
 
+    def find_duplicates(
+        self, *, threshold: float | None = None, limit: int | None = None
+    ) -> list[dict]:
+        """GET /memory/duplicates. Returns near-duplicate pairs."""
+        params: dict = {}
+        if threshold is not None:
+            params["threshold"] = threshold
+        if limit is not None:
+            params["limit"] = limit
+        response = self._http.get("/memory/duplicates", params=params)
+        response.raise_for_status()
+        return response.json()
+
     def get_graph(
         self,
         *,

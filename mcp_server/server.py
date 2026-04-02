@@ -5,7 +5,8 @@ Exposes tools via FastMCP over STDIO transport:
   memory_list_persons, memory_create_person,
   memory_list_projects, memory_create_project,
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
-  memory_update, memory_archive, memory_restore, memory_merge
+  memory_update, memory_archive, memory_restore, memory_merge,
+  memory_find_duplicates
 """
 from datetime import datetime, timezone
 from itertools import groupby
@@ -361,6 +362,15 @@ def memory_merge(source_id: str, target_id: str) -> dict:
     Returns {source_id, target_id}."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.merge_memory(source_id, target_id)
+
+
+@mcp.tool
+def memory_find_duplicates(
+    threshold: float | None = None, limit: int | None = None
+) -> list[dict]:
+    """Find near-duplicate memory pairs above a similarity threshold for review and merge."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.find_duplicates(threshold=threshold, limit=limit)
 
 
 @mcp.tool

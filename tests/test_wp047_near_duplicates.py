@@ -129,3 +129,86 @@ class TestDuplicatesEndpoint:
         r = client.get("/memory/duplicates")
         assert r.status_code == 200
         assert isinstance(r.json(), list)
+
+
+import httpx
+import respx
+from unittest.mock import MagicMock, patch
+from typer.testing import CliRunner
+
+from memory_client.cli import app as cli_app
+from memory_client.client import MemoryClient
+
+_BASE_URL = "http://localhost:8000"
+_cli_runner = CliRunner()
+
+_SAMPLE_PAIRS = [
+    {
+        "a": {"id": "id-1", "text": "Memory one"},
+        "b": {"id": "id-2", "text": "Memory two"},
+        "similarity": 0.95,
+    }
+]
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — Unit: client, CLI, MCP
+# ---------------------------------------------------------------------------
+class TestClientFindDuplicates:
+    @respx.mock
+    def test_find_duplicates_default(self):
+        respx.get(f"{_BASE_URL}/memory/duplicates").mock(
+            return_value=httpx.Response(200, json=_SAMPLE_PAIRS)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            result = client.find_duplicates()
+        assert len(result) == 1
+        assert result[0]["similarity"] == 0.95
+
+    @respx.mock
+    def test_find_duplicates_with_params(self):
+        respx.get(f"{_BASE_URL}/memory/duplicates").mock(
+            return_value=httpx.Response(200, json=_SAMPLE_PAIRS)
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.find_duplicates(threshold=0.90, limit=5)
+        req = respx.calls.last.request
+        assert "threshold=0.9" in str(req.url)
+        assert "limit=5" in str(req.url)
+
+
+class TestCliFindDuplicates:
+    @respx.mock
+    def test_find_duplicates_output(self):
+        respx.get(f"{_BASE_URL}/memory/duplicates").mock(
+            return_value=httpx.Response(200, json=_SAMPLE_PAIRS)
+        )
+        result = _cli_runner.invoke(cli_app, ["find-duplicates"])
+        assert result.exit_code == 0
+        assert "0.95" in result.output
+        assert "id-1" in result.output
+
+    @respx.mock
+    def test_find_duplicates_empty(self):
+        respx.get(f"{_BASE_URL}/memory/duplicates").mock(
+            return_value=httpx.Response(200, json=[])
+        )
+        result = _cli_runner.invoke(cli_app, ["find-duplicates"])
+        assert result.exit_code == 0
+        assert "No near-duplicate" in result.output
+
+
+class TestMcpFindDuplicates:
+    def test_find_duplicates_calls_client(self):
+        from mcp_server.server import memory_find_duplicates
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.find_duplicates.return_value = _SAMPLE_PAIRS
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_find_duplicates()
+
+        mock_client.find_duplicates.assert_called_once_with(threshold=None, limit=None)
+        assert len(result) == 1

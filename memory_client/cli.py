@@ -520,6 +520,43 @@ def restore_memory(
         raise typer.Exit(1)
 
 
+@app.command("find-duplicates")
+def find_duplicates(
+    threshold: Optional[float] = typer.Option(None, "--threshold", "-t", help="Similarity threshold (0-1)"),
+    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Max pairs to return"),
+) -> None:
+    """Find near-duplicate memory pairs for review."""
+    try:
+        with _make_client() as client:
+            pairs = client.find_duplicates(threshold=threshold, limit=limit)
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    if not pairs:
+        console.print("No near-duplicate pairs found.")
+        return
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("Similarity", style="bold")
+    table.add_column("Memory A ID", style="dim")
+    table.add_column("Memory A Text")
+    table.add_column("Memory B ID", style="dim")
+    table.add_column("Memory B Text")
+    for p in pairs:
+        table.add_row(
+            f"{p['similarity']:.4f}",
+            p["a"]["id"][:12],
+            p["a"]["text"][:60],
+            p["b"]["id"][:12],
+            p["b"]["text"][:60],
+        )
+    console.print(table)
+
+
 @app.command("dump-graph")
 def dump_graph(
     project_id: Optional[str] = typer.Option(None, "--project-id", help="Filter by project ID"),
