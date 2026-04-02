@@ -219,3 +219,62 @@ class TestCliCreateProject:
         )
         assert result.exit_code == 0
         assert _PROJECT_ID_A in result.output
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — Unit tests: MCP tools memory_list_projects / memory_create_project
+# ---------------------------------------------------------------------------
+from unittest.mock import MagicMock, patch
+
+
+class TestMcpListProjects:
+    def test_list_projects_calls_client(self):
+        from mcp_server.server import memory_list_projects
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.list_projects.return_value = [
+            {"id": "proj-a", "name": "Project A", "description": None},
+        ]
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_list_projects()
+
+        mock_client.list_projects.assert_called_once()
+        assert len(result) == 1
+        assert result[0]["id"] == "proj-a"
+
+
+class TestMcpCreateProject:
+    def test_create_project_passes_args(self):
+        from mcp_server.server import memory_create_project
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.create_project.return_value = {
+            "id": "proj-a", "name": "Project A", "description": None,
+        }
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_create_project("proj-a", "Project A")
+
+        mock_client.create_project.assert_called_once_with("proj-a", "Project A", description=None)
+        assert result["id"] == "proj-a"
+
+    def test_create_project_with_description(self):
+        from mcp_server.server import memory_create_project
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.create_project.return_value = {
+            "id": "proj-a", "name": "Project A", "description": "A desc",
+        }
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_create_project("proj-a", "Project A", description="A desc")
+
+        mock_client.create_project.assert_called_once_with("proj-a", "Project A", description="A desc")
+        assert result["description"] == "A desc"

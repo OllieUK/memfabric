@@ -3,6 +3,7 @@
 Exposes tools via FastMCP over STDIO transport:
   memory_add, memory_search, memory_wake_up, memory_list_strands, memory_close_session,
   memory_list_persons, memory_create_person,
+  memory_list_projects, memory_create_project,
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
   memory_update, memory_archive, memory_restore, memory_merge
 """
@@ -166,6 +167,20 @@ def memory_create_person(person_id: str, name: str, description: str | None = No
     """Create or merge a Person node. Returns the person dict."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.create_person(person_id, name, description=description)
+
+
+@mcp.tool
+def memory_list_projects() -> list[dict]:
+    """Return all Project nodes. Use project IDs when calling memory_add."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.list_projects()
+
+
+@mcp.tool
+def memory_create_project(project_id: str, name: str, description: str | None = None) -> dict:
+    """Create or merge a Project node. Returns the project dict."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.create_project(project_id, name, description=description)
 
 
 @mcp.tool
