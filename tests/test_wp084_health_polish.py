@@ -1,7 +1,8 @@
 """Unit tests for WP-084: /health version/build fields and add_memory strand_ids response."""
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from fastapi.testclient import TestClient
+from tests.conftest import make_mock_driver
 
 
 # ---------------------------------------------------------------------------
@@ -88,12 +89,8 @@ class TestAddMemoryStrandIdsResponse:
     def test_deduplicated_response_has_empty_strand_ids(self):
         """When a memory is deduplicated, strand_ids in response is []."""
         from memory_service.main import app
-        from unittest.mock import patch, MagicMock
         existing_id = "existing-mem-id-001"
-        mock_driver = MagicMock()
-        mock_session = MagicMock()
-        mock_driver.session.return_value.__enter__ = MagicMock(return_value=mock_session)
-        mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+        mock_driver, _ = make_mock_driver()
 
         with patch("memory_service.main.memory_repo") as mock_repo, \
              patch("memory_service.main.get_embedding", return_value=[0.1] * 384):

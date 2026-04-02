@@ -28,7 +28,7 @@ def _get_build_hash() -> str:
             check=True,
         )
         return result.stdout.strip()[:7]
-    except Exception:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, OSError):
         return "unknown"
 
 
@@ -140,7 +140,7 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                     now_iso=now,
                     consolidated_decay_rate=settings.memory_consolidated_decay_rate,
                 )
-                return AddMemoryResponse(memory_id=existing_id, deduplicated=True, strand_ids=[])
+                return AddMemoryResponse(memory_id=existing_id, deduplicated=True)
             memory_id = str(uuid.uuid4())
             memory_repo.add_memory(
                 session, req, memory_id, embedding, now,
