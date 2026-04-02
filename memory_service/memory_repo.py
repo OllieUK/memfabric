@@ -1149,6 +1149,54 @@ def append_maintenance_log(session, entry: dict) -> None:
     )
 
 
+_OPERATION_LOG_CAP = 200
+
+
+def get_operation_log(session) -> list:
+    """Return the operation audit log from the System node as a list of dicts.
+
+    Returns a parsed list. Empty list if not set, null, or unparseable.
+    System node is expected to be a singleton (id="system").
+    """
+    result = session.run(
+        """
+        OPTIONAL MATCH (sys:System {id: "system"})
+        RETURN sys.operation_log AS operation_log
+        """
+    )
+    record = result.single()
+    if record is None:
+        return []
+    raw = record["operation_log"]
+    if raw is None:
+        return []
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        return []
+
+
+def append_operation_log(session, entry: dict) -> None:
+    """Append an audit entry to the System node operation_log (capped at 200).
+
+    Reads current log, appends entry, caps at _OPERATION_LOG_CAP (oldest dropped),
+    and writes back within the same session. entry must be JSON-serialisable.
+    System node is expected to be a singleton (id="system").
+    """
+    existing = get_operation_log(session)
+    existing.append(entry)
+    if len(existing) > _OPERATION_LOG_CAP:
+        existing = existing[-_OPERATION_LOG_CAP:]
+    log_json = json.dumps(existing)
+    session.run(
+        """
+        MERGE (sys:System {id: "system"})
+        SET sys.operation_log = $log_json
+        """,
+        log_json=log_json,
+    )
+
+
 def short_rest(
     session,
     now_iso: str,
