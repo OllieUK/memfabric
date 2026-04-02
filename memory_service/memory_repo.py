@@ -12,6 +12,48 @@ _AUTO_RELATED_K = 5
 _AUTO_RELATED_MAX_DISTANCE = 0.5
 
 
+def cosine_similarity(a: list, b: list) -> float:
+    if not a or not b:
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(x * x for x in b))
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return dot / (norm_a * norm_b)
+
+
+def find_near_duplicates(session, threshold: float, limit: int) -> list[dict]:
+    result = session.run(
+        """
+        MATCH (a:Memory)-[r:RELATED_TO]->(b:Memory)
+        WHERE (a.status IS NULL OR a.status = 'active')
+          AND (b.status IS NULL OR b.status = 'active')
+          AND (a.ephemeral IS NULL OR a.ephemeral = false)
+          AND (b.ephemeral IS NULL OR b.ephemeral = false)
+          AND a.embedding IS NOT NULL AND size(a.embedding) > 0
+          AND b.embedding IS NOT NULL AND size(b.embedding) > 0
+          AND a.id < b.id
+        RETURN a.id AS a_id, a.text AS a_text,
+               b.id AS b_id, b.text AS b_text,
+               a.embedding AS a_emb, b.embedding AS b_emb
+        """
+    )
+
+    pairs = []
+    for record in result:
+        sim = cosine_similarity(record["a_emb"], record["b_emb"])
+        if sim >= threshold:
+            pairs.append({
+                "a": {"id": record["a_id"], "text": record["a_text"]},
+                "b": {"id": record["b_id"], "text": record["b_text"]},
+                "similarity": round(sim, 4),
+            })
+
+    pairs.sort(key=lambda p: p["similarity"], reverse=True)
+    return pairs[:limit]
+
+
 def add_memory(
     session,
     req,
