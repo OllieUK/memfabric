@@ -34,3 +34,22 @@ def test_config_has_enable_knowledge_layer_default_false():
     from memory_service.config import Settings
     s = Settings()
     assert s.enable_knowledge_layer is False
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — migrate_embeddings (WP-094)
+# ---------------------------------------------------------------------------
+
+def test_migrate_embeddings_does_not_include_memory_label():
+    """Memory nodes must not be in EMBEDDABLE_LABELS — episodic migration is independent."""
+    from scripts.migrate_embeddings import EMBEDDABLE_LABELS
+    labels = [label for label, _ in EMBEDDABLE_LABELS]
+    assert "Memory" not in labels, "Memory must not be in EMBEDDABLE_LABELS after WP-094"
+
+
+def test_migrate_embeddings_includes_knowledge_labels():
+    """Control and Chunk nodes must remain in EMBEDDABLE_LABELS."""
+    from scripts.migrate_embeddings import EMBEDDABLE_LABELS
+    labels = [label for label, _ in EMBEDDABLE_LABELS]
+    assert "Control" in labels
+    assert "Chunk" in labels
