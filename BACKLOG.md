@@ -25,8 +25,7 @@
 
 | Priority | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |----------|---------|----|-------|-------|--------|----------------|------------|-------|
-| 1 | R1 | WP-087 | Expose `person_ids` in MCP `memory_add` | M | L | 2.0 | WP-052 ✅ | The MCP `memory_add` tool does not expose `person_ids`, meaning memories cannot be linked to people at creation time via the MCP surface. The HTTP API and Python client both support it. One-parameter addition to the MCP wrapper + unit test (mock) + integration test (live stack, verify ABOUT edge created). Identical pattern to WP-052. |
-| 2 | R1 | WP-093 | Agent-optimised search: score exposure, min_score filter, associative expansion | H | M | 1.7 | WP-029 ✅ | Supersedes WP-082. Three coordinated additions to `POST /memory/search`: (1) expose cosine similarity as `score` (0–1) on each `MemoryHit` so callers can distinguish tight matches from marginal ones; (2) add `min_score` filter — only hits ≥ threshold are returned as primary hits, empty list is valid (not an error); (3) add `neighbour_cap` parameter — for each primary hit follow outbound `RELATED_TO`/`LEADS_TO` edges by weight desc and return up to N hydrated nodes in a separate `associated` list per hit. Deduplication: a node that is a primary hit is excluded from all `associated` lists. Person-anchored path (`person_ids` set) returns `associated: []` and ignores `min_score`. `MemoryClient.search_memory()` updated to pass new params. MCP surface update is a follow-on task. See detail below. |
+| 1 | R1 | WP-093 | Agent-optimised search: score exposure, min_score filter, associative expansion | H | M | 1.7 | WP-029 ✅ | Supersedes WP-082. Three coordinated additions to `POST /memory/search`: (1) expose cosine similarity as `score` (0–1) on each `MemoryHit` so callers can distinguish tight matches from marginal ones; (2) add `min_score` filter — only hits ≥ threshold are returned as primary hits, empty list is valid (not an error); (3) add `neighbour_cap` parameter — for each primary hit follow outbound `RELATED_TO`/`LEADS_TO` edges by weight desc and return up to N hydrated nodes in a separate `associated` list per hit. Deduplication: a node that is a primary hit is excluded from all `associated` lists. Person-anchored path (`person_ids` set) returns `associated: []` and ignores `min_score`. `MemoryClient.search_memory()` updated to pass new params. MCP surface update is a follow-on task. See detail below. |
 | 3 | R1 | WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | H | M | 1.5 | WP-040 ✅ | Move maintenance from manual CLI usage to real routine care. Add a scheduler or documented host-level automation path that runs `short-rest` on a frequent cadence and `long-rest` on a slower cadence, with safe defaults, dry-run support for rollout, and clear operational docs. |
 | 4 | R1 | WP-047 | Near-duplicate detection for memory review | H | M | 1.5 | WP-038 ✅ | Surface semantically similar memories (cosine similarity above configurable threshold) so they can be reviewed and merged via WP-038 merge endpoint. Feeds into short-rest/long-rest cleanup loop. See detail below. |
 | 5 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.5 | WP-038 ✅ | Prevent test artefacts polluting live context. See detail below. |
@@ -254,6 +253,20 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - 25 tests: 15 unit + 10 integration, all passing against live stack
 
 **Retrospective:** Mirror pattern was exactly right — each layer (repo → endpoint → client → CLI → MCP) was straightforward once the Person precedent existed. The two-stage code review process caught: missing `@pytest.mark.integration` marks (Task 3), a fragile `_Adapter` base class (Task 7), missing status assertions in integration tests, and a mid-file stdlib import. Worth the review overhead. Simplify surfaced `try/finally` missing from `TestPostProjectEndpoint` and raw string literals duplicating constants.
+
+---
+
+### WP-087 — Expose `person_ids` in MCP `memory_add` ✅
+
+> **Completed 2026-04-02.**
+
+- Added `person_ids: list[str] | None = None` to `memory_add` signature in `mcp_server/server.py`
+- Pass-through `person_ids=person_ids` to `client.add_memory(...)` — identical pattern to WP-052
+- Unit test `test_u9_memory_add_passes_person_ids` — mock verifies full kwarg pass-through
+- Integration test `test_i7_memory_add_person_ids_creates_about_edges` — live stack confirms ABOUT edges created for both supplied person IDs
+- Simplify: replaced raw Cypher cleanup in test with `cleanup_nodes` helper (consistent with `test_i6`)
+
+**Retrospective:** Minimal, clean change. WP-052 pattern made this trivial. Simplify surfaced a test-cleanup inconsistency that was easy to fix. Two-stage review passed with no spec gaps.
 
 ---
 
