@@ -1,4 +1,5 @@
 import json
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -224,8 +225,6 @@ class TestCliCreateProject:
 # ---------------------------------------------------------------------------
 # Task 6 — Unit tests: MCP tools memory_list_projects / memory_create_project
 # ---------------------------------------------------------------------------
-from unittest.mock import MagicMock, patch
-
 
 class TestMcpListProjects:
     def test_list_projects_calls_client(self):
