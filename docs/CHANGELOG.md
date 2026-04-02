@@ -4,6 +4,22 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-093 — Agent-optimised search: score, min_score, associated expansion
+
+**Completed:** 2026-04-02
+
+- `POST /memory/search` now returns `score: float | null` on each `MemoryHit` — computed as `1.0 - cosine_distance`, rounded to 4 dp; `null` for person-anchored hits (no vector distance)
+- New `min_score: float (0–1)` filter on `SearchMemoryRequest` — only primary hits ≥ threshold returned; ignored when `person_ids` is set; empty list is a valid (non-error) result
+- New `neighbour_cap: int (0–10, default 3)` on `SearchMemoryRequest` — for each primary hit, up to N associated `Memory` nodes are returned via outbound `RELATED_TO`/`LEADS_TO` edges ordered by edge weight DESC; primary hits excluded from all `associated` lists; person-anchored path always returns `associated: []`
+- `AssociatedMemoryHit` Pydantic model added: `id`, `text`, `type`, `importance`, `edge_weight`
+- `fetch_associated()` added to `memory_repo.py` — single UNWIND query for all primary IDs, Python-side cap per source
+- `MemoryClient.search_memory()` updated with `min_score` and `neighbour_cap` keyword params (backward compatible)
+- MCP surface update deferred (follow-on task)
+
+**Retrospective:** TDD worked well across all four tasks. The main complexity was the `associated` dedup logic — primary hits must be excluded from their own `associated` lists, which interacts with `min_score`. Using `min_score=0.95` in the associated expansion tests was the key insight to keep test semantics clean. `RELATED_TO` edge directionality is asymmetric at ingest time; documented in code rather than fixed (fixing would require undirected matching with different semantics for `LEADS_TO`). Simplify review caught two clean-ups: unnecessary `getattr()` replaced with direct attribute access, double `results` iteration collapsed to single pass.
+
+---
+
 ## WP-084 — API health and response polish
 
 **Completed:** 2026-04-02
