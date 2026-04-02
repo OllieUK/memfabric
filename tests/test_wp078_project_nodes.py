@@ -172,3 +172,50 @@ class TestClientCreateProject:
         # Verify description was sent in request body
         req_body = json.loads(respx.calls.last.request.content)
         assert req_body["description"] == "A desc"
+
+
+# ---------------------------------------------------------------------------
+# Task 5 — Unit tests: CLI list-projects / create-project
+# ---------------------------------------------------------------------------
+class TestCliListProjects:
+    @respx.mock
+    def test_list_projects_table_output(self):
+        respx.get(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json=_PROJECTS_RESPONSE)
+        )
+        result = _cli_runner.invoke(cli_app, ["list-projects"])
+        assert result.exit_code == 0
+        assert "test-project-wp078-a" in result.output
+        assert "Test Project A" in result.output
+
+    @respx.mock
+    def test_list_projects_empty(self):
+        respx.get(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json={"projects": []})
+        )
+        result = _cli_runner.invoke(cli_app, ["list-projects"])
+        assert result.exit_code == 0
+        assert "No projects found" in result.output
+
+
+class TestCliCreateProject:
+    @respx.mock
+    def test_create_project_prints_id(self):
+        respx.post(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json=_CREATE_PROJECT_RESPONSE)
+        )
+        result = _cli_runner.invoke(cli_app, ["create-project", _PROJECT_ID_A, "--name", "Test Project A"])
+        assert result.exit_code == 0
+        assert _PROJECT_ID_A in result.output
+
+    @respx.mock
+    def test_create_project_with_description(self):
+        expected = {**_CREATE_PROJECT_RESPONSE, "description": "A desc"}
+        respx.post(f"{_BASE_URL}/project").mock(
+            return_value=httpx.Response(200, json=expected)
+        )
+        result = _cli_runner.invoke(
+            cli_app, ["create-project", _PROJECT_ID_A, "--name", "Test Project A", "--description", "A desc"]
+        )
+        assert result.exit_code == 0
+        assert _PROJECT_ID_A in result.output
