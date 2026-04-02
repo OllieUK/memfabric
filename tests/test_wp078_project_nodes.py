@@ -311,7 +311,8 @@ class TestProjectIntegration:
     def test_upsert_updates_name_and_description(self, client, test_driver):
         """POST /project with existing id updates name and description."""
         try:
-            client.post("/project", json={"id": _PROJECT_ID_A, "name": "Original"})
+            r_initial = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Original"})
+            assert r_initial.status_code == 200
             r = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Updated", "description": "New"})
             assert r.status_code == 200
             data = r.json()
@@ -338,6 +339,7 @@ class TestProjectIntegration:
                 "project_id": _PROJECT_ID_A,
                 "importance": 1,
             })
+            assert r.status_code == 200
             memory_id = r.json()["memory_id"]
 
             # Enrich via POST /project
@@ -359,7 +361,7 @@ class TestProjectIntegration:
         from memory_client.client import MemoryClient as RealMemoryClient
 
         # Adapter wraps the TestClient so MCP functions hit the in-process app
-        class _Adapter(RealMemoryClient):
+        class _Adapter:
             def __init__(self, tc, **_):
                 self._tc = tc
 
