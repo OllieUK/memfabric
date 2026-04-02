@@ -274,7 +274,6 @@ class TestPostMemoryStrandIdsInResponse:
     """Integration: strand_ids returned in POST /memory response."""
 
     def test_strand_ids_in_response_when_linked(self, client, test_driver):
-        import uuid
         suffix = uuid.uuid4()
         seeded_strand_id = "strand-core-health"
         resp = client.post("/memory", json={
@@ -290,7 +289,6 @@ class TestPostMemoryStrandIdsInResponse:
         cleanup_nodes(test_driver, data["memory_id"])
 
     def test_strand_ids_empty_when_none_requested(self, client, test_driver):
-        import uuid
         suffix = uuid.uuid4()
         resp = client.post("/memory", json={
             "fact": f"memory with no strands {suffix}",
