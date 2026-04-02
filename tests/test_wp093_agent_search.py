@@ -190,9 +190,9 @@ class TestAssociatedExpansion:
             assert r3.status_code == 200
             hits = r3.json()["memories"]
             hit_b = next((h for h in hits if h["id"] == mid_b), None)
-            if hit_b is not None:
-                assoc_ids = [a["id"] for a in hit_b.get("associated", [])]
-                assert mid_a in assoc_ids
+            assert hit_b is not None, f"mid_b {mid_b} not in primary hits {[h['id'] for h in hits]}"
+            assoc_ids = [a["id"] for a in hit_b.get("associated", [])]
+            assert mid_a in assoc_ids
         finally:
             if mid_a:
                 _cleanup(test_driver, mid_a)
@@ -212,17 +212,21 @@ class TestAssociatedExpansion:
             ))
             mid_b = r2.json()["memory_id"]
 
+            # Use min_score=0.95 so only mid_b (exact match) hits as primary;
+            # mid_a stays out of primary hits and can appear in associated.
             r3 = client.post("/memory/search", json={
                 "query": "WP093 weight test related",
                 "limit": 5,
                 "neighbour_cap": 3,
+                "min_score": 0.95,
             })
             hits = r3.json()["memories"]
             hit_b = next((h for h in hits if h["id"] == mid_b), None)
-            if hit_b and hit_b.get("associated"):
-                for a in hit_b["associated"]:
-                    assert "edge_weight" in a
-                    assert isinstance(a["edge_weight"], (int, float))
+            assert hit_b is not None, f"mid_b {mid_b} not in primary hits"
+            assert len(hit_b.get("associated", [])) >= 1, "expected at least one associated entry"
+            for a in hit_b["associated"]:
+                assert "edge_weight" in a
+                assert isinstance(a["edge_weight"], (int, float))
         finally:
             if mid_a:
                 _cleanup(test_driver, mid_a)
