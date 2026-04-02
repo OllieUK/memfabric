@@ -143,6 +143,21 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()
 
+    def list_projects(self) -> list[dict]:
+        """GET /project. Returns list of project dicts: id, name, description."""
+        response = self._http.get("/project")
+        response.raise_for_status()
+        return response.json()["projects"]
+
+    def create_project(self, project_id: str, name: str, description: str | None = None) -> dict:
+        """POST /project. Creates or merges a Project node. Returns project dict."""
+        body: dict = {"id": project_id, "name": name}
+        if description is not None:
+            body["description"] = description
+        response = self._http.post("/project", json=body)
+        response.raise_for_status()
+        return response.json()
+
     def reinforce_memory(
         self,
         memory_id: str,

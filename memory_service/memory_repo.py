@@ -511,6 +511,37 @@ def upsert_person(session, req) -> dict:
     return {"id": record["id"], "name": record["name"], "description": record["description"]}
 
 
+def list_projects(session) -> list[dict]:
+    """Return all Project nodes with a non-null name, ordered by id."""
+    result = session.run(
+        "MATCH (p:Project) WHERE p.name IS NOT NULL "
+        "RETURN p.id AS id, p.name AS name, "
+        "p.description AS description ORDER BY p.id"
+    )
+    return [
+        {"id": r["id"], "name": r["name"], "description": r["description"]}
+        for r in result
+    ]
+
+
+def upsert_project(session, req) -> dict:
+    """Create or update a Project node by id. Returns the stored values."""
+    result = session.run(
+        """
+        MERGE (p:Project {id: $id})
+        SET p.name = $name, p.description = $description
+        RETURN p.id AS id, p.name AS name, p.description AS description
+        """,
+        id=req.id,
+        name=req.name,
+        description=req.description,
+    )
+    record = result.single()
+    if record is None:
+        raise RuntimeError(f"upsert_project: MERGE returned no record for id={req.id!r}")
+    return {"id": record["id"], "name": record["name"], "description": record["description"]}
+
+
 def get_memory_for_update(session, memory_id: str) -> dict | None:
     """Return current fact and so_what for an active memory, or None if not found/active."""
     result = session.run(
