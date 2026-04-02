@@ -1,5 +1,6 @@
 # memory_client/cli.py
 import json
+import sys
 from datetime import datetime, timezone
 from itertools import groupby
 from typing import Optional
@@ -539,6 +540,93 @@ def dump_graph(
     except httpx.ConnectError:
         err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
         raise typer.Exit(1)
+
+
+schedule_app = typer.Typer(help="Manage scheduled maintenance timers.")
+app.add_typer(schedule_app, name="schedule")
+
+
+@schedule_app.command("install")
+def schedule_install(
+    target_dir: str = typer.Option(
+        None, "--target-dir",
+        help="Directory for unit files (default: ~/.config/systemd/user)",
+    ),
+) -> None:
+    """Install systemd timer units for maintenance."""
+    from pathlib import Path
+
+    if target_dir is None:
+        target_dir = str(Path.home() / ".config" / "systemd" / "user")
+
+    target = Path(target_dir)
+    target.mkdir(parents=True, exist_ok=True)
+
+    templates_dir = Path(__file__).resolve().parent.parent / "scripts" / "templates"
+    project_dir = str(Path(__file__).resolve().parent.parent)
+    python_path = sys.executable
+
+    for template_file in templates_dir.glob("memory-*.service"):
+        content = template_file.read_text()
+        content = content.replace("{{PROJECT_DIR}}", project_dir)
+        content = content.replace("{{PYTHON}}", python_path)
+        (target / template_file.name).write_text(content)
+
+    for template_file in templates_dir.glob("memory-*.timer"):
+        content = template_file.read_text()
+        (target / template_file.name).write_text(content)
+
+    console.print(f"Installed timer units to {target_dir}")
+    console.print("Enable with:")
+    console.print("  systemctl --user enable --now memory-short-rest.timer")
+    console.print("  systemctl --user enable --now memory-long-rest.timer")
+
+
+@schedule_app.command("uninstall")
+def schedule_uninstall(
+    target_dir: str = typer.Option(
+        None, "--target-dir",
+        help="Directory containing unit files (default: ~/.config/systemd/user)",
+    ),
+) -> None:
+    """Remove installed systemd timer units."""
+    from pathlib import Path
+
+    if target_dir is None:
+        target_dir = str(Path.home() / ".config" / "systemd" / "user")
+
+    target = Path(target_dir)
+    removed = 0
+    for name in [
+        "memory-short-rest.service", "memory-short-rest.timer",
+        "memory-long-rest.service", "memory-long-rest.timer",
+    ]:
+        f = target / name
+        if f.exists():
+            f.unlink()
+            removed += 1
+
+    console.print(f"Removed {removed} unit files from {target_dir}")
+    console.print("Remember to run: systemctl --user daemon-reload")
+
+
+@schedule_app.command("status")
+def schedule_status() -> None:
+    """Show maintenance schedule status and last-run timestamps."""
+    try:
+        with _make_client() as client:
+            stats = client.maintenance_stats()
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    maint = stats.get("maintenance", {})
+    console.print("[bold]Maintenance Schedule Status[/bold]")
+    console.print(f"  Last short-rest: {maint.get('last_short_rest_at', 'never')}")
+    console.print(f"  Last long-rest:  {maint.get('last_long_rest_at', 'never')}")
 
 
 if __name__ == "__main__":
