@@ -307,3 +307,48 @@ class TestAssociatedExpansion:
         finally:
             if mid:
                 _cleanup(test_driver, mid)
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — Unit: MemoryClient passes new params
+# ---------------------------------------------------------------------------
+import json
+import httpx
+import respx
+
+from memory_client.client import MemoryClient
+
+_BASE_URL = "http://localhost:8000"
+
+
+class TestClientSearchParams:
+    @respx.mock
+    def test_passes_min_score(self):
+        respx.post(f"{_BASE_URL}/memory/search").mock(
+            return_value=httpx.Response(200, json={"memories": []})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.search_memory("test", min_score=0.8)
+        body = json.loads(respx.calls.last.request.content)
+        assert body["min_score"] == 0.8
+
+    @respx.mock
+    def test_passes_neighbour_cap(self):
+        respx.post(f"{_BASE_URL}/memory/search").mock(
+            return_value=httpx.Response(200, json={"memories": []})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.search_memory("test", neighbour_cap=5)
+        body = json.loads(respx.calls.last.request.content)
+        assert body["neighbour_cap"] == 5
+
+    @respx.mock
+    def test_omitting_new_params_backward_compatible(self):
+        respx.post(f"{_BASE_URL}/memory/search").mock(
+            return_value=httpx.Response(200, json={"memories": []})
+        )
+        with MemoryClient(base_url=_BASE_URL) as client:
+            client.search_memory("test")
+        body = json.loads(respx.calls.last.request.content)
+        assert "min_score" not in body
+        assert "neighbour_cap" not in body
