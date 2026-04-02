@@ -214,14 +214,15 @@ async def search_memory(
         with request.app.state.driver.session() as session:
             results = memory_repo.search_memories(session, req, query_embedding, settings.search_neighbour_cap)
             primary_ids = {r["id"] for r in results}
+            # Disable associated expansion for person-anchored path (no score, ABOUT edges only)
             cap = req.neighbour_cap if not req.person_ids else 0
             associated_map = memory_repo.fetch_associated(
-                session, [r["id"] for r in results], cap, primary_ids
+                session, list(primary_ids), cap, primary_ids
             )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 
-    memory_ids = [r["id"] for r in results]
+    memory_ids = list(primary_ids)
     if memory_ids:
         background_tasks.add_task(_do_recall_increment, request.app.state.driver, memory_ids)
 

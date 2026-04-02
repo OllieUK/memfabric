@@ -305,7 +305,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
             min_importance=req.min_importance,
         )
 
-    min_score = getattr(req, "min_score", None)
+    min_score = req.min_score
     use_min_score = min_score is not None and not req.person_ids
 
     seen: set[str] = set()
