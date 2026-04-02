@@ -350,12 +350,10 @@ def test_i7_memory_add_person_ids_creates_about_edges(test_driver):
         assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp087-a")
         assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp087-b")
     finally:
-        if memory_id:
-            cleanup_nodes(test_driver, memory_id)
-        # Clean up Person nodes
-        with test_driver.session() as session:
-            session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id="person-wp087-a")
-            session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id="person-wp087-b")
-        # Clean up Agent node
-        with test_driver.session() as session:
-            session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id="test-agent-wp087")
+        cleanup_nodes(
+            test_driver,
+            *(memory_id,) if memory_id else (),
+            extra_ids={"Person": "person-wp087-a"},
+        )
+        cleanup_nodes(test_driver, extra_ids={"Person": "person-wp087-b"})
+        cleanup_nodes(test_driver, extra_ids={"Agent": "test-agent-wp087"})
