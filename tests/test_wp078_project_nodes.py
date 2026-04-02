@@ -9,22 +9,23 @@ from typer.testing import CliRunner
 
 from memory_client.cli import app as cli_app
 from memory_client.client import MemoryClient
+from memory_service.main import CreateProjectRequest
 
 _BASE_URL = "http://localhost:8000"
-_PROJECTS_RESPONSE = {
-    "projects": [
-        {"id": "test-project-wp078-a", "name": "Test Project A", "description": None},
-        {"id": "test-project-wp078-b", "name": "Test Project B", "description": "Description B"},
-    ]
-}
-_CREATE_PROJECT_RESPONSE = {"id": "test-project-wp078-a", "name": "Test Project A", "description": None}
 
-_cli_runner = CliRunner()
-
-# Shared constants
 _PROJECT_ID_A = "test-project-wp078-a"
 _PROJECT_ID_B = "test-project-wp078-b"
 _AGENT_ID = "test-agent-wp078"
+
+_PROJECTS_RESPONSE = {
+    "projects": [
+        {"id": _PROJECT_ID_A, "name": "Test Project A", "description": None},
+        {"id": _PROJECT_ID_B, "name": "Test Project B", "description": "Description B"},
+    ]
+}
+_CREATE_PROJECT_RESPONSE = {"id": _PROJECT_ID_A, "name": "Test Project A", "description": None}
+
+_cli_runner = CliRunner()
 
 
 def _cleanup_projects(driver, *project_ids, memory_ids=()):
@@ -34,41 +35,32 @@ def _cleanup_projects(driver, *project_ids, memory_ids=()):
         cleanup_nodes(driver, *memory_ids)
     with driver.session() as session:
         session.run("MATCH (a:Agent {id: $id}) DETACH DELETE a", id=_AGENT_ID)
-    with driver.session() as session:
         for pid in project_ids:
             session.run("MATCH (p:Project {id: $id}) DETACH DELETE p", id=pid)
 
 
-# ---------------------------------------------------------------------------
-# Task 1 — Unit tests: CreateProjectRequest model
-# ---------------------------------------------------------------------------
+# --- Request model validation ---
 class TestCreateProjectRequestModel:
     def test_valid_request(self):
-        from memory_service.main import CreateProjectRequest
         req = CreateProjectRequest(id="proj-a", name="Project A")
         assert req.id == "proj-a"
         assert req.name == "Project A"
         assert req.description is None
 
     def test_valid_request_with_description(self):
-        from memory_service.main import CreateProjectRequest
         req = CreateProjectRequest(id="proj-a", name="Project A", description="A description")
         assert req.description == "A description"
 
     def test_missing_id_raises(self):
-        from memory_service.main import CreateProjectRequest
         with pytest.raises(ValidationError):
             CreateProjectRequest(name="Project A")
 
     def test_missing_name_raises(self):
-        from memory_service.main import CreateProjectRequest
         with pytest.raises(ValidationError):
             CreateProjectRequest(id="proj-a")
 
 
-# ---------------------------------------------------------------------------
-# Task 3 — Unit tests: GET /project endpoint
-# ---------------------------------------------------------------------------
+# --- Endpoint tests (integration) ---
 @pytest.mark.integration
 class TestGetProjectEndpoint:
     def test_returns_projects_list(self, client):
@@ -80,40 +72,43 @@ class TestGetProjectEndpoint:
         assert isinstance(data["projects"], list)
 
 
-# ---------------------------------------------------------------------------
-# Task 3 — Unit tests: POST /project endpoint
-# ---------------------------------------------------------------------------
 @pytest.mark.integration
 class TestPostProjectEndpoint:
     def test_create_project_returns_project(self, client, test_driver):
         """POST /project creates a project and returns it."""
-        body = {"id": _PROJECT_ID_A, "name": "Test Project A"}
-        response = client.post("/project", json=body)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["id"] == _PROJECT_ID_A
-        assert data["name"] == "Test Project A"
-        assert data["description"] is None
-        _cleanup_projects(test_driver, _PROJECT_ID_A)
+        try:
+            body = {"id": _PROJECT_ID_A, "name": "Test Project A"}
+            response = client.post("/project", json=body)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["id"] == _PROJECT_ID_A
+            assert data["name"] == "Test Project A"
+            assert data["description"] is None
+        finally:
+            _cleanup_projects(test_driver, _PROJECT_ID_A)
 
     def test_create_project_with_description(self, client, test_driver):
         """POST /project with description stores it."""
-        body = {"id": _PROJECT_ID_A, "name": "Test Project A", "description": "A test project"}
-        response = client.post("/project", json=body)
-        assert response.status_code == 200
-        data = response.json()
-        assert data["description"] == "A test project"
-        _cleanup_projects(test_driver, _PROJECT_ID_A)
+        try:
+            body = {"id": _PROJECT_ID_A, "name": "Test Project A", "description": "A test project"}
+            response = client.post("/project", json=body)
+            assert response.status_code == 200
+            data = response.json()
+            assert data["description"] == "A test project"
+        finally:
+            _cleanup_projects(test_driver, _PROJECT_ID_A)
 
     def test_upsert_updates_existing(self, client, test_driver):
         """POST /project with same id updates name and description."""
-        client.post("/project", json={"id": _PROJECT_ID_A, "name": "Original"})
-        response = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Updated", "description": "New desc"})
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == "Updated"
-        assert data["description"] == "New desc"
-        _cleanup_projects(test_driver, _PROJECT_ID_A)
+        try:
+            client.post("/project", json={"id": _PROJECT_ID_A, "name": "Original"})
+            response = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Updated", "description": "New desc"})
+            assert response.status_code == 200
+            data = response.json()
+            assert data["name"] == "Updated"
+            assert data["description"] == "New desc"
+        finally:
+            _cleanup_projects(test_driver, _PROJECT_ID_A)
 
     def test_missing_id_returns_422(self, client):
         """POST /project without id returns 422."""
@@ -126,9 +121,7 @@ class TestPostProjectEndpoint:
         assert response.status_code == 422
 
 
-# ---------------------------------------------------------------------------
-# Task 4 — Unit tests: MemoryClient.list_projects / create_project
-# ---------------------------------------------------------------------------
+# --- MemoryClient unit tests ---
 class TestClientListProjects:
     @respx.mock
     def test_list_projects_returns_list(self):
@@ -138,7 +131,7 @@ class TestClientListProjects:
         with MemoryClient(base_url=_BASE_URL) as client:
             projects = client.list_projects()
         assert len(projects) == 2
-        assert projects[0]["id"] == "test-project-wp078-a"
+        assert projects[0]["id"] == _PROJECT_ID_A
 
     @respx.mock
     def test_list_projects_empty(self):
@@ -157,8 +150,8 @@ class TestClientCreateProject:
             return_value=httpx.Response(200, json=_CREATE_PROJECT_RESPONSE)
         )
         with MemoryClient(base_url=_BASE_URL) as client:
-            result = client.create_project("test-project-wp078-a", "Test Project A")
-        assert result["id"] == "test-project-wp078-a"
+            result = client.create_project(_PROJECT_ID_A, "Test Project A")
+        assert result["id"] == _PROJECT_ID_A
         assert result["name"] == "Test Project A"
 
     @respx.mock
@@ -168,16 +161,13 @@ class TestClientCreateProject:
             return_value=httpx.Response(200, json=expected)
         )
         with MemoryClient(base_url=_BASE_URL) as client:
-            result = client.create_project("test-project-wp078-a", "Test Project A", description="A desc")
+            result = client.create_project(_PROJECT_ID_A, "Test Project A", description="A desc")
         assert result["description"] == "A desc"
-        # Verify description was sent in request body
         req_body = json.loads(respx.calls.last.request.content)
         assert req_body["description"] == "A desc"
 
 
-# ---------------------------------------------------------------------------
-# Task 5 — Unit tests: CLI list-projects / create-project
-# ---------------------------------------------------------------------------
+# --- CLI unit tests ---
 class TestCliListProjects:
     @respx.mock
     def test_list_projects_table_output(self):
@@ -186,7 +176,7 @@ class TestCliListProjects:
         )
         result = _cli_runner.invoke(cli_app, ["list-projects"])
         assert result.exit_code == 0
-        assert "test-project-wp078-a" in result.output
+        assert _PROJECT_ID_A in result.output
         assert "Test Project A" in result.output
 
     @respx.mock
@@ -222,10 +212,7 @@ class TestCliCreateProject:
         assert _PROJECT_ID_A in result.output
 
 
-# ---------------------------------------------------------------------------
-# Task 6 — Unit tests: MCP tools memory_list_projects / memory_create_project
-# ---------------------------------------------------------------------------
-
+# --- MCP tool unit tests ---
 class TestMcpListProjects:
     def test_list_projects_calls_client(self):
         from mcp_server.server import memory_list_projects
@@ -279,21 +266,17 @@ class TestMcpCreateProject:
         assert result["description"] == "A desc"
 
 
-# ---------------------------------------------------------------------------
-# Task 7 — Integration tests: live stack
-# ---------------------------------------------------------------------------
+# --- Integration tests (live stack) ---
 class TestProjectIntegration:
     @pytest.mark.integration
     def test_upsert_and_list_projects(self, client, test_driver):
         """POST /project upserts, GET /project lists it."""
         try:
-            # Create two projects
             r1 = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Project A"})
             assert r1.status_code == 200
             r2 = client.post("/project", json={"id": _PROJECT_ID_B, "name": "Project B", "description": "Desc B"})
             assert r2.status_code == 200
 
-            # List and verify both appear
             r3 = client.get("/project")
             assert r3.status_code == 200
             projects = r3.json()["projects"]
@@ -301,7 +284,6 @@ class TestProjectIntegration:
             assert _PROJECT_ID_A in ids
             assert _PROJECT_ID_B in ids
 
-            # Verify description
             proj_b = next(p for p in projects if p["id"] == _PROJECT_ID_B)
             assert proj_b["description"] == "Desc B"
         finally:
@@ -319,7 +301,6 @@ class TestProjectIntegration:
             assert data["name"] == "Updated"
             assert data["description"] == "New"
 
-            # Verify via GET that the change persisted
             r2 = client.get("/project")
             proj = next(p for p in r2.json()["projects"] if p["id"] == _PROJECT_ID_A)
             assert proj["name"] == "Updated"
@@ -331,7 +312,6 @@ class TestProjectIntegration:
         """A project created via add_memory (no name) can be enriched via POST /project."""
         memory_id = None
         try:
-            # Create memory with project_id — creates bare Project node
             r = client.post("/memory", json={
                 "fact": "WP-078 integration: project enrichment",
                 "type": "fact",
@@ -342,12 +322,10 @@ class TestProjectIntegration:
             assert r.status_code == 200
             memory_id = r.json()["memory_id"]
 
-            # Enrich via POST /project
             r2 = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Enriched Project"})
             assert r2.status_code == 200
             assert r2.json()["name"] == "Enriched Project"
 
-            # Verify it shows in list
             r3 = client.get("/project")
             proj = next(p for p in r3.json()["projects"] if p["id"] == _PROJECT_ID_A)
             assert proj["name"] == "Enriched Project"
@@ -358,9 +336,7 @@ class TestProjectIntegration:
     def test_mcp_create_project_live(self, client, test_driver):
         """MCP memory_create_project creates a Project node on the live stack."""
         from mcp_server.server import memory_create_project, memory_list_projects
-        from memory_client.client import MemoryClient as RealMemoryClient
 
-        # Adapter wraps the TestClient so MCP functions hit the in-process app
         class _Adapter:
             def __init__(self, tc, **_):
                 self._tc = tc
@@ -391,7 +367,6 @@ class TestProjectIntegration:
                 assert result["name"] == "MCP Project"
                 assert result["description"] == "Via MCP"
 
-                # Verify via list
                 projects = memory_list_projects()
                 ids = [p["id"] for p in projects]
                 assert _PROJECT_ID_A in ids
