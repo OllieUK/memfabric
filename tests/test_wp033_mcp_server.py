@@ -40,7 +40,7 @@ def test_u1_memory_add_passes_explicit_agent_id():
     # agent_id is the third positional arg (index 2 after self is excluded)
     call_args = mock_client.add_memory.call_args
     assert call_args.args[2] == "test-agent-wp033"
-    assert "uuid-1234" in result
+    assert result["memory_id"] == "uuid-1234"
 
 
 # ---------------------------------------------------------------------------
@@ -213,12 +213,9 @@ def test_i2_memory_add_returns_uuid():
         agent_id="test-agent-wp033",
         importance=1,
     )
-    assert isinstance(result, str)
-    # result is str(dict); extract memory_id and validate UUID format
-    import ast
-    data = ast.literal_eval(result)
-    assert isinstance(data["memory_id"], str)
-    assert len(data["memory_id"]) == 36  # UUID format: 8-4-4-4-12
+    assert isinstance(result, dict)
+    assert isinstance(result["memory_id"], str)
+    assert len(result["memory_id"]) == 36  # UUID format: 8-4-4-4-12
 
 
 @pytest.mark.integration
@@ -261,14 +258,13 @@ def test_i6_memory_update_person_ids_replaces_about_edges(test_driver):
     memory_id = None
     try:
         # 1. Create a memory, then link it to person-wp052-a via memory_update
-        import ast
         raw = memory_add(
             fact="WP-052 integration test memory for person_ids",
             type="fact",
             agent_id="test-agent-wp033",
             importance=1,
         )
-        memory_id = ast.literal_eval(raw)["memory_id"]
+        memory_id = raw["memory_id"]
         assert isinstance(memory_id, str) and len(memory_id) == 36
         memory_update(memory_id=memory_id, person_ids=["person-wp052-a"])
         assert edge_exists(test_driver, memory_id, "ABOUT", "person-wp052-a")

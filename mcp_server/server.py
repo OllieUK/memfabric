@@ -40,7 +40,7 @@ def memory_add(
     so_what: str | None = None,
     cause_ids: list[str] | None = None,
     effect_ids: list[str] | None = None,
-) -> str:
+) -> dict:
     """Add a memory to the fabric.
 
     agent_id is required — pass your own agent identifier (e.g. "claude-code",
@@ -60,7 +60,7 @@ def memory_add(
             importance=importance,
             strand_ids=strand_ids,
         )
-    return str(result)
+    return result
 
 
 @mcp.tool
