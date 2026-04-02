@@ -219,6 +219,32 @@ def memory_maintenance_stats() -> dict:
 
 
 @mcp.tool
+def memory_operation_log() -> str:
+    """Return the operation log (update/merge/archive/restore events) as plain text, most recent first."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        entries = client.operation_log()
+
+    if not entries:
+        return "No operation log entries yet."
+
+    lines = []
+    for entry in reversed(entries):
+        ran_at = entry.get("ran_at", "unknown")
+        operation = entry.get("operation", "unknown")
+        memory_id = entry.get("memory_id", "unknown")
+        line = f"{ran_at}  {operation}  {memory_id}"
+        fields_updated = entry.get("fields_updated")
+        if fields_updated:
+            line += f"  fields_updated: {fields_updated}"
+        target_id = entry.get("target_id")
+        if target_id:
+            line += f"  target_id: {target_id}"
+        lines.append(line)
+
+    return "\n".join(lines)
+
+
+@mcp.tool
 def memory_maintenance_log() -> str:
     """Return the maintenance audit log as plain text (most recent runs first)."""
     with MemoryClient(base_url=settings.api_base_url) as client:

@@ -244,6 +244,12 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["entries"]
 
+    def operation_log(self) -> list[dict]:
+        """GET /memory/operation/log. Returns list of operation entry dicts."""
+        response = self._http.get("/memory/operation/log")
+        response.raise_for_status()
+        return response.json()["entries"]
+
     def get_graph(
         self,
         *,

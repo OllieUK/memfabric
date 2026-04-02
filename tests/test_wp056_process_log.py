@@ -285,3 +285,79 @@ class TestOperationLogEndpoint:
 
         assert response.status_code == 200
         assert response.json() == {"entries": []}
+
+
+class TestOperationLogClientMethod:
+    def test_returns_list_of_entries(self):
+        import respx
+        import httpx
+        from memory_client.client import MemoryClient
+
+        entries = [
+            {
+                "operation": "archive",
+                "memory_id": "m-1",
+                "ran_at": "2026-04-02T10:00:00+00:00",
+            }
+        ]
+        with respx.mock:
+            respx.get("http://testserver/memory/operation/log").mock(
+                return_value=httpx.Response(200, json={"entries": entries})
+            )
+            client = MemoryClient(base_url="http://testserver")
+            result = client.operation_log()
+
+        assert result == entries
+
+    def test_returns_empty_list(self):
+        import respx
+        import httpx
+        from memory_client.client import MemoryClient
+
+        with respx.mock:
+            respx.get("http://testserver/memory/operation/log").mock(
+                return_value=httpx.Response(200, json={"entries": []})
+            )
+            client = MemoryClient(base_url="http://testserver")
+            result = client.operation_log()
+
+        assert result == []
+
+
+class TestMcpOperationLogTool:
+    def test_returns_formatted_entries(self, monkeypatch):
+        from mcp_server.server import memory_operation_log
+
+        entries = [
+            {
+                "operation": "update",
+                "memory_id": "abc-123",
+                "ran_at": "2026-04-02T10:00:00+00:00",
+                "fields_updated": ["fact", "tags"],
+                "target_id": None,
+            }
+        ]
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.operation_log.return_value = entries
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_operation_log()
+
+        assert "update" in result
+        assert "abc-123" in result
+        assert "fields_updated" in result
+
+    def test_returns_empty_message(self, monkeypatch):
+        from mcp_server.server import memory_operation_log
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.operation_log.return_value = []
+
+        with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+            result = memory_operation_log()
+
+        assert result == "No operation log entries yet."
