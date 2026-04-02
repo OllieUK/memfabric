@@ -17,7 +17,6 @@ Flags:
 """
 
 import argparse
-import math
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -26,15 +25,7 @@ from memory_service import memory_repo
 
 
 def _cosine_distance(a: list, b: list) -> float:
-    """Compute cosine distance between two embedding vectors using stdlib math."""
-    if not a or not b:
-        return 1.0
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
-    if norm_a == 0.0 or norm_b == 0.0:
-        return 1.0
-    return 1.0 - dot / (norm_a * norm_b)
+    return 1.0 - memory_repo.cosine_similarity(a, b)
 
 
 def _fetch_active_memories(session) -> list[dict]:

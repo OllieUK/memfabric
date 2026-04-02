@@ -4,6 +4,25 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-047 — Near-duplicate detection for memory review
+
+**Completed:** 2026-04-02
+
+- `memory_service/memory_repo.py` — `cosine_similarity(a, b)` stdlib helper; `find_near_duplicates(session, threshold, limit)` queries `RELATED_TO`-connected Memory pairs (active, non-ephemeral, with embeddings), computes cosine similarity in Python, returns pairs above threshold sorted by similarity descending
+- `memory_service/config.py` — `near_duplicate_threshold: float = 0.92`, `near_duplicate_limit: int = 20`
+- `memory_service/main.py` — `GET /memory/duplicates` endpoint; `DuplicateMemoryRef` + `DuplicatePair` Pydantic models; threshold (0–1) and limit (1–100) query params defaulting to settings values
+- `memory_client/client.py` — `find_duplicates(threshold, limit)` method
+- `memory_client/cli.py` — `find-duplicates` command with Rich table output
+- `mcp_server/server.py` — `memory_find_duplicates` MCP tool
+- `scripts/dedup_cleanup.py` — consolidated to reuse `memory_repo.cosine_similarity` instead of duplicate `_cosine_distance` implementation
+- `tests/test_wp047_near_duplicates.py` — 5 unit tests (`TestCosineSimilarity`), 4 integration/non-integration tests (`TestDuplicatesEndpoint`), 5 unit tests for client/CLI/MCP wiring
+
+**Bug fix:** Initial implementation used directed `(a)-[:RELATED_TO]->(b)` match; changed to undirected `(a)-[:RELATED_TO]-(b)` with `a.id < b.id` dedup guard — directed match silently missed pairs where auto-link created the edge in B→A direction.
+
+**Retrospective:** Plan was accurate and well-specified. Subagent-driven-development worked well — four tasks executed cleanly with spec + quality review catching: directed vs undirected RELATED_TO match bug (Task 3 implementer), archive response not checked in test (Task 3 code review), Optional type annotations on endpoint params (Task 3 code review), mid-file imports in test file (Task 4 code review), missing `env=` in CLI tests (Task 4 code review). Simplify surfaced duplicate `_cosine_distance` in `scripts/dedup_cleanup.py` which was consolidated. Two efficiency items deferred to WP-095.
+
+---
+
 ## WP-053 — Scheduled maintenance orchestration for short-rest and long-rest
 
 **Completed:** 2026-04-02
