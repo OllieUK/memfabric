@@ -134,7 +134,7 @@ class TestWakeUpSplitClient:
             })
         )
         with MemoryClient(base_url=BASE) as client:
-            core, topic = client.wake_up_split(limit=10, topic="graph memory")
+            core, topic, _maintenance_status = client.wake_up_split(limit=10, topic="graph memory")
         assert len(core) == 1
         assert core[0]["id"] == "mem-aaa"
         assert len(topic) == 1

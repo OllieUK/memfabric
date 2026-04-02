@@ -321,7 +321,7 @@ def wake_up(
     """Print a memory briefing for session start."""
     try:
         with _make_client() as client:
-            core, topic_memories = client.wake_up_split(limit=limit, topic=topic)
+            core, topic_memories, _maintenance_status = client.wake_up_split(limit=limit, topic=topic)
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)

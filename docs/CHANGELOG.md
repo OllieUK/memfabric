@@ -4,6 +4,19 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-089 — Fix wake-up 2-tuple unpacking after WP-054 3-tuple change
+
+**Completed:** 2026-04-02
+
+- `memory_client/cli.py`: updated `wake-up` command to unpack `(core, topic_memories, _maintenance_status)` — was unpacking 2 values from a 3-tuple since WP-054 added `maintenance_status` to `wake_up_split()`, causing `ValueError: too many values to unpack` on every CLI wake-up call
+- `tests/test_wp033_mcp_server.py`: updated 3 mock return values (test_u3, test_u6, test_u7) from 2-tuple to 3-tuple `([memories], [], {})`
+- `tests/test_wake_up_close_session.py`: updated `TestWakeUpSplitClient.test_returns_core_and_topic_lists` to unpack 3-tuple
+- All 25 unit tests in `test_wp033_mcp_server.py` + `test_wake_up_close_session.py` passing
+
+**Retrospective:** WP-054 correctly updated the MCP server and client but missed the CLI unpacking and three test mocks. Bug surfaced in production (Marabot startup failure) rather than CI. Root cause: no regression run against CLI path in WP-054 DoD.
+
+---
+
 ## WP-056 — Process log for lifecycle and maintenance operations
 
 **Completed:** 2026-04-02

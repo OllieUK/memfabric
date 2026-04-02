@@ -28,8 +28,8 @@
 | 1 | R1 | WP-084 | API health and response polish (WP-034 + WP-035 + WP-036) | M | L | 2.0 | — | Batch of three small improvements best done together: (1) add version/build hash to `/health` response to detect stale service instances at startup; (2) return `strand_ids` in `add-memory` API response to reduce friction when chaining related memories; (3) document `### Relevant to today` suppression in `COMPANION.md` for small/sparse DBs so wake-up output is not confusing. Combined effort is still Low. |
 | 2 | R1 | WP-078 | Project node CRUD endpoints | M | L | 2.0 | — | Add `GET /project` (list) and `POST /project` (upsert) endpoints mirroring the existing `/person` pattern. Add `name` and `description` properties to Project nodes (currently only `id` is stored). Extend MCP with a `memory_create_project` tool. Makes project management a first-class operation rather than a side effect of `add_memory`. |
 | 3 | R1 | WP-087 | Expose `person_ids` in MCP `memory_add` | M | L | 2.0 | WP-052 ✅ | The MCP `memory_add` tool does not expose `person_ids`, meaning memories cannot be linked to people at creation time via the MCP surface. The HTTP API and Python client both support it. One-parameter addition to the MCP wrapper + unit test (mock) + integration test (live stack, verify ABOUT edge created). Identical pattern to WP-052. |
-| 4 | R1 | WP-089 | Fix pre-existing wake-up mock failures in test_wp033_mcp_server.py | M | L | 2.0 | WP-088 ✅ | Three tests (test_u3, test_u6, test_u7) in `tests/test_wp033_mcp_server.py` fail because they mock `wake_up_split.return_value` as a 2-tuple, but `wake_up_split()` now returns a 3-tuple (fact memories, topic memories, maintenance_status — added in WP-054). Update mock return values to 3-tuples. Surfaced during WP-088 regression run. |
-| 4 | R1 | WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | H | M | 1.5 | WP-040 ✅ | Move maintenance from manual CLI usage to real routine care. Add a scheduler or documented host-level automation path that runs `short-rest` on a frequent cadence and `long-rest` on a slower cadence, with safe defaults, dry-run support for rollout, and clear operational docs. |
+| 4 | R1 | WP-093 | Agent-optimised search: score exposure, min_score filter, associative expansion | H | M | 1.7 | WP-029 ✅ | Supersedes WP-082. Three coordinated additions to `POST /memory/search`: (1) expose cosine similarity as `score` (0–1) on each `MemoryHit` so callers can distinguish tight matches from marginal ones; (2) add `min_score` filter — only hits ≥ threshold are returned as primary hits, empty list is valid (not an error); (3) add `neighbour_cap` parameter — for each primary hit follow outbound `RELATED_TO`/`LEADS_TO` edges by weight desc and return up to N hydrated nodes in a separate `associated` list per hit. Deduplication: a node that is a primary hit is excluded from all `associated` lists. Person-anchored path (`person_ids` set) returns `associated: []` and ignores `min_score`. `MemoryClient.search_memory()` updated to pass new params. MCP surface update is a follow-on task. See detail below. |
+| 5 | R1 | WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | H | M | 1.5 | WP-040 ✅ | Move maintenance from manual CLI usage to real routine care. Add a scheduler or documented host-level automation path that runs `short-rest` on a frequent cadence and `long-rest` on a slower cadence, with safe defaults, dry-run support for rollout, and clear operational docs. |
 | 6 | R1 | WP-047 | Near-duplicate detection for memory review | H | M | 1.5 | WP-038 ✅ | Surface semantically similar memories (cosine similarity above configurable threshold) so they can be reviewed and merged via WP-038 merge endpoint. Feeds into short-rest/long-rest cleanup loop. See detail below. |
 | 7 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.5 | WP-038 ✅ | Prevent test artefacts polluting live context. See detail below. |
 | 8 | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.5 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
@@ -38,17 +38,17 @@
 | 11 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | H | M | 1.5 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
 | 12 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
 | 13 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
-| 14 | R2 | WP-090 | Handle non-ServiceUnavailable exceptions in `find_duplicate_memory` | L | L | 1.0 | WP-088 ✅ | `find_duplicate_memory()` in `memory_repo.py` can raise `CypherError` or other Memgraph-level exceptions (e.g. malformed query, vector index unavailable). These propagate uncaught from the `add_memory` handler, which only catches `ServiceUnavailable`. Options: (a) catch `CypherError` inside `find_duplicate_memory` and return `None` (fail-open), or (b) let it propagate to a new `except CypherError → 500` clause in the handler. Fail-open is safer for availability; fail-closed is safer for data integrity. Surfaced during WP-088 code review. |
-| 15 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
-| 15 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 16 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
-| 17 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
-| 18 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
-| 19 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
-| 20 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
-| 21 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
-| 22 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
-| 23 | R2 | WP-082 | Associative pull-through in search results | M | M | 1.0 | WP-029 ✅ | For each vector-search hit, follow its strongest `RELATED_TO` and `LEADS_TO` edges (by `weight` descending) and return the top-K linked memories as a hydrated `associated` list alongside the primary hit. Mirrors human associative recall: the direct match surfaces first, then its strongest connections arrive involuntarily. Fixes cases where the most-recent *observation about a fact* scores highest in vector search while the original linked *fact* is silently omitted. See detail below. |
+| 14 | R2 | WP-082 | ~~Associative pull-through in search results~~ **Superseded by WP-093** | M | M | 1.0 | WP-029 ✅ | Superseded. WP-093 is a strict superset: it adds score exposure and min_score filtering on top of the associative expansion designed here. WP-082 design notes preserved in detail section for reference. |
+| 15 | R2 | WP-090 | Handle non-ServiceUnavailable exceptions in `find_duplicate_memory` | L | L | 1.0 | WP-088 ✅ | `find_duplicate_memory()` in `memory_repo.py` can raise `CypherError` or other Memgraph-level exceptions (e.g. malformed query, vector index unavailable). These propagate uncaught from the `add_memory` handler, which only catches `ServiceUnavailable`. Options: (a) catch `CypherError` inside `find_duplicate_memory` and return `None` (fail-open), or (b) let it propagate to a new `except CypherError → 500` clause in the handler. Fail-open is safer for availability; fail-closed is safer for data integrity. Surfaced during WP-088 code review. |
+| 16 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. |
+| 16 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
+| 17 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 18 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
+| 19 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
+| 20 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
+| 21 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
+| 22 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
+| 23 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
 | 24 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
 | 25 | R2 | WP-077 | Extract shared schema-init utilities | L | L | 1.0 | WP-069 | `create_constraint()` and `get_embedding_dimension()` are copy-pasted identically in `init_schema.py` and `init_cybersec_schema.py`. Extract to `scripts/schema_utils.py`. Found in WP-069 /simplify review. Best done before WP-070 builds further on these scripts. |
 | 26 | R2 | WP-070 | Cybersecurity knowledge layer: standards & document write API | H | M | 1.5 | WP-069 | FastAPI router (`cybersec_routes.py`) + Cypher (`cybersec_repo.py`). Upserts Standard/Control/Document/Chunk/BusinessAttribute/Organisation/Jurisdiction. IMPLEMENTS edge (Document→Control), APPLIES_IN/OPERATES_IN jurisdiction scoping, OWNED_BY org scoping, MAPPED_TO cross-framework edges. MERGE+text_hash idempotency. Anchor Memory writes on standard ingest. See detail below. |
@@ -61,7 +61,8 @@
 | 34 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
 | 35 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
 | 36 | R2 | WP-091 | Add `agent_id` to lifecycle operation log entries | L | L | 1.0 | WP-056 ✅ | The operation log introduced in WP-056 records `update`, `merge`, `archive`, and `restore` events but omits `agent_id` because the lifecycle endpoints do not currently accept it. Add `agent_id` as an optional field to the four request models (`UpdateMemoryRequest`, `MergeMemoryRequest`, and query params for `archive`/`restore`) and pass it through to `append_operation_log` entries. Enables per-agent traceability on all lifecycle mutations. |
-| 37 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
+| 37 | R2 | WP-092 | Operation log size audit and rotation strategy | L | L | 1.0 | WP-056 ✅ | Review the real-world size and growth rate of `System.operation_log` under normal usage: measure byte size of the JSON property, estimate how quickly the 200-entry cap is reached, and assess read-modify-write overhead on lifecycle endpoints. Based on findings, decide on a rotation strategy — options include: lowering/tuning the cap per operation type, adding a time-based TTL alongside the count cap (e.g. drop entries older than N days), adding a `DELETE /memory/operation/log` or `POST /memory/operation/log/rotate` endpoint for explicit rotation, or splitting per-operation-type logs. Also review whether the same concern applies to `maintenance_log` (WP-054, currently capped at 100). Outcome: either confirm current approach is sufficient at expected scale, or implement the chosen rotation mechanism. |
+| 38 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
 | 38 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
 | 39 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 
@@ -179,7 +180,9 @@ All endpoints are added to `analytics_routes.py` (from WP-085). No new routers n
 
 ---
 
-### WP-082 — Associative pull-through in search results
+### WP-082 — Associative pull-through in search results *(superseded by WP-093)*
+
+> **This WP is superseded.** WP-093 is a strict superset — it implements the associative expansion designed here and adds score exposure and min_score filtering. Retained for reference only.
 
 #### Motivation
 
@@ -187,26 +190,66 @@ Vector search ranks hits by embedding distance. When two memories are semantical
 
 Human recall works differently: the direct match surfaces first, then its strongest associations arrive involuntarily. This WP adds that second step.
 
-#### Design
+#### Design (retained for reference — see WP-093 for adopted design)
 
 - Add an optional `associated_count` parameter to `POST /memory/search` (default: 3, max: 10). When > 0, pull-through is active.
 - For each primary hit, run a secondary Cypher pass: follow `RELATED_TO` and `LEADS_TO` edges (both directions) from the matched node, ordered by `weight` descending, limited to `associated_count` results per hit.
 - Return these as a hydrated `associated: List[MemoryHit]` field on each `SearchMemoryHit` (not bare IDs — full text/type/tags/importance so callers can use them without a second lookup).
 - Exclude from `associated` any node that already appears as a primary hit in the same response (no duplication).
 - Activate associated edges in the background recall increment (same path as primary hits), so pull-through reinforces the graph structure.
-- Add `associated_count` to `SearchMemoryRequest`; update `MemoryHit` / `SearchMemoryResponse` schemas; update MCP `memory_search` tool.
-- The existing `neighbours` field (bare IDs) remains for backwards compatibility; `associated` is the new hydrated version.
 
-#### Definition of Success
+---
 
-- [ ] `POST /memory/search` with `associated_count > 0` returns hydrated `associated` nodes for each hit
-- [ ] Associated nodes are ordered by edge `weight` descending
-- [ ] A node already present as a primary hit does not appear in any `associated` list
-- [ ] Background recall increment activates edges to associated nodes
-- [ ] `associated_count = 0` (or omitted) produces identical response to current behaviour
-- [ ] MCP `memory_search` exposes `associated_count` parameter
-- [ ] Integration test: seed a fact + an observation-about-the-fact with a high-weight `RELATED_TO` edge; search for the observation; confirm the fact appears in `associated`
-- [ ] Integration test: search with `associated_count=0`; confirm `associated` is empty for all hits
+### WP-093 — Agent-optimised search: score exposure, min_score filter, associative expansion
+
+#### Motivation
+
+The companion agent (Mara) runs per-turn memory queries during active conversations against a token-constrained context window. The current `POST /memory/search` has three gaps that force the agent to take all top-N results regardless of relevance:
+
+1. **No score visibility.** Cosine distance is computed internally but stripped from the response. The agent cannot distinguish a tight, high-confidence match from a diffuse scatter of marginal hits.
+2. **Flat top-N ignores graph structure.** Vector search returns the N closest nodes by embedding distance. Strongly-linked memories — e.g. the original fact when an observation-about-it scores higher — are silently omitted.
+3. **No primary/associated distinction.** An agent prioritising context-window budget needs to know which memories were direct semantic matches versus which arrived via graph expansion.
+
+#### Design
+
+**1. `score` field on `MemoryHit`**
+
+Add `score: float | None` to `MemoryHit`. For vector-search hits: `score = 1.0 - distance` (higher = more similar). For person-anchored hits (no vector distance): `score = null`.
+
+Non-breaking additive change to response schema.
+
+**2. `min_score` on `SearchMemoryRequest`**
+
+Add `min_score: float | None = None` (range 0–1). When set, only memories with `score >= min_score` are returned as primary hits. `limit` is applied after `min_score` filtering — no padding with lower-scoring results. Empty list is valid (not an error). Ignored when `person_ids` is set.
+
+**3. `neighbour_cap` and `associated` on `SearchMemoryRequest` / `MemoryHit`**
+
+Add `neighbour_cap: int = 3` to `SearchMemoryRequest`. For each primary hit, follow its outbound `RELATED_TO` and `LEADS_TO` edges ordered by `weight` descending, fetch and hydrate up to `neighbour_cap` linked Memory nodes, and return them in `associated: list[AssociatedMemoryHit]` on the hit.
+
+`AssociatedMemoryHit` carries: `id`, `text`, `type`, `importance`, `edge_weight` (the `RELATED_TO`/`LEADS_TO` weight). No `score` field (not vector-matched).
+
+Deduplication: a node that appears as a primary hit is excluded from all `associated` lists.
+
+Person-anchored path (`person_ids` set): returns `associated: []`, ignores `min_score`.
+
+**4. `MemoryClient.search_memory()` update**
+
+Accept and pass through `min_score` and `neighbour_cap`. Existing callers that do not set these fields are unaffected (both default to no-op).
+
+**MCP surface update is out of scope** — follow-on task once HTTP layer is stable.
+
+#### Acceptance criteria
+
+- [ ] `POST /memory/search` response includes `score` on all vector-search hits; `null` on person-anchored hits
+- [ ] `min_score=0.80` returns only hits with `score >= 0.80`; returns empty list (not an error) when nothing qualifies
+- [ ] `neighbour_cap=3` returns up to 3 `associated` entries per hit, ordered by `edge_weight` descending
+- [ ] A memory appearing as both a primary hit and a candidate associated entry appears only in the primary list
+- [ ] Person-anchored search (`person_ids` set) returns `associated: []` and ignores `min_score`
+- [ ] All existing tests pass — callers that omit the new fields see identical behaviour
+- [ ] `MemoryClient.search_memory()` accepts and passes through `min_score` and `neighbour_cap`
+- [ ] Integration test: seed fact + observation-about-fact with high-weight `RELATED_TO`; search for observation; confirm fact appears in `associated`
+- [ ] Integration test: `min_score` set high enough that no results pass — confirm empty list, 200 OK
+- [ ] Integration test: primary hit deduplication — confirm a node that is a primary hit does not appear in any `associated` list
 
 ---
 

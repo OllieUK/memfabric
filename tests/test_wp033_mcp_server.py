@@ -72,7 +72,7 @@ def test_u3_memory_wake_up_returns_plain_text():
     mock_client = MagicMock()
     mock_client.__enter__ = MagicMock(return_value=mock_client)
     mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.wake_up_split.return_value = ([CORE_MEMORY], [])
+    mock_client.wake_up_split.return_value = ([CORE_MEMORY], [], {})
 
     with patch("mcp_server.server.MemoryClient", return_value=mock_client):
         result = memory_wake_up()
@@ -130,7 +130,7 @@ def test_u6_memory_wake_up_with_topic_includes_relevant_section():
     mock_client = MagicMock()
     mock_client.__enter__ = MagicMock(return_value=mock_client)
     mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.wake_up_split.return_value = ([CORE_MEMORY], [TOPIC_MEMORY])
+    mock_client.wake_up_split.return_value = ([CORE_MEMORY], [TOPIC_MEMORY], {})
 
     with patch("mcp_server.server.MemoryClient", return_value=mock_client):
         result = memory_wake_up(topic="fabric work")
@@ -148,7 +148,7 @@ def test_u7_memory_wake_up_no_topic_omits_relevant_section():
     mock_client = MagicMock()
     mock_client.__enter__ = MagicMock(return_value=mock_client)
     mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.wake_up_split.return_value = ([CORE_MEMORY], [])
+    mock_client.wake_up_split.return_value = ([CORE_MEMORY], [], {})
 
     with patch("mcp_server.server.MemoryClient", return_value=mock_client):
         result = memory_wake_up()
