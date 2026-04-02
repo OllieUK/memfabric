@@ -1,9 +1,12 @@
 # memory_service/main.py
 
+import subprocess
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from enum import Enum
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from typing import List, Literal, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
@@ -13,6 +16,28 @@ from pydantic import BaseModel, Field, model_validator
 from memory_service import memory_repo
 from memory_service.config import get_driver, settings
 from memory_service.embeddings import get_embedding, get_embedding_dimension
+
+
+def _get_build_hash() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=True,
+        )
+        return result.stdout.strip()[:7]
+    except Exception:
+        return "unknown"
+
+
+try:
+    _SERVICE_VERSION = _pkg_version("graph-memory-fabric")
+except PackageNotFoundError:
+    _SERVICE_VERSION = "unknown"
+
+_BUILD_HASH = _get_build_hash()
 
 
 @asynccontextmanager
@@ -47,6 +72,8 @@ class MemoryType(str, Enum):
 
 class HealthResponse(BaseModel):
     status: str = "ok"
+    version: str = _SERVICE_VERSION
+    build: str = _BUILD_HASH
 
 
 @app.get("/health", response_model=HealthResponse)
