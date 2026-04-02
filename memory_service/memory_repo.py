@@ -5,6 +5,7 @@
 
 import json
 import math
+from collections import defaultdict
 from datetime import datetime, timezone
 
 _AUTO_RELATED_K = 5
@@ -346,8 +347,6 @@ def fetch_associated(
     if not memory_ids or cap <= 0:
         return {mid: [] for mid in memory_ids}
 
-    from collections import defaultdict
-
     result = session.run(
         """
         UNWIND $ids AS src_id
@@ -362,6 +361,9 @@ def fetch_associated(
         """,
         ids=memory_ids,
     )
+    # Note: only outgoing edges are followed. RELATED_TO is auto-linked in one
+    # direction at ingest time, so results are intentionally asymmetric for that
+    # edge type. LEADS_TO is always directional by design.
 
     grouped: dict = defaultdict(list)
     for record in result:
