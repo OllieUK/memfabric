@@ -839,6 +839,33 @@ async def reinforce_memory(
     return ReinforceResponse(memory_id=memory_id, new_strength=new_strength)
 
 
+class DuplicateMemoryRef(BaseModel):
+    id: str
+    text: str
+
+
+class DuplicatePair(BaseModel):
+    a: DuplicateMemoryRef
+    b: DuplicateMemoryRef
+    similarity: float
+
+
+@app.get("/memory/duplicates", response_model=List[DuplicatePair])
+async def find_duplicates(
+    request: Request,
+    threshold: float = Query(default=None),
+    limit: int = Query(default=None, ge=1, le=100),
+) -> List[DuplicatePair]:
+    effective_threshold = threshold if threshold is not None else settings.near_duplicate_threshold
+    effective_limit = limit if limit is not None else settings.near_duplicate_limit
+    try:
+        with request.app.state.driver.session() as session:
+            pairs = memory_repo.find_near_duplicates(session, effective_threshold, effective_limit)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [DuplicatePair(**p) for p in pairs]
+
+
 class NodeLabel(str, Enum):
     memory = "Memory"
     strand = "Strand"

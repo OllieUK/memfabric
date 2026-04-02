@@ -26,7 +26,7 @@ def cosine_similarity(a: list, b: list) -> float:
 def find_near_duplicates(session, threshold: float, limit: int) -> list[dict]:
     result = session.run(
         """
-        MATCH (a:Memory)-[r:RELATED_TO]->(b:Memory)
+        MATCH (a:Memory)-[r:RELATED_TO]-(b:Memory)
         WHERE (a.status IS NULL OR a.status = 'active')
           AND (b.status IS NULL OR b.status = 'active')
           AND (a.ephemeral IS NULL OR a.ephemeral = false)
