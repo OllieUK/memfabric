@@ -290,3 +290,36 @@ def test_i6_memory_update_person_ids_replaces_about_edges(test_driver):
                 test_driver,
                 extra_ids={"Person": "person-wp052-b"},
             )
+
+
+# ---------------------------------------------------------------------------
+# U9: memory_add passes person_ids to client (WP-087)
+# ---------------------------------------------------------------------------
+def test_u9_memory_add_passes_person_ids():
+    from mcp_server.server import memory_add
+
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.add_memory.return_value = {"memory_id": "uuid-new"}
+
+    with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+        result = memory_add(
+            fact="Test memory with persons",
+            agent_id="test-agent",
+            person_ids=["person-alice", "person-bob"],
+        )
+
+    mock_client.add_memory.assert_called_once_with(
+        "Test memory with persons",
+        "fact",
+        "test-agent",
+        so_what=None,
+        cause_ids=None,
+        effect_ids=None,
+        tags=None,
+        importance=3,
+        strand_ids=None,
+        person_ids=["person-alice", "person-bob"],
+    )
+    assert result["memory_id"] == "uuid-new"

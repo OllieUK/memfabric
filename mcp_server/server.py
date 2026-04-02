@@ -40,6 +40,7 @@ def memory_add(
     so_what: str | None = None,
     cause_ids: list[str] | None = None,
     effect_ids: list[str] | None = None,
+    person_ids: list[str] | None = None,
 ) -> dict:
     """Add a memory to the fabric.
 
@@ -59,6 +60,7 @@ def memory_add(
             tags=tags,
             importance=importance,
             strand_ids=strand_ids,
+            person_ids=person_ids,
         )
     return result
 
