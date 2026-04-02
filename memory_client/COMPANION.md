@@ -131,6 +131,8 @@ memory wake-up --topic "job finding and landing project" --limit 10
 memory wake-up --topic "coding project graph-memory-fabric" --limit 30
 ```
 
+> **Note — `### Relevant to today` suppression:** On small or sparse graphs (roughly fewer than 50 memories, or any brand-new installation), the `### Relevant to today` section is omitted entirely from wake-up output. This is expected — topic-based semantic search only produces a distinct, useful result set once the graph has enough memories for meaningful recall. Its absence is not an error; proceed with the core memories that were returned. As the fabric grows, the section will appear automatically.
+
 Recommended pattern:
 
 - Load core continuity first with a general wake-up
