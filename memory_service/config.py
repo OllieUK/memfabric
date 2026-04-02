@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     ctrl_index_capacity: int = 5000
     chunk_index_capacity: int = 10000
     memory_dedup_threshold: float = 0.05
+    near_duplicate_threshold: float = 0.92
+    near_duplicate_limit: int = 20
     knowledge_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     enable_knowledge_layer: bool = False
 
