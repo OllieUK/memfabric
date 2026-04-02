@@ -5,6 +5,7 @@
 
 import json
 import math
+from collections import defaultdict
 from datetime import datetime, timezone
 
 _AUTO_RELATED_K = 5
@@ -304,6 +305,9 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
             min_importance=req.min_importance,
         )
 
+    min_score = req.min_score
+    use_min_score = min_score is not None and not req.person_ids
+
     seen: set[str] = set()
     rows = []
     for record in result:
@@ -311,6 +315,12 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
         if rid in seen:
             continue
         seen.add(rid)
+
+        score = round(1.0 - record["distance"], 4) if "distance" in record.keys() else None
+
+        if use_min_score and score is not None and score < min_score:
+            continue
+
         rows.append(
             {
                 "id": rid,
@@ -320,9 +330,58 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
                 "importance": record["importance"],
                 "strand_ids": list(record["strand_ids"]),
                 "neighbours": record["neighbours"],
+                "score": score,
             }
         )
     return rows
+
+
+def fetch_associated(
+    session, memory_ids: list, cap: int, exclude_ids: set
+) -> dict:
+    """For each memory_id, fetch up to cap associated memories via RELATED_TO/LEADS_TO.
+
+    Returns dict mapping memory_id -> list of associated dicts.
+    Excludes any node whose id is in exclude_ids (primary hit dedup).
+    """
+    if not memory_ids or cap <= 0:
+        return {mid: [] for mid in memory_ids}
+
+    result = session.run(
+        """
+        UNWIND $ids AS src_id
+        MATCH (m:Memory {id: src_id})-[r:RELATED_TO|LEADS_TO]->(n:Memory)
+        WHERE (n.status IS NULL OR n.status = 'active')
+          AND (n.ephemeral IS NULL OR n.ephemeral = false)
+        RETURN src_id,
+               n.id AS assoc_id, n.text AS text, n.type AS type,
+               n.importance AS importance,
+               coalesce(r.weight, 0.5) AS edge_weight
+        ORDER BY src_id, edge_weight DESC
+        """,
+        ids=memory_ids,
+    )
+    # Note: only outgoing edges are followed. RELATED_TO is auto-linked in one
+    # direction at ingest time, so results are intentionally asymmetric for that
+    # edge type. LEADS_TO is always directional by design.
+
+    grouped: dict = defaultdict(list)
+    for record in result:
+        src = record["src_id"]
+        aid = record["assoc_id"]
+        if aid in exclude_ids:
+            continue
+        if len(grouped[src]) >= cap:
+            continue
+        grouped[src].append({
+            "id": aid,
+            "text": record["text"],
+            "type": record["type"],
+            "importance": record["importance"],
+            "edge_weight": round(record["edge_weight"], 4),
+        })
+
+    return {mid: grouped.get(mid, []) for mid in memory_ids}
 
 
 def _record_to_memory_dict(record) -> dict:

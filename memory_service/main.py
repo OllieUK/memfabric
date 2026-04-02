@@ -163,6 +163,16 @@ class SearchMemoryRequest(BaseModel):
     max_hops: int = Field(default=1, ge=0, le=3)
     traversal_direction: Literal["none", "causes", "effects", "both"] = "none"
     min_importance: Optional[int] = Field(default=None, ge=1, le=5)
+    min_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    neighbour_cap: int = Field(default=3, ge=0, le=10)
+
+
+class AssociatedMemoryHit(BaseModel):
+    id: str
+    text: str
+    type: MemoryType
+    importance: Optional[int] = None
+    edge_weight: float
 
 
 class MemoryHit(BaseModel):
@@ -171,8 +181,10 @@ class MemoryHit(BaseModel):
     type: MemoryType
     tags: List[str]
     importance: Optional[int] = None
+    score: Optional[float] = None
     strand_ids: List[str] = []
     neighbours: List[str] = []
+    associated: List[AssociatedMemoryHit] = []
 
 
 class SearchMemoryResponse(BaseModel):
@@ -201,10 +213,16 @@ async def search_memory(
     try:
         with request.app.state.driver.session() as session:
             results = memory_repo.search_memories(session, req, query_embedding, settings.search_neighbour_cap)
+            primary_ids = {r["id"] for r in results}
+            # Disable associated expansion for person-anchored path (no score, ABOUT edges only)
+            cap = req.neighbour_cap if not req.person_ids else 0
+            associated_map = memory_repo.fetch_associated(
+                session, list(primary_ids), cap, primary_ids
+            )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 
-    memory_ids = [r["id"] for r in results]
+    memory_ids = list(primary_ids)
     if memory_ids:
         background_tasks.add_task(_do_recall_increment, request.app.state.driver, memory_ids)
 
@@ -216,8 +234,13 @@ async def search_memory(
                 type=r["type"],
                 tags=r["tags"],
                 importance=r["importance"],
+                score=r.get("score"),
                 strand_ids=r["strand_ids"],
                 neighbours=r["neighbours"],
+                associated=[
+                    AssociatedMemoryHit(**a)
+                    for a in associated_map.get(r["id"], [])
+                ],
             )
             for r in results
         ]
