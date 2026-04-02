@@ -171,6 +171,7 @@ class MemoryHit(BaseModel):
     type: MemoryType
     tags: List[str]
     importance: Optional[int] = None
+    score: Optional[float] = None
     strand_ids: List[str] = []
     neighbours: List[str] = []
 
@@ -216,6 +217,7 @@ async def search_memory(
                 type=r["type"],
                 tags=r["tags"],
                 importance=r["importance"],
+                score=r.get("score"),
                 strand_ids=r["strand_ids"],
                 neighbours=r["neighbours"],
             )

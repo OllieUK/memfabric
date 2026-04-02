@@ -320,6 +320,7 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
                 "importance": record["importance"],
                 "strand_ids": list(record["strand_ids"]),
                 "neighbours": record["neighbours"],
+                "score": round(1.0 - record["distance"], 4) if "distance" in record.keys() else None,
             }
         )
     return rows
