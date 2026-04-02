@@ -3,6 +3,7 @@
 # Shared pytest fixtures and graph helpers for the Graph-Memory Fabric test suite.
 
 import pytest
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
 from memory_service.config import get_driver, settings
@@ -30,6 +31,18 @@ def client(test_driver):
 # ---------------------------------------------------------------------------
 # Graph inspection helpers (used across multiple test modules)
 # ---------------------------------------------------------------------------
+
+def make_mock_driver():
+    """Return (driver_mock, session_mock) configured for use as a context manager.
+
+    Used in unit tests that exercise FastAPI handlers without a live Memgraph.
+    """
+    mock_driver = MagicMock()
+    mock_session = MagicMock()
+    mock_driver.session.return_value.__enter__ = lambda s: mock_session
+    mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+    return mock_driver, mock_session
+
 
 def node_exists(driver, label: str, node_id: str) -> bool:
     with driver.session() as session:

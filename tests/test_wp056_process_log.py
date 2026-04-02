@@ -4,6 +4,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 from memory_service import memory_repo
+from tests.conftest import make_mock_driver
 
 
 class TestAppendOperationLog:
@@ -120,21 +121,13 @@ class TestGetOperationLog:
         assert result == []
 
 
-def _make_mock_driver():
-    mock_driver = MagicMock()
-    mock_session = MagicMock()
-    mock_driver.session.return_value.__enter__ = lambda s: mock_session
-    mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
-    return mock_driver, mock_session
-
-
 class TestUpdateHandlerLogsEntry:
     def test_logs_entry_on_success(self, monkeypatch):
         from fastapi.testclient import TestClient
         from memory_service.main import app
 
         logged = []
-        mock_driver, _ = _make_mock_driver()
+        mock_driver, _ = make_mock_driver()
         app.state.driver = mock_driver
 
         monkeypatch.setattr(memory_repo, "update_memory", lambda *a, **kw: None)
@@ -166,7 +159,7 @@ class TestMergeHandlerLogsEntry:
         from memory_service.main import app
 
         logged = []
-        mock_driver, _ = _make_mock_driver()
+        mock_driver, _ = make_mock_driver()
         app.state.driver = mock_driver
 
         monkeypatch.setattr(memory_repo, "merge_memory", lambda *a, **kw: None)
@@ -196,7 +189,7 @@ class TestArchiveHandlerLogsEntry:
         from memory_service.main import app
 
         logged = []
-        mock_driver, _ = _make_mock_driver()
+        mock_driver, _ = make_mock_driver()
         app.state.driver = mock_driver
 
         monkeypatch.setattr(memory_repo, "archive_memory", lambda *a, **kw: None)
@@ -222,7 +215,7 @@ class TestRestoreHandlerLogsEntry:
         from memory_service.main import app
 
         logged = []
-        mock_driver, _ = _make_mock_driver()
+        mock_driver, _ = make_mock_driver()
         app.state.driver = mock_driver
 
         monkeypatch.setattr(memory_repo, "restore_memory", lambda *a, **kw: None)
@@ -247,7 +240,7 @@ class TestOperationLogEndpoint:
         from fastapi.testclient import TestClient
         from memory_service.main import app
 
-        mock_driver, _ = _make_mock_driver()
+        mock_driver, _ = make_mock_driver()
         app.state.driver = mock_driver
 
         entries = [
@@ -275,7 +268,7 @@ class TestOperationLogEndpoint:
         from fastapi.testclient import TestClient
         from memory_service.main import app
 
-        mock_driver, _ = _make_mock_driver()
+        mock_driver, _ = make_mock_driver()
         app.state.driver = mock_driver
 
         monkeypatch.setattr(memory_repo, "get_operation_log", lambda session: [])

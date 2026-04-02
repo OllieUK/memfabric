@@ -619,6 +619,7 @@ async def update_memory(
 ) -> UpdateMemoryResponse:
     now = datetime.now(tz=timezone.utc).isoformat()
     patch_fields = req.model_dump(exclude_none=True)
+    requested_fields = list(patch_fields.keys())
     new_embedding = None
 
     try:
@@ -638,7 +639,7 @@ async def update_memory(
                 "operation": "update",
                 "memory_id": memory_id,
                 "ran_at": now,
-                "fields_updated": list(req.model_dump(exclude_none=True).keys()),
+                "fields_updated": requested_fields,
             })
     except HTTPException:
         raise
