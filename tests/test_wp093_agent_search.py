@@ -178,11 +178,14 @@ class TestAssociatedExpansion:
             ))
             mid_b = r2.json()["memory_id"]
 
-            # Search for the observation — the original fact should appear in associated
+            # Search for the observation with a high min_score so only mid_b hits
+            # as a primary result. mid_a (a less similar fact) is thus excluded from
+            # primary hits and can appear in mid_b's associated list.
             r3 = client.post("/memory/search", json={
                 "query": "WP093 observation about graph databases being fast",
                 "limit": 5,
                 "neighbour_cap": 3,
+                "min_score": 0.95,
             })
             assert r3.status_code == 200
             hits = r3.json()["memories"]
