@@ -548,6 +548,28 @@ async def maintenance_log(request: Request) -> MaintenanceLogResponse:
     return MaintenanceLogResponse(entries=[MaintenanceLogEntry(**e) for e in entries])
 
 
+class OperationLogEntry(BaseModel):
+    operation: str
+    memory_id: str
+    ran_at: str
+    fields_updated: Optional[List[str]] = None
+    target_id: Optional[str] = None
+
+
+class OperationLogResponse(BaseModel):
+    entries: List[OperationLogEntry]
+
+
+@app.get("/memory/operation/log", response_model=OperationLogResponse)
+async def operation_log(request: Request) -> OperationLogResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            entries = memory_repo.get_operation_log(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return OperationLogResponse(entries=[OperationLogEntry(**e) for e in entries])
+
+
 class UpdateMemoryRequest(BaseModel):
     fact: Optional[str] = None
     so_what: Optional[str] = None
@@ -612,6 +634,12 @@ async def update_memory(
                 patch_fields["text"] = merged_text
                 new_embedding = get_embedding(merged_text)
             memory_repo.update_memory(session, memory_id, patch_fields, new_embedding, now)
+            memory_repo.append_operation_log(session, {
+                "operation": "update",
+                "memory_id": memory_id,
+                "ran_at": now,
+                "fields_updated": list(req.model_dump(exclude_none=True).keys()),
+            })
     except HTTPException:
         raise
     except ValueError as exc:
@@ -625,6 +653,7 @@ async def update_memory(
 async def merge_memory(
     memory_id: str, req: MergeMemoryRequest, request: Request
 ) -> MergeMemoryResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
     if memory_id == req.target_id:
         raise HTTPException(status_code=400, detail="Source and target must differ")
     try:
@@ -636,6 +665,12 @@ async def merge_memory(
                 req.strategy,
                 default_edge_decay_rate=settings.edge_decay_rate,
             )
+            memory_repo.append_operation_log(session, {
+                "operation": "merge",
+                "memory_id": memory_id,
+                "ran_at": now,
+                "target_id": req.target_id,
+            })
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ServiceUnavailable as exc:
@@ -651,6 +686,11 @@ async def archive_memory(
     try:
         with request.app.state.driver.session() as session:
             memory_repo.archive_memory(session, memory_id, now)
+            memory_repo.append_operation_log(session, {
+                "operation": "archive",
+                "memory_id": memory_id,
+                "ran_at": now,
+            })
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ServiceUnavailable as exc:
@@ -662,9 +702,15 @@ async def archive_memory(
 async def restore_memory(
     memory_id: str, request: Request
 ) -> RestoreMemoryResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
     try:
         with request.app.state.driver.session() as session:
             memory_repo.restore_memory(session, memory_id)
+            memory_repo.append_operation_log(session, {
+                "operation": "restore",
+                "memory_id": memory_id,
+                "ran_at": now,
+            })
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ServiceUnavailable as exc:

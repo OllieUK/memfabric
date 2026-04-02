@@ -2,7 +2,7 @@
 """WP-056: Process log for lifecycle and maintenance operations."""
 import json
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from memory_service import memory_repo
 
 
@@ -118,3 +118,170 @@ class TestGetOperationLog:
         session.run.return_value.single.return_value = record
         result = memory_repo.get_operation_log(session)
         assert result == []
+
+
+def _make_mock_driver():
+    mock_driver = MagicMock()
+    mock_session = MagicMock()
+    mock_driver.session.return_value.__enter__ = lambda s: mock_session
+    mock_driver.session.return_value.__exit__ = MagicMock(return_value=False)
+    return mock_driver, mock_session
+
+
+class TestUpdateHandlerLogsEntry:
+    def test_logs_entry_on_success(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from memory_service.main import app
+
+        logged = []
+        mock_driver, _ = _make_mock_driver()
+        app.state.driver = mock_driver
+
+        monkeypatch.setattr(memory_repo, "update_memory", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            memory_repo,
+            "get_memory_for_update",
+            lambda session, memory_id: None,
+        )
+        monkeypatch.setattr(
+            memory_repo,
+            "append_operation_log",
+            lambda session, entry: logged.append(entry),
+        )
+
+        with TestClient(app) as client:
+            response = client.patch("/memory/some-id", json={"tags": ["test"]})
+
+        assert response.status_code == 200
+        assert len(logged) == 1
+        assert logged[0]["operation"] == "update"
+        assert logged[0]["memory_id"] == "some-id"
+        assert "tags" in logged[0]["fields_updated"]
+        assert "ran_at" in logged[0]
+
+
+class TestMergeHandlerLogsEntry:
+    def test_logs_entry_on_success(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from memory_service.main import app
+
+        logged = []
+        mock_driver, _ = _make_mock_driver()
+        app.state.driver = mock_driver
+
+        monkeypatch.setattr(memory_repo, "merge_memory", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            memory_repo,
+            "append_operation_log",
+            lambda session, entry: logged.append(entry),
+        )
+
+        with TestClient(app) as client:
+            response = client.post(
+                "/memory/src-id/merge",
+                json={"target_id": "tgt-id", "strategy": "replace"},
+            )
+
+        assert response.status_code == 200
+        assert len(logged) == 1
+        assert logged[0]["operation"] == "merge"
+        assert logged[0]["memory_id"] == "src-id"
+        assert logged[0]["target_id"] == "tgt-id"
+        assert "ran_at" in logged[0]
+
+
+class TestArchiveHandlerLogsEntry:
+    def test_logs_entry_on_success(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from memory_service.main import app
+
+        logged = []
+        mock_driver, _ = _make_mock_driver()
+        app.state.driver = mock_driver
+
+        monkeypatch.setattr(memory_repo, "archive_memory", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            memory_repo,
+            "append_operation_log",
+            lambda session, entry: logged.append(entry),
+        )
+
+        with TestClient(app) as client:
+            response = client.post("/memory/some-id/archive")
+
+        assert response.status_code == 200
+        assert len(logged) == 1
+        assert logged[0]["operation"] == "archive"
+        assert logged[0]["memory_id"] == "some-id"
+        assert "ran_at" in logged[0]
+
+
+class TestRestoreHandlerLogsEntry:
+    def test_logs_entry_on_success(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from memory_service.main import app
+
+        logged = []
+        mock_driver, _ = _make_mock_driver()
+        app.state.driver = mock_driver
+
+        monkeypatch.setattr(memory_repo, "restore_memory", lambda *a, **kw: None)
+        monkeypatch.setattr(
+            memory_repo,
+            "append_operation_log",
+            lambda session, entry: logged.append(entry),
+        )
+
+        with TestClient(app) as client:
+            response = client.post("/memory/some-id/restore")
+
+        assert response.status_code == 200
+        assert len(logged) == 1
+        assert logged[0]["operation"] == "restore"
+        assert logged[0]["memory_id"] == "some-id"
+        assert "ran_at" in logged[0]
+
+
+class TestOperationLogEndpoint:
+    def test_returns_entries(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from memory_service.main import app
+
+        mock_driver, _ = _make_mock_driver()
+        app.state.driver = mock_driver
+
+        entries = [
+            {
+                "operation": "update",
+                "memory_id": "abc-123",
+                "ran_at": "2026-04-01T10:00:00+00:00",
+                "fields_updated": ["tags"],
+                "target_id": None,
+            }
+        ]
+        monkeypatch.setattr(memory_repo, "get_operation_log", lambda session: entries)
+
+        with TestClient(app) as client:
+            response = client.get("/memory/operation/log")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "entries" in data
+        assert len(data["entries"]) == 1
+        assert data["entries"][0]["operation"] == "update"
+        assert data["entries"][0]["memory_id"] == "abc-123"
+
+    def test_returns_empty(self, monkeypatch):
+        from fastapi.testclient import TestClient
+        from memory_service.main import app
+
+        mock_driver, _ = _make_mock_driver()
+        app.state.driver = mock_driver
+
+        monkeypatch.setattr(memory_repo, "get_operation_log", lambda session: [])
+
+        with TestClient(app) as client:
+            response = client.get("/memory/operation/log")
+
+        assert response.status_code == 200
+        assert response.json() == {"entries": []}
