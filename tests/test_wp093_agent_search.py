@@ -158,3 +158,145 @@ class TestMinScoreFilter:
         finally:
             if mid:
                 _cleanup(test_driver, mid)
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — Integration: associated expansion
+# ---------------------------------------------------------------------------
+class TestAssociatedExpansion:
+    @pytest.mark.integration
+    def test_associated_returns_linked_memories(self, client, test_driver):
+        """Search returns associated memories via RELATED_TO edges."""
+        mid_a = mid_b = None
+        try:
+            # Create two related memories
+            r1 = client.post("/memory", json=_add_body("WP093 the original fact about graph databases"))
+            mid_a = r1.json()["memory_id"]
+            r2 = client.post("/memory", json=_add_body(
+                "WP093 observation about graph databases being fast",
+                related_ids=[mid_a],
+            ))
+            mid_b = r2.json()["memory_id"]
+
+            # Search for the observation — the original fact should appear in associated
+            r3 = client.post("/memory/search", json={
+                "query": "WP093 observation about graph databases being fast",
+                "limit": 5,
+                "neighbour_cap": 3,
+            })
+            assert r3.status_code == 200
+            hits = r3.json()["memories"]
+            hit_b = next((h for h in hits if h["id"] == mid_b), None)
+            if hit_b is not None:
+                assoc_ids = [a["id"] for a in hit_b.get("associated", [])]
+                assert mid_a in assoc_ids
+        finally:
+            if mid_a:
+                _cleanup(test_driver, mid_a)
+            if mid_b:
+                _cleanup(test_driver, mid_b)
+
+    @pytest.mark.integration
+    def test_associated_has_edge_weight(self, client, test_driver):
+        """Associated entries include edge_weight."""
+        mid_a = mid_b = None
+        try:
+            r1 = client.post("/memory", json=_add_body("WP093 weight test original"))
+            mid_a = r1.json()["memory_id"]
+            r2 = client.post("/memory", json=_add_body(
+                "WP093 weight test related",
+                related_ids=[mid_a],
+            ))
+            mid_b = r2.json()["memory_id"]
+
+            r3 = client.post("/memory/search", json={
+                "query": "WP093 weight test related",
+                "limit": 5,
+                "neighbour_cap": 3,
+            })
+            hits = r3.json()["memories"]
+            hit_b = next((h for h in hits if h["id"] == mid_b), None)
+            if hit_b and hit_b.get("associated"):
+                for a in hit_b["associated"]:
+                    assert "edge_weight" in a
+                    assert isinstance(a["edge_weight"], (int, float))
+        finally:
+            if mid_a:
+                _cleanup(test_driver, mid_a)
+            if mid_b:
+                _cleanup(test_driver, mid_b)
+
+    @pytest.mark.integration
+    def test_primary_hit_excluded_from_associated(self, client, test_driver):
+        """A memory that is a primary hit does not appear in any associated list."""
+        mid_a = mid_b = None
+        try:
+            r1 = client.post("/memory", json=_add_body("WP093 dedup primary alpha"))
+            mid_a = r1.json()["memory_id"]
+            r2 = client.post("/memory", json=_add_body(
+                "WP093 dedup primary beta",
+                related_ids=[mid_a],
+            ))
+            mid_b = r2.json()["memory_id"]
+
+            r3 = client.post("/memory/search", json={
+                "query": "WP093 dedup primary",
+                "limit": 10,
+                "neighbour_cap": 5,
+            })
+            hits = r3.json()["memories"]
+            primary_ids = {h["id"] for h in hits}
+            for hit in hits:
+                for a in hit.get("associated", []):
+                    assert a["id"] not in primary_ids, \
+                        f"Primary hit {a['id']} should not appear in associated list"
+        finally:
+            if mid_a:
+                _cleanup(test_driver, mid_a)
+            if mid_b:
+                _cleanup(test_driver, mid_b)
+
+    @pytest.mark.integration
+    def test_person_anchored_returns_empty_associated(self, client, test_driver):
+        """Person-anchored search returns associated=[] for all hits."""
+        mid = None
+        person_id = "person-wp093-assoc"
+        try:
+            r = client.post("/memory", json=_add_body(
+                "WP093 person assoc test", person_ids=[person_id],
+            ))
+            mid = r.json()["memory_id"]
+
+            r2 = client.post("/memory/search", json={
+                "query": "anything",
+                "person_ids": [person_id],
+                "limit": 5,
+            })
+            hits = r2.json()["memories"]
+            for h in hits:
+                assert h.get("associated", []) == []
+        finally:
+            if mid:
+                _cleanup(test_driver, mid)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+
+    @pytest.mark.integration
+    def test_neighbour_cap_zero_returns_empty(self, client, test_driver):
+        """neighbour_cap=0 returns empty associated lists."""
+        mid = None
+        try:
+            r = client.post("/memory", json=_add_body("WP093 cap zero test"))
+            mid = r.json()["memory_id"]
+
+            r2 = client.post("/memory/search", json={
+                "query": "WP093 cap zero test",
+                "limit": 5,
+                "neighbour_cap": 0,
+            })
+            hits = r2.json()["memories"]
+            for h in hits:
+                assert h.get("associated", []) == []
+        finally:
+            if mid:
+                _cleanup(test_driver, mid)

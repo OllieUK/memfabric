@@ -164,6 +164,15 @@ class SearchMemoryRequest(BaseModel):
     traversal_direction: Literal["none", "causes", "effects", "both"] = "none"
     min_importance: Optional[int] = Field(default=None, ge=1, le=5)
     min_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    neighbour_cap: int = Field(default=3, ge=0, le=10)
+
+
+class AssociatedMemoryHit(BaseModel):
+    id: str
+    text: str
+    type: MemoryType
+    importance: Optional[int] = None
+    edge_weight: float
 
 
 class MemoryHit(BaseModel):
@@ -175,6 +184,7 @@ class MemoryHit(BaseModel):
     score: Optional[float] = None
     strand_ids: List[str] = []
     neighbours: List[str] = []
+    associated: List[AssociatedMemoryHit] = []
 
 
 class SearchMemoryResponse(BaseModel):
@@ -203,6 +213,11 @@ async def search_memory(
     try:
         with request.app.state.driver.session() as session:
             results = memory_repo.search_memories(session, req, query_embedding, settings.search_neighbour_cap)
+            primary_ids = {r["id"] for r in results}
+            cap = req.neighbour_cap if not req.person_ids else 0
+            associated_map = memory_repo.fetch_associated(
+                session, [r["id"] for r in results], cap, primary_ids
+            )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 
@@ -221,6 +236,10 @@ async def search_memory(
                 score=r.get("score"),
                 strand_ids=r["strand_ids"],
                 neighbours=r["neighbours"],
+                associated=[
+                    AssociatedMemoryHit(**a)
+                    for a in associated_map.get(r["id"], [])
+                ],
             )
             for r in results
         ]

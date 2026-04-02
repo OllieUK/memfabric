@@ -335,6 +335,53 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
     return rows
 
 
+def fetch_associated(
+    session, memory_ids: list, cap: int, exclude_ids: set
+) -> dict:
+    """For each memory_id, fetch up to cap associated memories via RELATED_TO/LEADS_TO.
+
+    Returns dict mapping memory_id -> list of associated dicts.
+    Excludes any node whose id is in exclude_ids (primary hit dedup).
+    """
+    if not memory_ids or cap <= 0:
+        return {mid: [] for mid in memory_ids}
+
+    from collections import defaultdict
+
+    result = session.run(
+        """
+        UNWIND $ids AS src_id
+        MATCH (m:Memory {id: src_id})-[r:RELATED_TO|LEADS_TO]->(n:Memory)
+        WHERE (n.status IS NULL OR n.status = 'active')
+          AND (n.ephemeral IS NULL OR n.ephemeral = false)
+        RETURN src_id,
+               n.id AS assoc_id, n.text AS text, n.type AS type,
+               n.importance AS importance,
+               coalesce(r.weight, 0.5) AS edge_weight
+        ORDER BY src_id, edge_weight DESC
+        """,
+        ids=memory_ids,
+    )
+
+    grouped: dict = defaultdict(list)
+    for record in result:
+        src = record["src_id"]
+        aid = record["assoc_id"]
+        if aid in exclude_ids:
+            continue
+        if len(grouped[src]) >= cap:
+            continue
+        grouped[src].append({
+            "id": aid,
+            "text": record["text"],
+            "type": record["type"],
+            "importance": record["importance"],
+            "edge_weight": round(record["edge_weight"], 4),
+        })
+
+    return {mid: grouped.get(mid, []) for mid in memory_ids}
+
+
 def _record_to_memory_dict(record) -> dict:
     """Extract the standard Memory field set from a neo4j Record.
 
