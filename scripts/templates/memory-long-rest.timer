@@ -1,0 +1,10 @@
+[Unit]
+Description=Run long-rest maintenance weekly
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

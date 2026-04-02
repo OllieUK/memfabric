@@ -1,0 +1,11 @@
+[Unit]
+Description=Graph Memory Fabric — short-rest maintenance
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory={{PROJECT_DIR}}
+ExecStart={{PYTHON}} -m scripts.maintenance_runner short-rest --min-interval-hours 20
+Environment=PYTHONPATH={{PROJECT_DIR}}
+StandardOutput=journal
+StandardError=journal
