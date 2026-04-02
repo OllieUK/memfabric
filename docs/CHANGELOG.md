@@ -4,6 +4,28 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-056 — Process log for lifecycle and maintenance operations
+
+**Completed:** 2026-04-02
+
+- Added `_OPERATION_LOG_CAP = 200`, `get_operation_log(session)`, and `append_operation_log(session, entry)` to `memory_service/memory_repo.py` — parallel to the WP-054 maintenance log pair; stores entries as JSON in `sys.operation_log` on the System singleton node
+- Added `OperationLogEntry` and `OperationLogResponse` Pydantic models to `memory_service/main.py`
+- Added `GET /memory/operation/log` endpoint returning all operation log entries
+- Wired `append_operation_log` into all four lifecycle handlers: `update` (with `fields_updated`), `merge` (with `target_id`), `archive`, and `restore`; added `now` computation to `merge_memory` and `restore_memory` handlers which previously lacked it
+- Log is written on success path only — failed operations (ValueError → 404) never produce a log entry
+- Added `memory_operation_log()` MCP tool to `mcp_server/server.py` returning plain-text summary (most recent first)
+- Added `operation_log()` method to `memory_client/client.py`
+- Extracted `make_mock_driver()` helper to `tests/conftest.py` (previously inline in test files)
+- Fixed redundant `req.model_dump()` call in `update_memory` handler — captures `requested_fields` before `patch_fields` mutation
+- 22 tests: 16 unit + 6 integration against live Memgraph; all passing
+
+**New backlog items:**
+- WP-091: Add `agent_id` to lifecycle operation log entries — lifecycle endpoints don't currently accept `agent_id`; deferred to follow-up WP (L value, L effort)
+
+**Retrospective:** The parallel structure between `get_operation_log`/`append_operation_log` and the WP-054 maintenance log pair made the repo layer mechanical. The main judgement call was where to write the log: handler vs. repo function — handler was correct because it separates the log from the repo primitive and ensures failed ops don't log. The simplify pass caught a meaningful redundant `model_dump()` call in the update handler, and the test helper extraction to conftest paid off immediately (used by 6 test classes). One latent concern deferred to BACKLOG: the read-modify-write pattern for `append_operation_log` has a theoretical race condition under concurrent lifecycle ops — accepted for v1 single-agent use.
+
+---
+
 ## WP-088 — Graph dedup enforcement and agent-ID attribution
 
 **Completed:** 2026-04-01
