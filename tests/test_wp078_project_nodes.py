@@ -68,6 +68,7 @@ class TestCreateProjectRequestModel:
 # ---------------------------------------------------------------------------
 # Task 3 — Unit tests: GET /project endpoint
 # ---------------------------------------------------------------------------
+@pytest.mark.integration
 class TestGetProjectEndpoint:
     def test_returns_projects_list(self, client):
         """GET /project returns a list of projects."""
@@ -81,6 +82,7 @@ class TestGetProjectEndpoint:
 # ---------------------------------------------------------------------------
 # Task 3 — Unit tests: POST /project endpoint
 # ---------------------------------------------------------------------------
+@pytest.mark.integration
 class TestPostProjectEndpoint:
     def test_create_project_returns_project(self, client, test_driver):
         """POST /project creates a project and returns it."""
