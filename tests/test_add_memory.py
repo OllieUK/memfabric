@@ -269,6 +269,40 @@ class TestPostMemoryWithStrands:
         cleanup_nodes(test_driver, memory_id)
 
 
+@pytest.mark.integration
+class TestPostMemoryStrandIdsInResponse:
+    """Integration: strand_ids returned in POST /memory response."""
+
+    def test_strand_ids_in_response_when_linked(self, client, test_driver):
+        import uuid
+        suffix = uuid.uuid4()
+        seeded_strand_id = "strand-core-health"
+        resp = client.post("/memory", json={
+            "fact": f"memory for strand_ids response test {suffix}",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+            "strand_ids": [seeded_strand_id],
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "strand_ids" in data
+        assert seeded_strand_id in data["strand_ids"]
+        cleanup_nodes(test_driver, data["memory_id"])
+
+    def test_strand_ids_empty_when_none_requested(self, client, test_driver):
+        import uuid
+        suffix = uuid.uuid4()
+        resp = client.post("/memory", json={
+            "fact": f"memory with no strands {suffix}",
+            "type": "fact",
+            "agent_id": _AGENT_ID,
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["strand_ids"] == []
+        cleanup_nodes(test_driver, data["memory_id"])
+
+
 class TestPostMemoryExplicitRelatedIds:
     def test_related_to_edge_created(self, client, test_driver):
         r1 = client.post("/memory", json={
