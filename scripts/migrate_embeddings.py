@@ -30,13 +30,6 @@ EMBEDDABLE_LABELS = [
 
 def _reconstruct_text(label: str, node: dict) -> str | None:
     """Return the text that should be embedded for this node, or None to skip."""
-    if label == "Memory":
-        fact = (node.get("fact") or "").strip()
-        so_what = (node.get("so_what") or "").strip()
-        if not fact:
-            return None
-        return (fact + " " + so_what).strip() if so_what else fact
-
     if label == "Control":
         code = (node.get("code") or "").strip()
         title = (node.get("title") or "").strip()
