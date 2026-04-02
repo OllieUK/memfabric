@@ -853,8 +853,8 @@ class DuplicatePair(BaseModel):
 @app.get("/memory/duplicates", response_model=List[DuplicatePair])
 async def find_duplicates(
     request: Request,
-    threshold: float = Query(default=None),
-    limit: int = Query(default=None, ge=1, le=100),
+    threshold: Optional[float] = Query(default=None, ge=0.0, le=1.0),
+    limit: Optional[int] = Query(default=None, ge=1, le=100),
 ) -> List[DuplicatePair]:
     effective_threshold = threshold if threshold is not None else settings.near_duplicate_threshold
     effective_limit = limit if limit is not None else settings.near_duplicate_limit

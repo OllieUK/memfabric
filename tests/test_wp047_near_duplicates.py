@@ -1,7 +1,5 @@
 # tests/test_wp047_near_duplicates.py
 """Tests for WP-047: near-duplicate detection."""
-import math
-
 import pytest
 
 from tests.conftest import cleanup_nodes
@@ -109,9 +107,11 @@ class TestDuplicatesEndpoint:
             mid_b = r2.json()["memory_id"]
 
             # Archive one
-            client.post(f"/memory/{mid_a}/archive")
+            archive_resp = client.post(f"/memory/{mid_a}/archive")
+            assert archive_resp.status_code == 200
 
             r3 = client.get("/memory/duplicates", params={"threshold": 0.80, "limit": 50})
+            assert r3.status_code == 200
             pairs = r3.json()
             all_ids = set()
             for p in pairs:
