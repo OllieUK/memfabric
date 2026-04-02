@@ -97,6 +97,14 @@ All tuneable values live in `.env` / `pydantic-settings`. Never hardcode hosts, 
 | `POST /memory/search` (not `GET`) | Search takes a structured body (query text, list filters, pagination). GET query strings handle lists poorly and have length limits; POST body is cleaner and more extensible. |
 | `GET /memory/graph` | Graph export is a simple filtered read with scalar params; GET with query params is appropriate here. |
 
+## Architecture decisions
+
+Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult these before implementing work packages that touch architectural boundaries.
+
+| ADR | Decision | Review triggers |
+|-----|----------|-----------------|
+| [ADR-001](docs/architecture/ADR-001-knowledge-layer-placement.md) | InfoSec knowledge layer lives inside this project as a feature-flagged peer module with separate embedding config and a bridge module for cross-layer edges | Multi-user requirement, knowledge code >50% of total, non-InfoSec domain requested, cross-layer edges >10k |
+
 ## Key constraints (v1)
 
 - No external LLM API calls inside any running service
