@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-084 — API health and response polish
+
+**Completed:** 2026-04-02
+
+- `GET /health` now returns `version` (from package metadata via `importlib.metadata`) and `build` (7-char git commit hash, falls back to `"unknown"` if git unavailable); both computed once at import time
+- `POST /memory` response now includes `strand_ids: List[str]` — echoes the strand IDs passed in the request for new memories; empty list for deduplicated memories
+- `MemoryClient.add_memory()` return type changed from `str` to `dict` with keys `memory_id`, `deduplicated`, `strand_ids`
+- `mcp_server.memory_add` return type changed from `str` to `dict` (FastMCP serialises automatically)
+- CLI updated to extract `result["memory_id"]` from dict return
+- `COMPANION.md` documents `### Relevant to today` suppression on small/sparse graphs
+
+**Retrospective:** Three independent improvements batched correctly — combined effort was Low as predicted. The `MemoryClient.add_memory` return type change required updating all callers (CLI + mocks); these were few but worth verifying carefully. MCP return type initially returned `str(result)` (Python repr) which was caught in code quality review and fixed before merge.
+
+---
+
 ## WP-089 — Fix wake-up 2-tuple unpacking after WP-054 3-tuple change
 
 **Completed:** 2026-04-02
