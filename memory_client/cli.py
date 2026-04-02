@@ -3,6 +3,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from itertools import groupby
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -545,6 +546,8 @@ def dump_graph(
 schedule_app = typer.Typer(help="Manage scheduled maintenance timers.")
 app.add_typer(schedule_app, name="schedule")
 
+_DEFAULT_SYSTEMD_DIR = str(Path.home() / ".config" / "systemd" / "user")
+
 
 @schedule_app.command("install")
 def schedule_install(
@@ -554,10 +557,8 @@ def schedule_install(
     ),
 ) -> None:
     """Install systemd timer units for maintenance."""
-    from pathlib import Path
-
     if target_dir is None:
-        target_dir = str(Path.home() / ".config" / "systemd" / "user")
+        target_dir = _DEFAULT_SYSTEMD_DIR
 
     target = Path(target_dir)
     target.mkdir(parents=True, exist_ok=True)
@@ -566,14 +567,11 @@ def schedule_install(
     project_dir = str(Path(__file__).resolve().parent.parent)
     python_path = sys.executable
 
-    for template_file in templates_dir.glob("memory-*.service"):
+    for template_file in templates_dir.glob("memory-*.*"):
         content = template_file.read_text()
-        content = content.replace("{{PROJECT_DIR}}", project_dir)
-        content = content.replace("{{PYTHON}}", python_path)
-        (target / template_file.name).write_text(content)
-
-    for template_file in templates_dir.glob("memory-*.timer"):
-        content = template_file.read_text()
+        if template_file.suffix == ".service":
+            content = content.replace("{{PROJECT_DIR}}", project_dir)
+            content = content.replace("{{PYTHON}}", python_path)
         (target / template_file.name).write_text(content)
 
     console.print(f"Installed timer units to {target_dir}")
@@ -590,10 +588,8 @@ def schedule_uninstall(
     ),
 ) -> None:
     """Remove installed systemd timer units."""
-    from pathlib import Path
-
     if target_dir is None:
-        target_dir = str(Path.home() / ".config" / "systemd" / "user")
+        target_dir = _DEFAULT_SYSTEMD_DIR
 
     target = Path(target_dir)
     removed = 0
@@ -601,10 +597,11 @@ def schedule_uninstall(
         "memory-short-rest.service", "memory-short-rest.timer",
         "memory-long-rest.service", "memory-long-rest.timer",
     ]:
-        f = target / name
-        if f.exists():
-            f.unlink()
+        try:
+            (target / name).unlink()
             removed += 1
+        except FileNotFoundError:
+            pass
 
     console.print(f"Removed {removed} unit files from {target_dir}")
     console.print("Remember to run: systemctl --user daemon-reload")

@@ -11,7 +11,6 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | Implementation | H | M | WP-040 ✅ | Runner script, systemd timer templates, CLI schedule subcommands |
 
 ---
 

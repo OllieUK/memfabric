@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-053 — Scheduled maintenance orchestration for short-rest and long-rest
+
+**Completed:** 2026-04-02
+
+- `scripts/maintenance_runner.py` — standalone script callable by systemd timers; checks last-run timestamps via `/memory/maintenance/stats` and skips if within `--min-interval-hours`; exits 0 on skip or success, 1 on API error
+- `scripts/templates/` — four systemd unit files (`memory-short-rest.{service,timer}`, `memory-long-rest.{service,timer}`); `.service` files use `{{PROJECT_DIR}}` and `{{PYTHON}}` placeholders rendered at install time
+- `memory schedule install [--target-dir]` — renders templates into `~/.config/systemd/user` (or custom dir); prints enable instructions
+- `memory schedule uninstall [--target-dir]` — removes installed unit files
+- `memory schedule status` — calls `/memory/maintenance/stats` and prints last short-rest / long-rest timestamps
+- `respx` added as test dependency for HTTP mocking
+
+**Retrospective:** Maintenance API was already complete so this was plumbing only. Plan correctly identified no new FastAPI endpoints were needed. Simplify review caught two fixes: merged separate `.service`/`.timer` template loops into a single pass, and fixed TOCTOU anti-pattern in uninstall (`exists()`+`unlink()` → `try/unlink/except FileNotFoundError`). Also extracted `_DEFAULT_SYSTEMD_DIR` constant and `_OPERATION_TS_KEYS` map. Plan referenced `memory_service.config` — correct import is `memory_client.config`; minor plan bug caught at implementation time.
+
+---
+
 ## WP-093 — Agent-optimised search: score, min_score, associated expansion
 
 **Completed:** 2026-04-02

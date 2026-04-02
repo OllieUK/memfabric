@@ -20,6 +20,11 @@ import httpx
 
 from memory_client.config import settings as _settings
 
+_OPERATION_TS_KEYS = {
+    "short-rest": "last_short_rest_at",
+    "long-rest": "last_long_rest_at",
+}
+
 
 def should_run(last_run_iso: str | None, min_interval_hours: float) -> bool:
     """Return True if enough time has elapsed since last_run_iso."""
@@ -50,7 +55,7 @@ def run_maintenance(
     # Check last-run timestamps
     if min_interval_hours > 0:
         stats = httpx.get(f"{url}/memory/maintenance/stats", timeout=30).json()
-        ts_key = "last_short_rest_at" if operation == "short-rest" else "last_long_rest_at"
+        ts_key = _OPERATION_TS_KEYS[operation]
         last_run = stats.get("maintenance", {}).get(ts_key)
         if not should_run(last_run, min_interval_hours):
             return None
