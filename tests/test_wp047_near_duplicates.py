@@ -1,10 +1,27 @@
 # tests/test_wp047_near_duplicates.py
 """Tests for WP-047: near-duplicate detection."""
+import json
+import httpx
 import pytest
+import respx
+from unittest.mock import MagicMock, patch
+from typer.testing import CliRunner
 
 from tests.conftest import cleanup_nodes
+from memory_client.cli import app as cli_app
+from memory_client.client import MemoryClient
 
 _AGENT_ID = "test-agent-wp047"
+_BASE_URL = "http://localhost:8000"
+_cli_runner = CliRunner()
+
+_SAMPLE_PAIRS = [
+    {
+        "a": {"id": "id-1", "text": "Memory one"},
+        "b": {"id": "id-2", "text": "Memory two"},
+        "similarity": 0.95,
+    }
+]
 
 
 def _cleanup(driver, *memory_ids):
@@ -131,26 +148,6 @@ class TestDuplicatesEndpoint:
         assert isinstance(r.json(), list)
 
 
-import httpx
-import respx
-from unittest.mock import MagicMock, patch
-from typer.testing import CliRunner
-
-from memory_client.cli import app as cli_app
-from memory_client.client import MemoryClient
-
-_BASE_URL = "http://localhost:8000"
-_cli_runner = CliRunner()
-
-_SAMPLE_PAIRS = [
-    {
-        "a": {"id": "id-1", "text": "Memory one"},
-        "b": {"id": "id-2", "text": "Memory two"},
-        "similarity": 0.95,
-    }
-]
-
-
 # ---------------------------------------------------------------------------
 # Task 4 — Unit: client, CLI, MCP
 # ---------------------------------------------------------------------------
@@ -183,7 +180,7 @@ class TestCliFindDuplicates:
         respx.get(f"{_BASE_URL}/memory/duplicates").mock(
             return_value=httpx.Response(200, json=_SAMPLE_PAIRS)
         )
-        result = _cli_runner.invoke(cli_app, ["find-duplicates"])
+        result = _cli_runner.invoke(cli_app, ["find-duplicates"], env={"API_BASE_URL": _BASE_URL})
         assert result.exit_code == 0
         assert "0.95" in result.output
         assert "id-1" in result.output
@@ -193,7 +190,7 @@ class TestCliFindDuplicates:
         respx.get(f"{_BASE_URL}/memory/duplicates").mock(
             return_value=httpx.Response(200, json=[])
         )
-        result = _cli_runner.invoke(cli_app, ["find-duplicates"])
+        result = _cli_runner.invoke(cli_app, ["find-duplicates"], env={"API_BASE_URL": _BASE_URL})
         assert result.exit_code == 0
         assert "No near-duplicate" in result.output
 
