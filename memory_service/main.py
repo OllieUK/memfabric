@@ -420,6 +420,26 @@ async def create_person(req: CreatePersonRequest, request: Request) -> PersonIte
     return PersonItem(**person)
 
 
+@app.get("/project", response_model=ProjectsResponse)
+async def list_projects(request: Request) -> ProjectsResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            projects = memory_repo.list_projects(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ProjectsResponse(projects=[ProjectItem(**p) for p in projects])
+
+
+@app.post("/project", response_model=ProjectItem)
+async def create_project(req: CreateProjectRequest, request: Request) -> ProjectItem:
+    try:
+        with request.app.state.driver.session() as session:
+            project = memory_repo.upsert_project(session, req)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ProjectItem(**project)
+
+
 class DecayPassResponse(BaseModel):
     nodes_updated: int
     edges_updated: int

@@ -63,3 +63,61 @@ class TestCreateProjectRequestModel:
         from memory_service.main import CreateProjectRequest
         with pytest.raises(ValidationError):
             CreateProjectRequest(id="proj-a")
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — Unit tests: GET /project endpoint
+# ---------------------------------------------------------------------------
+class TestGetProjectEndpoint:
+    def test_returns_projects_list(self, client):
+        """GET /project returns a list of projects."""
+        response = client.get("/project")
+        assert response.status_code == 200
+        data = response.json()
+        assert "projects" in data
+        assert isinstance(data["projects"], list)
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — Unit tests: POST /project endpoint
+# ---------------------------------------------------------------------------
+class TestPostProjectEndpoint:
+    def test_create_project_returns_project(self, client, test_driver):
+        """POST /project creates a project and returns it."""
+        body = {"id": _PROJECT_ID_A, "name": "Test Project A"}
+        response = client.post("/project", json=body)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == _PROJECT_ID_A
+        assert data["name"] == "Test Project A"
+        assert data["description"] is None
+        _cleanup_projects(test_driver, _PROJECT_ID_A)
+
+    def test_create_project_with_description(self, client, test_driver):
+        """POST /project with description stores it."""
+        body = {"id": _PROJECT_ID_A, "name": "Test Project A", "description": "A test project"}
+        response = client.post("/project", json=body)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["description"] == "A test project"
+        _cleanup_projects(test_driver, _PROJECT_ID_A)
+
+    def test_upsert_updates_existing(self, client, test_driver):
+        """POST /project with same id updates name and description."""
+        client.post("/project", json={"id": _PROJECT_ID_A, "name": "Original"})
+        response = client.post("/project", json={"id": _PROJECT_ID_A, "name": "Updated", "description": "New desc"})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Updated"
+        assert data["description"] == "New desc"
+        _cleanup_projects(test_driver, _PROJECT_ID_A)
+
+    def test_missing_id_returns_422(self, client):
+        """POST /project without id returns 422."""
+        response = client.post("/project", json={"name": "No ID"})
+        assert response.status_code == 422
+
+    def test_missing_name_returns_422(self, client):
+        """POST /project without name returns 422."""
+        response = client.post("/project", json={"id": _PROJECT_ID_A})
+        assert response.status_code == 422
