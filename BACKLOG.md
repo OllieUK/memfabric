@@ -11,6 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
+| WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | Implementation | H | M | WP-040 ✅ | Runner script, systemd timer templates, CLI schedule subcommands |
 
 ---
 
@@ -25,7 +26,6 @@
 
 | Priority | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |----------|---------|----|-------|-------|--------|----------------|------------|-------|
-| 1 | R1 | WP-053 | Scheduled maintenance orchestration for short-rest and long-rest | H | M | 1.5 | WP-040 ✅ | Move maintenance from manual CLI usage to real routine care. Add a scheduler or documented host-level automation path that runs `short-rest` on a frequent cadence and `long-rest` on a slower cadence, with safe defaults, dry-run support for rollout, and clear operational docs. |
 | 4 | R1 | WP-047 | Near-duplicate detection for memory review | H | M | 1.5 | WP-038 ✅ | Surface semantically similar memories (cosine similarity above configurable threshold) so they can be reviewed and merged via WP-038 merge endpoint. Feeds into short-rest/long-rest cleanup loop. See detail below. |
 | 5 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.5 | WP-038 ✅ | Prevent test artefacts polluting live context. See detail below. |
 | 6 | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.5 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
