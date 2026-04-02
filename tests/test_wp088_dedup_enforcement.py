@@ -179,10 +179,10 @@ class TestMcpAgentIdRequired:
         mock_client = MagicMock()
         mock_client.__enter__ = MagicMock(return_value=mock_client)
         mock_client.__exit__ = MagicMock(return_value=False)
-        mock_client.add_memory.return_value = "new-memory-id"
+        mock_client.add_memory.return_value = {"memory_id": "new-memory-id", "deduplicated": False, "strand_ids": []}
         with patch("mcp_server.server.MemoryClient", return_value=mock_client):
             result = memory_add(fact="some fact", type="fact", agent_id="my-custom-agent")
-        assert result == "new-memory-id"
+        assert "new-memory-id" in result
         call_kwargs = mock_client.add_memory.call_args
         # agent_id is the 3rd positional arg (fact, type, agent_id) to client.add_memory
         passed_agent_id = call_kwargs[0][2]

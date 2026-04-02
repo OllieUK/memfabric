@@ -115,6 +115,7 @@ class AddMemoryRequest(BaseModel):
 class AddMemoryResponse(BaseModel):
     memory_id: str
     deduplicated: bool = False
+    strand_ids: List[str] = []
 
 
 @app.post("/memory", response_model=AddMemoryResponse)
@@ -139,7 +140,7 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                     now_iso=now,
                     consolidated_decay_rate=settings.memory_consolidated_decay_rate,
                 )
-                return AddMemoryResponse(memory_id=existing_id, deduplicated=True)
+                return AddMemoryResponse(memory_id=existing_id, deduplicated=True, strand_ids=[])
             memory_id = str(uuid.uuid4())
             memory_repo.add_memory(
                 session, req, memory_id, embedding, now,
@@ -147,7 +148,7 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                 initial_strength_factor=settings.initial_strength_factor,
                 importance_floor_factor=settings.importance_floor_factor,
             )
-            return AddMemoryResponse(memory_id=memory_id)
+            return AddMemoryResponse(memory_id=memory_id, strand_ids=req.strand_ids)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 

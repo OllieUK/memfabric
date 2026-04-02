@@ -49,7 +49,7 @@ def memory_add(
     duplicate was detected).
     """
     with MemoryClient(base_url=settings.api_base_url) as client:
-        mid = client.add_memory(
+        result = client.add_memory(
             fact,
             type,
             agent_id,
@@ -60,7 +60,7 @@ def memory_add(
             importance=importance,
             strand_ids=strand_ids,
         )
-    return mid
+    return str(result)
 
 
 @mcp.tool

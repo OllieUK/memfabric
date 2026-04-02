@@ -31,8 +31,8 @@ class MemoryClient:
         person_ids: list[str] | None = None,
         strand_ids: list[str] | None = None,
         related_ids: list[str] | None = None,
-    ) -> str:
-        """POST /memory. Returns memory_id string."""
+    ) -> dict:
+        """POST /memory. Returns dict with memory_id, deduplicated, and strand_ids."""
         body: dict = {
             "fact": fact,
             "type": type,
@@ -54,7 +54,7 @@ class MemoryClient:
             body["related_ids"] = related_ids
         response = self._http.post("/memory", json=body)
         response.raise_for_status()
-        return response.json()["memory_id"]
+        return response.json()
 
     def search_memory(
         self,

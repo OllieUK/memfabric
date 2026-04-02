@@ -50,7 +50,7 @@ def add_memory(
     """Add a new memory to the graph."""
     try:
         with _make_client() as client:
-            memory_id = client.add_memory(
+            result = client.add_memory(
                 fact,
                 type,
                 agent_id,
@@ -64,6 +64,7 @@ def add_memory(
                 strand_ids=strand_ids,
                 related_ids=related_ids,
             )
+        memory_id = result["memory_id"]
         console.print(memory_id)
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
