@@ -35,3 +35,17 @@ def test_memory_hit_controls_documents_default_empty():
     )
     assert hit.controls == []
     assert hit.documents == []
+
+
+def test_update_memory_request_empty_control_ids_accepted():
+    """control_ids=[] is a valid update — it means 'clear all controls on this memory'.
+    The validator accepts non-None values regardless of truthiness.
+    """
+    req = UpdateMemoryRequest(control_ids=[])
+    assert req.control_ids == []
+
+
+def test_update_memory_request_no_fields_raises():
+    """UpdateMemoryRequest with no fields should raise a validation error."""
+    with pytest.raises(Exception):
+        UpdateMemoryRequest()
