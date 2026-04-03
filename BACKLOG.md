@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-072 | InfoSec knowledge layer: cross-layer Memory edges | feature/knowledge-layer | H | M | WP-070 ✅, WP-071 ✅ | Plan: docs/plans/wp-072.md ✅ |
+| WP-073 | InfoSec knowledge layer: document ingestion pipeline | feature/knowledge-layer | H | H | WP-071 ✅, WP-072 ✅ | Plan: docs/plans/wp-073.md ✅ |
 
 ### Knowledge layer branch
 
@@ -42,8 +42,7 @@
 | 9 | R2 | WP-077 | Extract shared schema-init utilities + fix migrate_embeddings model routing | L | L | 1.0 | WP-094 | `create_constraint()` and `get_embedding_dimension()` are copy-pasted identically in `init_schema.py` and `init_knowledge_schema.py`. Extract to `scripts/schema_utils.py`. Additionally: `migrate_embeddings.py` sets `model_name = settings.knowledge_embedding_model` for the staleness filter but then calls `get_embedding()` which is hard-wired to `EMBEDDING_MODEL` via the module-level singleton in `embeddings.py`. Fix requires `embeddings.py` to support multiple model instances, or a separate model-load path in the script. Surfaced in WP-094 simplify review. Must complete before WP-070. |
 | 10 | R2 | WP-070 | InfoSec knowledge layer: norms & document write API | H | M | 1.5 | WP-094, WP-077 | FastAPI router (`knowledge_routes.py`) + Cypher (`knowledge_repo.py`). Feature-flagged via `ENABLE_KNOWLEDGE_LAYER`. Upserts Norm/Control/Document/Chunk/BusinessAttribute/Organisation/Jurisdiction. IMPLEMENTS edge (Document→Control), APPLIES_IN/OPERATES_IN jurisdiction scoping, OWNED_BY org scoping, MAPPED_TO cross-framework edges. MERGE+text_hash idempotency. Knowledge embeddings use `KNOWLEDGE_EMBEDDING_MODEL`. Anchor Memory writes on norm ingest. See detail below. |
 | 11 | R2 | WP-071 | InfoSec knowledge layer: search API | H | M | 1.5 | WP-070 | Vector search over ctrl_embedding_idx and chunk_embedding_idx using `KNOWLEDGE_EMBEDDING_MODEL`. All endpoints functional with zero Memory nodes (standalone compliance mode per ADR-001). Dual modes: unscoped (generic/public) and org-scoped (jurisdiction-filtered via OPERATES_IN ∩ APPLIES_IN). lang filter; cross-lingual by default. include_universal flag. /knowledge/incomplete-jurisdictions diagnostic endpoint. See detail below. |
-| 12 | R2 | WP-072 | InfoSec knowledge layer: cross-layer Memory edges | H | M | 1.5 | WP-070, WP-071 | New `knowledge_bridge.py` — sole module importing from both `memory_repo` and `knowledge_repo` (ADR-001 Guardrail 3). Extend add_memory/update_memory with ABOUT_CONTROL {relationship_type, org_id} and CITES_DOC edges (guarded by feature flag). Critical: merge_memory rewiring. Extend MemoryHit response. See detail below. |
-| 13 | R2 | WP-074 | InfoSec knowledge layer: CLI, MCP tools, and ETL | H | M | 1.5 | WP-070, WP-071, WP-072 | knowledge_* MCP tools (registered only when flag is on; narrow, single-purpose, LLM-directed docstrings). CLI commands. MemoryClient extension. ingest_framework.py bulk ETL with YAML validation. YAML data files (NIST CSF, ISO 27001, jurisdictions, business attributes). CLI review tool for SUPPORTS edge validation. KNOWLEDGE_LAYER.md (references ADR-001). See detail below. |
+| 12 | R2 | WP-074 | InfoSec knowledge layer: CLI, MCP tools, and ETL | H | M | 1.5 | WP-070, WP-071, WP-072 | knowledge_* MCP tools (registered only when flag is on; narrow, single-purpose, LLM-directed docstrings). CLI commands. MemoryClient extension. ingest_framework.py bulk ETL with YAML validation. YAML data files (NIST CSF, ISO 27001, jurisdictions, business attributes). CLI review tool for SUPPORTS edge validation. KNOWLEDGE_LAYER.md (references ADR-001). See detail below. |
 | 14 | R2 | WP-075 | InfoSec knowledge layer: SABSA bidirectional traceability | H | M | 1.5 | WP-072, WP-074 | trace-up (control → attributes → norms), trace-down (control → documents → chunks → evidence/gap memories), attribute coverage, gap analysis. Dual-mode per ADR-001: knowledge-only (no Memory traversal, standalone compliance) and integrated (with Memory evidence). Both generic and org-scoped modes. Three-way reconciliation. See detail below. |
 | 15 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
 | 16 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
@@ -53,6 +52,7 @@
 | 20 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
 | 21 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints in `main.py` AND all 13 handlers in `knowledge_routes.py` (added WP-070/WP-071 — none have the guard). Do after WP-029 (adds more endpoints). |
 | 22 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
+| 22 | R2 | WP-096 | Generalise `validate_node_ids` and `replace_edges` utilities | L | M | 0.5 | WP-072 ✅ | Simplify review (WP-072) found that `validate_controls`/`validate_documents` in `knowledge_bridge.py` are structurally identical (UNWIND + OPTIONAL MATCH null-filter), and `replace_control_edges`/`replace_doc_edges` duplicate the person/strand replace pattern in `memory_repo.update_memory`. Extract (1) `validate_node_ids(session, ids, label)` generic validator and (2) `replace_edges(session, memory_id, target_ids, edge_type, target_label, edge_properties)` generic replacer. Low priority — all current callers are correct; this is a maintenance-reducing refactor. |
 | 23 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
 | 24 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
 | 25 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
@@ -288,6 +288,22 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - 11 unit tests, all green; no integration tests (pure Python, no Memgraph)
 
 **Retrospective:** Three /simplify wins caught during verification: (1) `ClientError` import was missing from both init scripts after extraction — runtime `NameError` averted; (2) `_load_model` and `_load_model_by_name` had duplicate offline-setup blocks — extracted to `_make_st_kwargs()`; (3) `_cache_key` ternary simplified to `model_name or _model_name`. Background agents (even with `bypassPermissions`) cannot write files or run Bash in this environment — implementation was done directly in-session. This is now the established pattern for all WPs on this branch.
+
+---
+
+### WP-072 — InfoSec knowledge layer: cross-layer Memory edges ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Created `memory_service/knowledge_bridge.py` (ADR-001 Guardrail 3 — sole cross-layer import module): 8 functions covering `validate_controls`, `validate_documents`, `link_controls`, `link_documents`, `replace_control_edges`, `replace_doc_edges`, `rewire_cross_layer_edges`, `hydrate_controls_and_documents`
+- Extended `AddMemoryRequest`, `UpdateMemoryRequest` with `control_ids`, `doc_ids`, `control_relationship_type: Literal["context","evidence","gap"]`, `org_id`; extended `MemoryHit` with `controls: List[dict]`, `documents: List[dict]`
+- Wired bridge into `add_memory` (validate + link), `update_memory` (bridge-field stripping + replace), `merge_memory` (rewire), `search_memory` (hydrate) — all guarded by `settings.enable_knowledge_layer`
+- Extended `memory_client/client.py` and `mcp_server/server.py` `memory_add`/`memory_update` tools with all 4 new params
+- 14 bridge unit tests + 5 model tests + 12 route tests = 31 tests, all green; integration tests deferred to WP-076
+- Simplify fixes: added `if req.doc_ids:` guard on `link_documents` call; promoted `_BRIDGE_FIELDS` to module level
+- New backlog item WP-096: generalise `validate_node_ids` + `replace_edges` utilities (low priority)
+
+**Retrospective:** Two-wave approach (bridge module first, route wiring second) worked well — Wave 1 was fully reviewable in isolation before Wave 2 added route complexity. Quality review caught bridge-only PATCH not returning 404 for non-existent memory (fixed before merge). Simplify review caught missing `if req.doc_ids:` guard. `_BRIDGE_FIELDS` as module-level constant is the correct pattern. Lazy `from memory_service import knowledge_bridge` inside route handlers is intentional to avoid pytest collection order issues.
 
 ---
 
