@@ -485,3 +485,392 @@ class TestTraceabilityRoutes:
         assert resp.status_code == 200
         call_args = mock_fn.call_args[0]
         assert call_args[2] == "org-acme"
+
+
+# ---------------------------------------------------------------------------
+# Integration fixtures and helpers
+# ---------------------------------------------------------------------------
+# knowledge_client fixture is defined in conftest.py (module-scoped).
+
+
+@pytest.fixture(scope="module")
+def tr_data(knowledge_client, test_driver):
+    """Seed full traceability graph; yield node-id dict; teardown on module exit."""
+    ids = {
+        "fw": "test-wp076-tr-fw",
+        "ctrl_parent": "test-wp076-tr-ctrl-parent",
+        "ctrl_child": "test-wp076-tr-ctrl-child",
+        "precept": "test-wp076-tr-precept",
+        "ba": "test-wp076-tr-ba",
+        "norm": "test-wp076-tr-norm",
+        "doc": "test-wp076-tr-doc",
+        "chunk1": "test-wp076-tr-chunk-1",
+        "chunk2": "test-wp076-tr-chunk-2",
+    }
+
+    # --- Framework ---
+    knowledge_client.post("/knowledge/frameworks", json={
+        "id": ids["fw"], "name": "Test Framework WP076",
+    })
+
+    # --- Controls ---
+    knowledge_client.post("/knowledge/controls", json={
+        "id": ids["ctrl_parent"],
+        "name": "Parent Control WP076",
+        "framework_id": ids["fw"],
+    })
+    knowledge_client.post("/knowledge/controls", json={
+        "id": ids["ctrl_child"],
+        "name": "Child Control WP076",
+        "framework_id": ids["fw"],
+        "parent_id": ids["ctrl_parent"],
+    })
+
+    # --- Precept + BusinessAttribute via direct Cypher ---
+    with test_driver.session() as s:
+        s.run(
+            "MERGE (:Precept {id: $id, name: 'Security Precept WP076'})",
+            id=ids["precept"],
+        )
+        s.run(
+            "MERGE (:BusinessAttribute {id: $id, name: 'Confidentiality'})",
+            id=ids["ba"],
+        )
+        # Parent control ADDRESSES Precept
+        s.run(
+            """
+            MATCH (c:Control {id: $ctrl_id}), (p:Precept {id: $precept_id})
+            MERGE (c)-[:ADDRESSES]->(p)
+            """,
+            ctrl_id=ids["ctrl_parent"],
+            precept_id=ids["precept"],
+        )
+        # Child control ALSO ADDRESSES Precept (needed for attribute_coverage to find it)
+        s.run(
+            """
+            MATCH (c:Control {id: $ctrl_id}), (p:Precept {id: $precept_id})
+            MERGE (c)-[:ADDRESSES]->(p)
+            """,
+            ctrl_id=ids["ctrl_child"],
+            precept_id=ids["precept"],
+        )
+        # Precept FULFILS BusinessAttribute
+        s.run(
+            """
+            MATCH (p:Precept {id: $precept_id}), (ba:BusinessAttribute {id: $ba_id})
+            MERGE (p)-[:FULFILS]->(ba)
+            """,
+            precept_id=ids["precept"],
+            ba_id=ids["ba"],
+        )
+
+    # --- Norm via HTTP ---
+    knowledge_client.post("/knowledge/norms", json={
+        "id": ids["norm"],
+        "name": "GDPR Art 5 WP076",
+        "text": "Data must be processed lawfully.",
+        "status": "active",
+    })
+
+    # --- Norm REQUIRES Precept via direct Cypher ---
+    with test_driver.session() as s:
+        s.run(
+            """
+            MATCH (n:Norm {id: $norm_id}), (p:Precept {id: $precept_id})
+            MERGE (n)-[:REQUIRES]->(p)
+            """,
+            norm_id=ids["norm"],
+            precept_id=ids["precept"],
+        )
+
+    # --- Document + Chunks via HTTP ---
+    knowledge_client.post("/knowledge/documents", json={
+        "id": ids["doc"],
+        "title": "Test Policy WP076",
+        "doc_type": "policy",
+    })
+    knowledge_client.post("/knowledge/chunks", json={
+        "id": ids["chunk1"],
+        "text": "Chunk one text for WP076.",
+        "sequence": 1,
+        "doc_id": ids["doc"],
+    })
+    knowledge_client.post("/knowledge/chunks", json={
+        "id": ids["chunk2"],
+        "text": "Chunk two text for WP076.",
+        "sequence": 2,
+        "doc_id": ids["doc"],
+    })
+
+    # --- SUPPORTS edges: both chunks → child control ---
+    knowledge_client.post("/knowledge/chunk/supports", json={
+        "chunk_id": ids["chunk1"],
+        "control_id": ids["ctrl_child"],
+        "confidence": 0.85,
+        "status": "confirmed",
+    })
+    knowledge_client.post("/knowledge/chunk/supports", json={
+        "chunk_id": ids["chunk2"],
+        "control_id": ids["ctrl_child"],
+        "confidence": 0.85,
+        "status": "confirmed",
+    })
+
+    # --- Memory nodes via POST /memory ---
+    resp_ev = knowledge_client.post("/memory", json={
+        "fact": "evidence memory for test control wp076",
+        "type": "observation",
+        "agent_id": "test-agent-wp076",
+        "control_ids": [ids["ctrl_child"]],
+        "control_relationship_type": "evidence",
+        "org_id": "test-wp076-tr-org-eu",
+    })
+    assert resp_ev.status_code == 200
+    memory_evidence_id = resp_ev.json()["memory_id"]
+
+    resp_gap = knowledge_client.post("/memory", json={
+        "fact": "gap memory for test control wp076",
+        "type": "observation",
+        "agent_id": "test-agent-wp076",
+        "control_ids": [ids["ctrl_child"]],
+        "control_relationship_type": "gap",
+        "org_id": "test-wp076-tr-org-eu",
+    })
+    assert resp_gap.status_code == 200
+    memory_gap_id = resp_gap.json()["memory_id"]
+
+    ids["memory_evidence"] = memory_evidence_id
+    ids["memory_gap"] = memory_gap_id
+
+    yield ids
+
+    # --- Teardown ---
+    with test_driver.session() as s:
+        s.run(
+            "MATCH (n) WHERE n.id STARTS WITH 'test-wp076-tr-' DETACH DELETE n"
+        )
+    with test_driver.session() as s:
+        s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_evidence_id)
+        s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_gap_id)
+
+
+# ---------------------------------------------------------------------------
+# TestTraceabilityIntegration
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+class TestTraceabilityIntegration:
+
+    def test_trace_up_returns_business_attributes_and_norms(self, knowledge_client, tr_data):
+        """trace-up via child control resolves ancestor ADDRESSES → Precept → BusinessAttribute."""
+        resp = knowledge_client.get(
+            f"/knowledge/controls/{tr_data['ctrl_child']}/trace-up"
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["control_id"] == tr_data["ctrl_child"]
+        ba_ids = [ba["id"] for ba in data["business_attributes"]]
+        assert tr_data["ba"] in ba_ids
+        norm_ids = [n["id"] for n in data["norms"]]
+        assert tr_data["norm"] in norm_ids
+
+    def test_trace_up_missing_control_returns_404(self, knowledge_client):
+        resp = knowledge_client.get("/knowledge/controls/nonexistent-wp076/trace-up")
+        assert resp.status_code == 404
+
+    def test_trace_down_returns_documents_and_chunks(self, knowledge_client, tr_data):
+        """trace-down returns documents list with nested chunks via SUPPORTS edges."""
+        resp = knowledge_client.get(
+            f"/knowledge/controls/{tr_data['ctrl_child']}/trace-down"
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["control_id"] == tr_data["ctrl_child"]
+        assert len(data["documents"]) == 1
+        doc = data["documents"][0]
+        assert doc["id"] == tr_data["doc"]
+        chunk_ids = [ch["id"] for ch in doc["chunks"]]
+        assert tr_data["chunk1"] in chunk_ids
+        assert tr_data["chunk2"] in chunk_ids
+
+    def test_trace_down_returns_evidence_and_gap_memories(self, knowledge_client, tr_data):
+        """evidence_memories and gap_memories split correctly by relationship_type."""
+        resp = knowledge_client.get(
+            f"/knowledge/controls/{tr_data['ctrl_child']}/trace-down"
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        evidence_ids = [m["id"] for m in data["evidence_memories"]]
+        gap_ids = [m["id"] for m in data["gap_memories"]]
+        assert tr_data["memory_evidence"] in evidence_ids
+        assert tr_data["memory_gap"] in gap_ids
+        # evidence memory must not appear in gap list and vice versa
+        assert tr_data["memory_evidence"] not in gap_ids
+        assert tr_data["memory_gap"] not in evidence_ids
+
+    def test_trace_down_knowledge_only_mode(self, knowledge_client, test_driver):
+        """With zero Memory nodes, trace-down returns valid response with empty memory lists."""
+        ctrl_id = "test-wp076-tr-ko-ctrl"
+        chunk_id = "test-wp076-tr-ko-chunk"
+        doc_id = "test-wp076-tr-ko-doc"
+        try:
+            knowledge_client.post("/knowledge/frameworks", json={
+                "id": "test-wp076-tr-ko-fw", "name": "KO FW",
+            })
+            knowledge_client.post("/knowledge/controls", json={
+                "id": ctrl_id,
+                "name": "Knowledge-Only Control",
+                "framework_id": "test-wp076-tr-ko-fw",
+            })
+            knowledge_client.post("/knowledge/documents", json={
+                "id": doc_id, "title": "KO Doc", "doc_type": "policy",
+            })
+            knowledge_client.post("/knowledge/chunks", json={
+                "id": chunk_id,
+                "text": "Knowledge-only chunk text.",
+                "sequence": 1,
+                "doc_id": doc_id,
+            })
+            knowledge_client.post("/knowledge/chunk/supports", json={
+                "chunk_id": chunk_id,
+                "control_id": ctrl_id,
+                "confidence": 0.7,
+            })
+            resp = knowledge_client.get(f"/knowledge/controls/{ctrl_id}/trace-down")
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            assert data["evidence_memories"] == []
+            assert data["gap_memories"] == []
+            assert len(data["documents"]) == 1
+        finally:
+            with test_driver.session() as s:
+                s.run(
+                    "MATCH (n) WHERE n.id STARTS WITH 'test-wp076-tr-ko-' DETACH DELETE n"
+                )
+
+    def test_trace_down_org_id_filter(self, knowledge_client, tr_data, test_driver):
+        """?org_id=org-eu returns only EU-scoped memory edges, not US-scoped."""
+        # Add a third Memory with ABOUT_CONTROL edge for org-us
+        resp_us = knowledge_client.post("/memory", json={
+            "fact": "us-scoped memory for wp076 org filter test",
+            "type": "observation",
+            "agent_id": "test-agent-wp076",
+            "control_ids": [tr_data["ctrl_child"]],
+            "control_relationship_type": "evidence",
+            "org_id": "test-wp076-tr-org-us",
+        })
+        assert resp_us.status_code == 200
+        memory_us_id = resp_us.json()["memory_id"]
+        try:
+            resp = knowledge_client.get(
+                f"/knowledge/controls/{tr_data['ctrl_child']}/trace-down"
+                f"?org_id=test-wp076-tr-org-eu"
+            )
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            all_memory_ids = (
+                [m["id"] for m in data["evidence_memories"]]
+                + [m["id"] for m in data["gap_memories"]]
+            )
+            # EU evidence memory must be present
+            assert tr_data["memory_evidence"] in all_memory_ids
+            # US memory must be absent
+            assert memory_us_id not in all_memory_ids
+        finally:
+            with test_driver.session() as s:
+                s.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=memory_us_id)
+
+    def test_attribute_coverage_calculation(self, knowledge_client, tr_data):
+        """coverage_pct = 50.0 when 1 of 2 controls addressing the attribute has SUPPORTS chunks.
+
+        tr_data seeds: ctrl_parent (no chunks) and ctrl_child (2 chunks) both ADDRESSES precept.
+        → total_controls=2, covered_controls=1, coverage_pct=50.0.
+        """
+        resp = knowledge_client.get(
+            f"/knowledge/attributes/{tr_data['ba']}/coverage"
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        # ctrl_child has chunks (covered), ctrl_parent has no chunks (uncovered) → 50%
+        assert data["total_controls"] == 2
+        assert data["covered_controls"] == 1
+        assert data["coverage_pct"] == 50.0
+        assert tr_data["ctrl_parent"] in data["uncovered_control_ids"]
+
+    def test_attribute_coverage_missing_returns_404(self, knowledge_client):
+        resp = knowledge_client.get(
+            "/knowledge/attributes/nonexistent-ba-wp076/coverage"
+        )
+        assert resp.status_code == 404
+
+    def test_gap_analysis_classification(self, knowledge_client, tr_data):
+        """Three-way classification: child control is covered (chunks + evidence memory)."""
+        resp = knowledge_client.post("/knowledge/gap-analysis", json={
+            "control_ids": [tr_data["ctrl_child"], tr_data["ctrl_parent"]],
+        })
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        covered_ids = [e["control_id"] for e in data["covered"]]
+        partial_ids = [e["control_id"] for e in data["partial"]]
+        # child has both chunks and evidence memory → covered
+        assert tr_data["ctrl_child"] in covered_ids
+        # parent has no chunks and no evidence memory → uncovered or partial
+        assert tr_data["ctrl_child"] not in partial_ids
+
+    def test_gap_analysis_knowledge_only_mode(self, knowledge_client, test_driver):
+        """With zero Memory nodes, controls with chunks appear in partial (not covered)."""
+        ctrl_id = "test-wp076-tr-gap-ko-ctrl"
+        chunk_id = "test-wp076-tr-gap-ko-chunk"
+        doc_id = "test-wp076-tr-gap-ko-doc"
+        try:
+            knowledge_client.post("/knowledge/frameworks", json={
+                "id": "test-wp076-tr-gap-ko-fw", "name": "GAP KO FW",
+            })
+            knowledge_client.post("/knowledge/controls", json={
+                "id": ctrl_id,
+                "name": "GAP KO Control",
+                "framework_id": "test-wp076-tr-gap-ko-fw",
+            })
+            knowledge_client.post("/knowledge/documents", json={
+                "id": doc_id, "title": "GAP KO Doc", "doc_type": "policy",
+            })
+            knowledge_client.post("/knowledge/chunks", json={
+                "id": chunk_id,
+                "text": "GAP knowledge-only chunk.",
+                "sequence": 1,
+                "doc_id": doc_id,
+            })
+            knowledge_client.post("/knowledge/chunk/supports", json={
+                "chunk_id": chunk_id,
+                "control_id": ctrl_id,
+                "confidence": 0.6,
+            })
+            resp = knowledge_client.post("/knowledge/gap-analysis", json={
+                "control_ids": [ctrl_id],
+            })
+            assert resp.status_code == 200, resp.text
+            data = resp.json()
+            partial_ids = [e["control_id"] for e in data["partial"]]
+            covered_ids = [e["control_id"] for e in data["covered"]]
+            assert ctrl_id in partial_ids
+            assert ctrl_id not in covered_ids
+        finally:
+            with test_driver.session() as s:
+                s.run(
+                    "MATCH (n) WHERE n.id STARTS WITH 'test-wp076-tr-gap-ko-' DETACH DELETE n"
+                )
+
+    def test_gap_analysis_generic_mode(self, knowledge_client, tr_data):
+        """Without org_id, all controls returned regardless of jurisdiction."""
+        resp = knowledge_client.post("/knowledge/gap-analysis", json={
+            "control_ids": [tr_data["ctrl_child"]],
+        })
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        all_ids = (
+            [e["control_id"] for e in data["covered"]]
+            + [e["control_id"] for e in data["partial"]]
+            + [e["control_id"] for e in data["uncovered"]]
+        )
+        assert tr_data["ctrl_child"] in all_ids

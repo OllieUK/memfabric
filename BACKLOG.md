@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-076 | InfoSec knowledge layer: integration and separation tests | feature/knowledge-layer | M | M | WP-094, WP-070–WP-075, WP-024 | Plan: docs/plans/wp-076.md — NEXT |
+| — | feature/knowledge-layer branch complete — ready to merge | — | — | — | — | All WPs WP-070–WP-076 done; 52 integration + 33 unit tests green |
 
 ### Knowledge layer branch
 
@@ -303,6 +303,21 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - New backlog item WP-096: generalise `validate_node_ids` + `replace_edges` utilities (low priority)
 
 **Retrospective:** Two-wave approach (bridge module first, route wiring second) worked well — Wave 1 was fully reviewable in isolation before Wave 2 added route complexity. Quality review caught bridge-only PATCH not returning 404 for non-existent memory (fixed before merge). Simplify review caught missing `if req.doc_ids:` guard. `_BRIDGE_FIELDS` as module-level constant is the correct pattern. Lazy `from memory_service import knowledge_bridge` inside route handlers is intentional to avoid pytest collection order issues.
+
+---
+
+### WP-076 — InfoSec knowledge layer: integration and separation tests ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Folded WP-024: `cleanup_nodes` in `tests/conftest.py` extended to accept `dict[str, str | list[str]]` — backward-compatible
+- Added `knowledge_client` fixture to `conftest.py` (module-scoped, reloads app with `ENABLE_KNOWLEDGE_LAYER=true`) — eliminates duplication across all knowledge-layer test files
+- Created `tests/test_wp076_separation.py`: autouse module-scoped `separation_data` fixture seeds 20 Controls + 50 Chunks + 5 Memory nodes; 3 integration tests assert zero cross-layer leakage in search; 1 static AST import-audit test enforces ADR-001 at all times
+- Created `tests/test_wp076_integration.py`: 38 integration tests across `TestKnowledgeSchemaIntegration` (4), `TestKnowledgeWriteIntegration` (13), `TestKnowledgeSearchIntegration` (7), `TestCrossLayerIntegration` (14)
+- Updated `tests/test_wp075_traceability.py`: appended `TestTraceabilityIntegration` with 11 integration tests for all four traceability endpoints including org-scoped filtering, knowledge-only mode, and gap-analysis classification
+- **52 integration tests + 33 unit tests, all green** against live Memgraph + FastAPI stack
+
+**Retrospective:** Fixture-scope bugs were the dominant failure mode: (1) a session-scoped fixture cannot request a module-scoped one — `separation_data` had to be demoted to module scope; (2) a fixture inside a class body cannot exceed `scope="class"` — `seed_search_data` had to be extracted to module level; (3) the `SearchMemoryResponse` wrapper (`{"memories": [...]}`) was not unwrapped in one test assertion. The dedup-collision issue (missing control validation silently skipped on dedup path) required cleaning sentinel memories by fact prefix before each test run. The `knowledge_client` fixture duplication (3 independent copies across test files) was caught by the code quality review and consolidated into conftest.py.
 
 ---
 
