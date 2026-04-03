@@ -43,6 +43,10 @@ def memory_add(
     cause_ids: list[str] | None = None,
     effect_ids: list[str] | None = None,
     person_ids: list[str] | None = None,
+    control_ids: list[str] | None = None,
+    doc_ids: list[str] | None = None,
+    control_relationship_type: str | None = None,
+    org_id: str | None = None,
 ) -> dict:
     """Add a memory to the fabric.
 
@@ -63,6 +67,10 @@ def memory_add(
             importance=importance,
             strand_ids=strand_ids,
             person_ids=person_ids,
+            control_ids=control_ids,
+            doc_ids=doc_ids,
+            control_relationship_type=control_relationship_type,
+            org_id=org_id,
         )
     return result
 
@@ -324,10 +332,16 @@ def memory_update(
     importance: int | None = None,
     person_ids: list[str] | None = None,
     strand_ids: list[str] | None = None,
+    control_ids: list[str] | None = None,
+    doc_ids: list[str] | None = None,
+    control_relationship_type: str | None = None,
+    org_id: str | None = None,
 ) -> dict:
     """Update an existing active memory's content. Only include fields you want to change.
     fact/so_what changes trigger embedding recomputation. person_ids and strand_ids are full
-    replacements (existing edges are removed and recreated). Returns {memory_id, updated_at}."""
+    replacements (existing edges are removed and recreated). control_ids and doc_ids replace
+    cross-layer edges to knowledge controls and documents respectively.
+    Returns {memory_id, updated_at}."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.update_memory(
             memory_id,
@@ -337,6 +351,10 @@ def memory_update(
             importance=importance,
             person_ids=person_ids,
             strand_ids=strand_ids,
+            control_ids=control_ids,
+            doc_ids=doc_ids,
+            control_relationship_type=control_relationship_type,
+            org_id=org_id,
         )
 
 

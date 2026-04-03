@@ -31,6 +31,10 @@ class MemoryClient:
         person_ids: list[str] | None = None,
         strand_ids: list[str] | None = None,
         related_ids: list[str] | None = None,
+        control_ids: list[str] | None = None,
+        doc_ids: list[str] | None = None,
+        control_relationship_type: str | None = None,
+        org_id: str | None = None,
     ) -> dict:
         """POST /memory. Returns dict with memory_id, deduplicated, and strand_ids."""
         body: dict = {
@@ -52,6 +56,14 @@ class MemoryClient:
             body["project_id"] = project_id
         if related_ids is not None:
             body["related_ids"] = related_ids
+        if control_ids is not None:
+            body["control_ids"] = control_ids
+        if doc_ids is not None:
+            body["doc_ids"] = doc_ids
+        if control_relationship_type is not None:
+            body["control_relationship_type"] = control_relationship_type
+        if org_id is not None:
+            body["org_id"] = org_id
         response = self._http.post("/memory", json=body)
         response.raise_for_status()
         return response.json()
@@ -181,6 +193,10 @@ class MemoryClient:
         importance: int | None = None,
         person_ids: list[str] | None = None,
         strand_ids: list[str] | None = None,
+        control_ids: list[str] | None = None,
+        doc_ids: list[str] | None = None,
+        control_relationship_type: str | None = None,
+        org_id: str | None = None,
     ) -> dict:
         """PATCH /memory/{id}. Returns {memory_id, updated_at}."""
         body: dict = {}
@@ -196,6 +212,14 @@ class MemoryClient:
             body["person_ids"] = person_ids
         if strand_ids is not None:
             body["strand_ids"] = strand_ids
+        if control_ids is not None:
+            body["control_ids"] = control_ids
+        if doc_ids is not None:
+            body["doc_ids"] = doc_ids
+        if control_relationship_type is not None:
+            body["control_relationship_type"] = control_relationship_type
+        if org_id is not None:
+            body["org_id"] = org_id
         response = self._http.patch(f"/memory/{memory_id}", json=body)
         response.raise_for_status()
         return response.json()
