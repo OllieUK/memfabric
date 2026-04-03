@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-070 | InfoSec knowledge layer: norms & document write API | feature/knowledge-layer | H | M | WP-077 ✅ | Plan: docs/plans/wp-070.md |
+| WP-071 | InfoSec knowledge layer: search API | feature/knowledge-layer | H | M | WP-070 ✅ | Plan: docs/plans/wp-071.md (to be written) |
 
 ### Knowledge layer branch
 
@@ -274,6 +274,35 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - Simplify: replaced raw Cypher cleanup in test with `cleanup_nodes` helper (consistent with `test_i6`)
 
 **Retrospective:** Minimal, clean change. WP-052 pattern made this trivial. Simplify surfaced a test-cleanup inconsistency that was easy to fix. Two-stage review passed with no spec gaps.
+
+---
+
+### WP-077 — Extract schema-init utils + fix embeddings multi-model routing ✅
+
+> **Completed 2026-04-03.** Commit `ac1a506` on `feature/knowledge-layer`.
+
+- Created `scripts/schema_utils.py` with shared `create_constraint()` + `get_embedding_dimension()`
+- `init_schema.py` and `init_knowledge_schema.py` now import from `scripts.schema_utils` (no duplication)
+- `memory_service/embeddings.py`: added `_model_cache: dict[str, SentenceTransformer]`, `_load_model_by_name()`, and optional `model_name` parameter throughout `get_model`/`get_embedding`/`get_embedding_dimension`/`_cache_key`
+- `scripts/migrate_embeddings.py`: both `get_embedding()` call sites now pass `model_name=model_name`
+- 11 unit tests, all green; no integration tests (pure Python, no Memgraph)
+
+**Retrospective:** Three /simplify wins caught during verification: (1) `ClientError` import was missing from both init scripts after extraction — runtime `NameError` averted; (2) `_load_model` and `_load_model_by_name` had duplicate offline-setup blocks — extracted to `_make_st_kwargs()`; (3) `_cache_key` ternary simplified to `model_name or _model_name`. Background agents (even with `bypassPermissions`) cannot write files or run Bash in this environment — implementation was done directly in-session. This is now the established pattern for all WPs on this branch.
+
+---
+
+### WP-070 — InfoSec knowledge layer: write API ✅
+
+> **Completed 2026-04-03.** Commit `a1c1148` on `feature/knowledge-layer`.
+
+- Created `memory_service/knowledge_repo.py`: upsert/get for Framework, Control, Norm, Document, Chunk with correct Cypher (MERGE ON CREATE SET; optional CONTAINS/IMPLEMENTS/SOURCED_FROM/HAS_CHUNK/HAS_NEXT edges)
+- Created `memory_service/knowledge_routes.py`: FastAPI router (`/knowledge` prefix) with 10 endpoints; embeddings via `KNOWLEDGE_EMBEDDING_MODEL`; Document carries no embedding (chunks hold vectors)
+- `memory_service/main.py`: conditional `app.include_router(knowledge_router)` when `ENABLE_KNOWLEDGE_LAYER=true`
+- `scripts/init_knowledge_schema.py`: added missing `("Framework", "id")` uniqueness constraint
+- `docs/plans/wp-070.md`: self-contained plan written for future reference
+- 24 unit tests (13 repo + 11 route), all green; integration tests deferred to WP-076
+
+**Retrospective:** Implementation straightforward once the plan was written. Key discovery: FastAPI test fixture must reload `memory_service.config` + `memory_service.main` with `ENABLE_KNOWLEDGE_LAYER=true` AND patch `get_driver` before `TestClient` context starts — otherwise the module-level conditional doesn't register knowledge routes (settings singleton is already frozen from previous import). Pattern captured in `test_wp070.py::app_client` fixture for reuse in WP-071. Scope was intentionally narrowed vs. original BACKLOG spec (no jurisdiction scoping, no BusinessAttribute/Organisation endpoints, no MAPPED_TO cross-framework edges) — these are deferred to later WPs as needed.
 
 ---
 
