@@ -370,6 +370,63 @@ def list_documents(session) -> list[dict]:
     return [dict(r) for r in result]
 
 
+def create_supports_edge(
+    session,
+    chunk_id: str,
+    control_id: str,
+    confidence: float,
+    status: str,
+    now: str,
+) -> dict:
+    """MERGE SUPPORTS edge Chunk→Control; SET all properties ON CREATE only.
+
+    Returns {chunk_id, control_id, confidence, status, created_at}.
+    Returns None if either Chunk or Control node does not exist (MATCH finds nothing).
+    Callers must check for None and raise HTTP 404.
+    """
+    result = session.run(
+        """
+        MATCH (ch:Chunk {id: $chunk_id}), (c:Control {id: $control_id})
+        MERGE (ch)-[s:SUPPORTS]->(c)
+        ON CREATE SET
+            s.confidence  = $confidence,
+            s.status      = $status,
+            s.created_at  = $created_at
+        RETURN ch.id AS chunk_id, c.id AS control_id,
+               s.confidence AS confidence, s.status AS status,
+               s.created_at AS created_at
+        """,
+        chunk_id=chunk_id,
+        control_id=control_id,
+        confidence=confidence,
+        status=status,
+        created_at=now,
+    )
+    record = result.single()
+    if record is None:
+        return None
+    return dict(record)
+
+
+def get_chunks_for_control(session, control_id: str) -> list[dict]:
+    """Return all Chunk nodes with a SUPPORTS edge to this Control,
+    ordered by confidence DESC.
+
+    Returns list of dicts: {id, text, sequence, doc_id, created_at, confidence, status}.
+    """
+    result = session.run(
+        """
+        MATCH (ch:Chunk)-[s:SUPPORTS]->(c:Control {id: $control_id})
+        RETURN ch.id AS id, ch.text AS text, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.created_at AS created_at,
+               s.confidence AS confidence, s.status AS status
+        ORDER BY s.confidence DESC
+        """,
+        control_id=control_id,
+    )
+    return [dict(r) for r in result]
+
+
 def list_incomplete_jurisdictions(session) -> dict:
     """Return Norms and Controls with no APPLIES_IN edges.
     Returns:

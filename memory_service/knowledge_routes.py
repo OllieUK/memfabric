@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from memory_service import knowledge_repo
 from memory_service.config import settings
@@ -138,6 +138,31 @@ class ChunkHit(BaseModel):
     doc_id: str
     created_at: str
     distance: float
+
+
+class SupportsCreate(BaseModel):
+    chunk_id: str
+    control_id: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    status: str = "auto-inferred"
+
+
+class SupportsResponse(BaseModel):
+    chunk_id: str
+    control_id: str
+    confidence: float
+    status: str
+    created_at: str
+
+
+class ChunkWithSupports(BaseModel):
+    id: str
+    text: str
+    sequence: int
+    doc_id: str
+    created_at: str
+    confidence: float
+    status: str
 
 
 # ---------------------------------------------------------------------------
@@ -303,3 +328,33 @@ async def list_incomplete_jurisdictions(request: Request) -> dict:
     with request.app.state.driver.session() as session:
         result = knowledge_repo.list_incomplete_jurisdictions(session)
     return result
+
+
+# ---------------------------------------------------------------------------
+# SUPPORTS edge endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/chunk/supports", response_model=SupportsResponse)
+async def create_supports(req: SupportsCreate, request: Request) -> SupportsResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    with request.app.state.driver.session() as session:
+        if knowledge_repo.get_chunk(session, req.chunk_id) is None:
+            raise HTTPException(status_code=404, detail=f"Chunk not found: {req.chunk_id}")
+        if knowledge_repo.get_control(session, req.control_id) is None:
+            raise HTTPException(status_code=404, detail=f"Control not found: {req.control_id}")
+        record = knowledge_repo.create_supports_edge(
+            session, req.chunk_id, req.control_id, req.confidence, req.status, now
+        )
+    if record is None:
+        raise HTTPException(status_code=404, detail="Chunk or Control not found")
+    return SupportsResponse(**record)
+
+
+@router.get("/controls/{control_id}/chunks", response_model=List[ChunkWithSupports])
+async def get_chunks_for_control(control_id: str, request: Request) -> List[ChunkWithSupports]:
+    with request.app.state.driver.session() as session:
+        if knowledge_repo.get_control(session, control_id) is None:
+            raise HTTPException(status_code=404, detail=f"Control not found: {control_id}")
+        chunks = knowledge_repo.get_chunks_for_control(session, control_id)
+    return [ChunkWithSupports(**c) for c in chunks]

@@ -12,6 +12,12 @@ dependencies = [
     "rich",
     "pydantic-settings",
     "fastmcp>=2.0",
+    "pdfplumber",
+]
+
+[project.optional-dependencies]
+dev = [
+    "fpdf2",
 ]
 
 [project.scripts]
