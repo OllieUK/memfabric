@@ -176,7 +176,8 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                         session, memory_id, req.control_ids,
                         req.control_relationship_type, req.org_id,
                     )
-                knowledge_bridge.link_documents(session, memory_id, req.doc_ids)
+                if req.doc_ids:
+                    knowledge_bridge.link_documents(session, memory_id, req.doc_ids)
             return AddMemoryResponse(memory_id=memory_id, strand_ids=req.strand_ids)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
@@ -696,6 +697,11 @@ async def operation_log(request: Request) -> OperationLogResponse:
     return OperationLogResponse(entries=[OperationLogEntry(**e) for e in entries])
 
 
+# Fields handled by knowledge_bridge rather than memory_repo.update_memory.
+# Stripped from patch_fields before the repo call to prevent spurious SET clauses.
+_BRIDGE_FIELDS = {"control_ids", "doc_ids", "control_relationship_type", "org_id"}
+
+
 class UpdateMemoryRequest(BaseModel):
     fact: Optional[str] = None
     so_what: Optional[str] = None
@@ -766,7 +772,6 @@ async def update_memory(
                 patch_fields["text"] = merged_text
                 new_embedding = get_embedding(merged_text)
             # Strip bridge fields before passing to repo (repo knows nothing about these)
-            _BRIDGE_FIELDS = {"control_ids", "doc_ids", "control_relationship_type", "org_id"}
             bridge_fields = {k: v for k, v in patch_fields.items() if k in _BRIDGE_FIELDS}
             repo_patch = {k: v for k, v in patch_fields.items() if k not in _BRIDGE_FIELDS}
             if not repo_patch:

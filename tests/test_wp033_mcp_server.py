@@ -184,6 +184,10 @@ def test_u8_memory_update_passes_person_ids():
         importance=None,
         person_ids=["person-alice", "person-bob"],
         strand_ids=None,
+        control_ids=None,
+        doc_ids=None,
+        control_relationship_type=None,
+        org_id=None,
     )
     assert result["memory_id"] == "uuid-abc"
 
@@ -321,6 +325,10 @@ def test_u9_memory_add_passes_person_ids():
         importance=3,
         strand_ids=None,
         person_ids=["person-alice", "person-bob"],
+        control_ids=None,
+        doc_ids=None,
+        control_relationship_type=None,
+        org_id=None,
     )
     assert result["memory_id"] == "uuid-new"
 
