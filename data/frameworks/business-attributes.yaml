@@ -1,0 +1,34 @@
+framework_id: business-attributes
+framework_name: SABSA Business Attributes
+framework_version: null
+framework_description: Business attributes for SABSA traceability
+controls: []
+norms: []
+documents: []
+chunks: []
+jurisdictions: []
+business_attributes:
+  - id: ba-confidentiality
+    name: Confidentiality
+    description: Information is not made available or disclosed to unauthorised individuals, entities, or processes
+  - id: ba-integrity
+    name: Integrity
+    description: Accuracy and completeness of data and the trustworthiness of information
+  - id: ba-availability
+    name: Availability
+    description: Information and systems are accessible and usable upon demand by an authorized entity
+  - id: ba-accountability
+    name: Accountability
+    description: Actions of an entity can be traced uniquely to that entity
+  - id: ba-auditability
+    name: Auditability
+    description: Events and actions are logged and can be reviewed for compliance and forensics
+  - id: ba-non-repudiation
+    name: Non-Repudiation
+    description: Assurance that someone cannot deny the validity of something
+  - id: ba-privacy
+    name: Privacy
+    description: Personal information is handled in accordance with applicable laws and regulations
+  - id: ba-resilience
+    name: Resilience
+    description: Ability to withstand and recover from adverse conditions or attacks

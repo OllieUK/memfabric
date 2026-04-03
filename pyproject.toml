@@ -13,6 +13,7 @@ dependencies = [
     "pydantic-settings",
     "fastmcp>=2.0",
     "pdfplumber",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]

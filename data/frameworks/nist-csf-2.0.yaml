@@ -1,0 +1,64 @@
+framework_id: nist-csf-2.0
+framework_name: NIST Cybersecurity Framework
+framework_version: "2.0"
+framework_description: Framework for improving critical infrastructure cybersecurity
+controls:
+  - id: nist-csf-2.0.GV
+    name: GOVERN
+    description: Organizational context, risk management strategy, supply chain risk, roles
+  - id: nist-csf-2.0.GV.OC
+    name: Organizational Context
+    description: Organizational mission, stakeholder expectations, legal requirements
+    parent_id: nist-csf-2.0.GV
+  - id: nist-csf-2.0.GV.RM
+    name: Risk Management Strategy
+    description: Priorities, constraints, risk tolerances, and assumptions
+    parent_id: nist-csf-2.0.GV
+  - id: nist-csf-2.0.ID
+    name: IDENTIFY
+    description: Current cybersecurity risks understood
+  - id: nist-csf-2.0.ID.AM
+    name: Asset Management
+    description: Assets that enable organizational objectives are identified and managed
+    parent_id: nist-csf-2.0.ID
+  - id: nist-csf-2.0.ID.RA
+    name: Risk Assessment
+    description: Cybersecurity risk to the organization is understood
+    parent_id: nist-csf-2.0.ID
+  - id: nist-csf-2.0.PR
+    name: PROTECT
+    description: Safeguards to manage cybersecurity risks
+  - id: nist-csf-2.0.PR.AA
+    name: Identity Management, Authentication and Access Control
+    description: Access to physical and logical assets is limited to authorized users
+    parent_id: nist-csf-2.0.PR
+  - id: nist-csf-2.0.PR.DS
+    name: Data Security
+    description: Data are managed consistent with the organization's risk strategy
+    parent_id: nist-csf-2.0.PR
+  - id: nist-csf-2.0.DE
+    name: DETECT
+    description: Find and analyze possible cybersecurity attacks and compromises
+  - id: nist-csf-2.0.DE.CM
+    name: Continuous Monitoring
+    description: Assets are monitored to find anomalies, indicators of compromise, and other adverse events
+    parent_id: nist-csf-2.0.DE
+  - id: nist-csf-2.0.RS
+    name: RESPOND
+    description: Take action regarding detected cybersecurity incidents
+  - id: nist-csf-2.0.RS.MA
+    name: Incident Management
+    description: Responses to detected cybersecurity incidents are managed
+    parent_id: nist-csf-2.0.RS
+  - id: nist-csf-2.0.RC
+    name: RECOVER
+    description: Restore capabilities after a cybersecurity incident
+  - id: nist-csf-2.0.RC.RP
+    name: Incident Recovery Plan Execution
+    description: Restoration activities are performed to ensure operational availability
+    parent_id: nist-csf-2.0.RC
+norms: []
+documents: []
+chunks: []
+jurisdictions: []
+business_attributes: []

@@ -326,3 +326,63 @@ class MemoryClient:
         response = self._http.get("/memory/graph", params=params)
         response.raise_for_status()
         return response.json()
+
+    def search_controls(
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+        framework_id: str | None = None,
+    ) -> list[dict]:
+        """POST /knowledge/search/controls. Returns list of ControlHit dicts."""
+        body: dict = {"query": query, "limit": limit}
+        if framework_id is not None:
+            body["framework_id"] = framework_id
+        response = self._http.post("/knowledge/search/controls", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def search_chunks(
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+        doc_id: str | None = None,
+    ) -> list[dict]:
+        """POST /knowledge/search/chunks. Returns list of ChunkHit dicts."""
+        body: dict = {"query": query, "limit": limit}
+        if doc_id is not None:
+            body["doc_id"] = doc_id
+        response = self._http.post("/knowledge/search/chunks", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def list_norms(self) -> list[dict]:
+        """GET /knowledge/norms. Returns list of NormResponse dicts."""
+        response = self._http.get("/knowledge/norms")
+        response.raise_for_status()
+        return response.json()
+
+    def list_documents(self) -> list[dict]:
+        """GET /knowledge/documents. Returns list of DocumentResponse dicts."""
+        response = self._http.get("/knowledge/documents")
+        response.raise_for_status()
+        return response.json()
+
+    def get_incomplete_jurisdictions(self) -> dict:
+        """GET /knowledge/incomplete-jurisdictions. Returns diagnostic dict."""
+        response = self._http.get("/knowledge/incomplete-jurisdictions")
+        response.raise_for_status()
+        return response.json()
+
+    def get_control(self, control_id: str) -> dict:
+        """GET /knowledge/controls/{control_id}. Returns ControlResponse dict."""
+        response = self._http.get(f"/knowledge/controls/{control_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def get_norm(self, norm_id: str) -> dict:
+        """GET /knowledge/norms/{norm_id}. Returns NormResponse dict."""
+        response = self._http.get(f"/knowledge/norms/{norm_id}")
+        response.raise_for_status()
+        return response.json()

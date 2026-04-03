@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-074 | InfoSec knowledge layer: CLI, MCP tools, and ETL | feature/knowledge-layer | H | M | WP-070 ✅, WP-071 ✅, WP-072 ✅, WP-073 ✅ | Plan: docs/plans/wp-074.md ✅ |
+| WP-075 | InfoSec knowledge layer: SABSA bidirectional traceability | feature/knowledge-layer | H | M | WP-072 ✅, WP-074 ✅ | Plan: docs/plans/wp-075.md |
 
 ### Knowledge layer branch
 
@@ -42,13 +42,12 @@
 | 9 | R2 | WP-077 | Extract shared schema-init utilities + fix migrate_embeddings model routing | L | L | 1.0 | WP-094 | `create_constraint()` and `get_embedding_dimension()` are copy-pasted identically in `init_schema.py` and `init_knowledge_schema.py`. Extract to `scripts/schema_utils.py`. Additionally: `migrate_embeddings.py` sets `model_name = settings.knowledge_embedding_model` for the staleness filter but then calls `get_embedding()` which is hard-wired to `EMBEDDING_MODEL` via the module-level singleton in `embeddings.py`. Fix requires `embeddings.py` to support multiple model instances, or a separate model-load path in the script. Surfaced in WP-094 simplify review. Must complete before WP-070. |
 | 10 | R2 | WP-070 | InfoSec knowledge layer: norms & document write API | H | M | 1.5 | WP-094, WP-077 | FastAPI router (`knowledge_routes.py`) + Cypher (`knowledge_repo.py`). Feature-flagged via `ENABLE_KNOWLEDGE_LAYER`. Upserts Norm/Control/Document/Chunk/BusinessAttribute/Organisation/Jurisdiction. IMPLEMENTS edge (Document→Control), APPLIES_IN/OPERATES_IN jurisdiction scoping, OWNED_BY org scoping, MAPPED_TO cross-framework edges. MERGE+text_hash idempotency. Knowledge embeddings use `KNOWLEDGE_EMBEDDING_MODEL`. Anchor Memory writes on norm ingest. See detail below. |
 | 11 | R2 | WP-071 | InfoSec knowledge layer: search API | H | M | 1.5 | WP-070 | Vector search over ctrl_embedding_idx and chunk_embedding_idx using `KNOWLEDGE_EMBEDDING_MODEL`. All endpoints functional with zero Memory nodes (standalone compliance mode per ADR-001). Dual modes: unscoped (generic/public) and org-scoped (jurisdiction-filtered via OPERATES_IN ∩ APPLIES_IN). lang filter; cross-lingual by default. include_universal flag. /knowledge/incomplete-jurisdictions diagnostic endpoint. See detail below. |
-| 12 | R2 | WP-074 | InfoSec knowledge layer: CLI, MCP tools, and ETL | H | M | 1.5 | WP-070, WP-071, WP-072 | knowledge_* MCP tools (registered only when flag is on; narrow, single-purpose, LLM-directed docstrings). CLI commands. MemoryClient extension. ingest_framework.py bulk ETL with YAML validation. YAML data files (NIST CSF, ISO 27001, jurisdictions, business attributes). CLI review tool for SUPPORTS edge validation. KNOWLEDGE_LAYER.md (references ADR-001). See detail below. |
-| 14 | R2 | WP-075 | InfoSec knowledge layer: SABSA bidirectional traceability | H | M | 1.5 | WP-072, WP-074 | trace-up (control → attributes → norms), trace-down (control → documents → chunks → evidence/gap memories), attribute coverage, gap analysis. Dual-mode per ADR-001: knowledge-only (no Memory traversal, standalone compliance) and integrated (with Memory evidence). Both generic and org-scoped modes. Three-way reconciliation. See detail below. |
+| 12 | R2 | WP-075 | InfoSec knowledge layer: SABSA bidirectional traceability | H | M | 1.5 | WP-072, WP-074 | trace-up (control → attributes → norms), trace-down (control → documents → chunks → evidence/gap memories), attribute coverage, gap analysis. Dual-mode per ADR-001: knowledge-only (no Memory traversal, standalone compliance) and integrated (with Memory evidence). Both generic and org-scoped modes. Three-way reconciliation. See detail below. |
 | 15 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
 | 16 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
 | 17 | R2 | WP-090 | Handle non-ServiceUnavailable exceptions in `find_duplicate_memory` | L | L | 1.0 | WP-088 ✅ | `find_duplicate_memory()` in `memory_repo.py` can raise `CypherError` or other Memgraph-level exceptions (e.g. malformed query, vector index unavailable). These propagate uncaught from the `add_memory` handler, which only catches `ServiceUnavailable`. Options: (a) catch `CypherError` inside `find_duplicate_memory` and return `None` (fail-open), or (b) let it propagate to a new `except CypherError → 500` clause in the handler. Fail-open is safer for availability; fail-closed is safer for data integrity. Surfaced during WP-088 code review. |
 | 18 | R2 | WP-095 | `GET /memory/duplicates`: add Cypher-level safety cap + async wrap | L | L | 1.0 | WP-047 ✅ | Surfaced in WP-047 simplify review. (1) Add `LIMIT 50000` to the `find_near_duplicates` Cypher query as a guard against pathologically large `RELATED_TO` edge sets — prevents unbounded Bolt transfer at extreme scale. (2) Wrap `find_near_duplicates` call in `run_in_executor` in the async endpoint if concurrent usage becomes a concern (currently synchronous in async handler). Both are low-priority improvements; do when the store grows beyond ~10k memories or concurrency spikes. |
-| 19 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project) — now 18+ instances. |
+| 19 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project); WP-074 added 4 more (knowledge commands) — now 22+ instances. WP-074 simplify review also noted missing `HTTPStatusError` handling in the 4 new knowledge commands; fix alongside the extraction. |
 | 20 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
 | 21 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints in `main.py` AND all 13 handlers in `knowledge_routes.py` (added WP-070/WP-071 — none have the guard). Do after WP-029 (adds more endpoints). |
 | 22 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
@@ -304,6 +303,26 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - New backlog item WP-096: generalise `validate_node_ids` + `replace_edges` utilities (low priority)
 
 **Retrospective:** Two-wave approach (bridge module first, route wiring second) worked well — Wave 1 was fully reviewable in isolation before Wave 2 added route complexity. Quality review caught bridge-only PATCH not returning 404 for non-existent memory (fixed before merge). Simplify review caught missing `if req.doc_ids:` guard. `_BRIDGE_FIELDS` as module-level constant is the correct pattern. Lazy `from memory_service import knowledge_bridge` inside route handlers is intentional to avoid pytest collection order issues.
+
+---
+
+### WP-074 — InfoSec knowledge layer: CLI, MCP tools, and ETL ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added `enable_knowledge_layer: bool = False` to `MCPSettings` in `mcp_server/config.py`
+- Added 7 `MemoryClient` methods: `search_controls`, `search_chunks`, `list_norms`, `list_documents`, `get_incomplete_jurisdictions`, `get_control`, `get_norm`
+- Added 5 feature-flag-gated MCP tools in `mcp_server/server.py` inside `if settings.enable_knowledge_layer:` block: `knowledge_search_controls`, `knowledge_search_chunks`, `knowledge_list_norms`, `knowledge_get_control`, `knowledge_get_norm`
+- Added `knowledge` Typer sub-app to CLI with 5 subcommands: `search-controls`, `search-chunks`, `list-norms`, `list-documents`, `review-supports` (stub)
+- Created `scripts/ingest_framework.py`: YAML-validated bulk ETL; upserts Framework → Controls → Norms → Documents → Chunks → Jurisdictions → BusinessAttributes; idempotent (409 = "already existed"); `--dry-run` stops after validation
+- Created `data/frameworks/`: `nist-csf-2.0.yaml` (15 controls), `iso-27001-2022.yaml` (11 controls), `jurisdictions.yaml` (10), `business-attributes.yaml` (8 SABSA attributes)
+- Added `pyyaml` to `pyproject.toml` dependencies
+- Created `KNOWLEDGE_LAYER.md`: 429-line operational runbook covering separation invariants, node/edge reference, ingest procedures, embedding model guidance, and ADR references
+- 15 unit tests, all green; integration tests deferred to WP-076
+- Simplify fixes: removed 5 redundant `Console()` instantiations (use module-level); simplified `review-supports` stub message (removed implementation details and unused param); normalised Jurisdictions/BusinessAttributes error-counting to `if s != "error"` pattern
+- Deferred: WP-025 updated to cover 4 new knowledge CLI commands (missing `HTTPStatusError` handling + extract shared handler)
+
+**Retrospective:** Parallel Group A → Group B → Group C agent dispatch worked cleanly — zero file conflicts across 6 agents. The `if settings.enable_knowledge_layer:` conditional wrapping `@mcp.tool` function definitions (not just decorators) is the correct FastMCP pattern for feature-flagged tools registered at import time. `review-supports` intentionally stubbed — full implementation deferred to WP-075 when the SUPPORTS status update endpoint is available.
 
 ---
 

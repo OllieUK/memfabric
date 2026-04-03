@@ -1,0 +1,40 @@
+framework_id: jurisdictions
+framework_name: Jurisdiction Reference Data
+framework_version: null
+framework_description: Common jurisdictions for scoping knowledge layer controls
+controls: []
+norms: []
+documents: []
+chunks: []
+jurisdictions:
+  - id: eu
+    name: European Union
+    region: Europe
+  - id: de
+    name: Germany
+    region: Europe
+  - id: uk
+    name: United Kingdom
+    region: Europe
+  - id: us
+    name: United States
+    region: North America
+  - id: critical-infrastructure
+    name: Critical Infrastructure
+    region: null
+  - id: healthcare
+    name: Healthcare
+    region: null
+  - id: payments
+    name: Payments
+    region: null
+  - id: financial-services
+    name: Financial Services
+    region: null
+  - id: energy
+    name: Energy
+    region: null
+  - id: transport
+    name: Transport
+    region: null
+business_attributes: []
