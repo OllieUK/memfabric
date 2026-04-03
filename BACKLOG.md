@@ -11,6 +11,15 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
+| WP-077 | Extract shared schema-init utilities + fix migrate_embeddings model routing | feature/knowledge-layer | L | L | WP-094 ✅ | Plan: docs/plans/wp-077.md |
+
+### Knowledge layer branch
+
+- **Branch:** `feature/knowledge-layer`
+- **Worktree:** `.worktrees/feature-knowledge-layer`
+- **WP sequence:** WP-077 → WP-070 → WP-071 → WP-072 → WP-024 → WP-073 → WP-074 → WP-075 → WP-076
+- **Rebase protocol:** after each core WP lands on master, run `git fetch origin && git rebase origin/master` from the worktree and force-push with `--force-with-lease`. Never let the branch fall more than 3–4 master commits behind.
+- **Merge strategy:** `git merge --no-ff feature/knowledge-layer` once WP-076 passes all integration tests on the live stack.
 
 ---
 
