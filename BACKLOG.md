@@ -12,6 +12,14 @@
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
 
+### Knowledge layer branch
+
+- **Branch:** `feature/knowledge-layer`
+- **Worktree:** `.worktrees/feature-knowledge-layer`
+- **WP sequence:** WP-077 → WP-070 → WP-071 → WP-072 → WP-024 → WP-073 → WP-074 → WP-075 → WP-076
+- **Rebase protocol:** after each core WP lands on master, run `git fetch origin && git rebase origin/master` from the worktree and force-push with `--force-with-lease`. Never let the branch fall more than 3–4 master commits behind.
+- **Merge strategy:** `git merge --no-ff feature/knowledge-layer` once WP-076 passes all integration tests on the live stack.
+
 ---
 
 ## Prioritised Backlog
@@ -36,29 +44,30 @@
 | 12 | R2 | WP-072 | InfoSec knowledge layer: cross-layer Memory edges | H | M | 1.5 | WP-070, WP-071 | New `knowledge_bridge.py` — sole module importing from both `memory_repo` and `knowledge_repo` (ADR-001 Guardrail 3). Extend add_memory/update_memory with ABOUT_CONTROL {relationship_type, org_id} and CITES_DOC edges (guarded by feature flag). Critical: merge_memory rewiring. Extend MemoryHit response. See detail below. |
 | 13 | R2 | WP-074 | InfoSec knowledge layer: CLI, MCP tools, and ETL | H | M | 1.5 | WP-070, WP-071, WP-072 | knowledge_* MCP tools (registered only when flag is on; narrow, single-purpose, LLM-directed docstrings). CLI commands. MemoryClient extension. ingest_framework.py bulk ETL with YAML validation. YAML data files (NIST CSF, ISO 27001, jurisdictions, business attributes). CLI review tool for SUPPORTS edge validation. KNOWLEDGE_LAYER.md (references ADR-001). See detail below. |
 | 14 | R2 | WP-075 | InfoSec knowledge layer: SABSA bidirectional traceability | H | M | 1.5 | WP-072, WP-074 | trace-up (control → attributes → norms), trace-down (control → documents → chunks → evidence/gap memories), attribute coverage, gap analysis. Dual-mode per ADR-001: knowledge-only (no Memory traversal, standalone compliance) and integrated (with Memory evidence). Both generic and org-scoped modes. Three-way reconciliation. See detail below. |
-| 15 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
-| 16 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
-| 17 | R2 | WP-090 | Handle non-ServiceUnavailable exceptions in `find_duplicate_memory` | L | L | 1.0 | WP-088 ✅ | `find_duplicate_memory()` in `memory_repo.py` can raise `CypherError` or other Memgraph-level exceptions (e.g. malformed query, vector index unavailable). These propagate uncaught from the `add_memory` handler, which only catches `ServiceUnavailable`. Options: (a) catch `CypherError` inside `find_duplicate_memory` and return `None` (fail-open), or (b) let it propagate to a new `except CypherError → 500` clause in the handler. Fail-open is safer for availability; fail-closed is safer for data integrity. Surfaced during WP-088 code review. |
-| 18 | R2 | WP-095 | `GET /memory/duplicates`: add Cypher-level safety cap + async wrap | L | L | 1.0 | WP-047 ✅ | Surfaced in WP-047 simplify review. (1) Add `LIMIT 50000` to the `find_near_duplicates` Cypher query as a guard against pathologically large `RELATED_TO` edge sets — prevents unbounded Bolt transfer at extreme scale. (2) Wrap `find_near_duplicates` call in `run_in_executor` in the async endpoint if concurrent usage becomes a concern (currently synchronous in async handler). Both are low-priority improvements; do when the store grows beyond ~10k memories or concurrency spikes. |
-| 19 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project) — now 18+ instances. |
-| 20 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 21 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
-| 22 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
-| 23 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
-| 24 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
-| 25 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
-| 26 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
-| 27 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
-| 28 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
-| 29 | R2 | WP-073 | InfoSec knowledge layer: document ingestion pipeline | H | H | 1.0 | WP-071 | PDF (pdfplumber) + Markdown → Document + Chunk nodes. Chunk embeddings use `KNOWLEDGE_EMBEDDING_MODEL`. Heading-aware chunking; HAS_NEXT edges for context expansion. chunk_review_mode (default on) prevents silent auto-SUPPORTS. Conservative threshold (distance < 0.20) for auto-inference; SUPPORTS edges start status=”auto-inferred”. See detail below. |
-| 30 | R2 | WP-076 | InfoSec knowledge layer: integration and separation tests | M | M | 1.0 | WP-094, WP-070–WP-075, WP-024 | Full integration + separation + dual-mode tests. Critical: autouse conftest separation test. Knowledge-only mode tests (all endpoints valid with zero Memory nodes). Feature flag off tests (404 for /knowledge/*, control_ids ignored). Dual-org jurisdiction test. merge_memory rewiring. Import audit (knowledge_bridge.py sole cross-layer import). See detail below. |
-| 31 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
-| 32 | R2 | WP-091 | Add `agent_id` to lifecycle operation log entries | L | L | 1.0 | WP-056 ✅ | The operation log introduced in WP-056 records `update`, `merge`, `archive`, and `restore` events but omits `agent_id` because the lifecycle endpoints do not currently accept it. Add `agent_id` as an optional field to the four request models (`UpdateMemoryRequest`, `MergeMemoryRequest`, and query params for `archive`/`restore`) and pass it through to `append_operation_log` entries. Enables per-agent traceability on all lifecycle mutations. |
-| 33 | R2 | WP-092 | Operation log size audit and rotation strategy | L | L | 1.0 | WP-056 ✅ | Review the real-world size and growth rate of `System.operation_log` under normal usage: measure byte size of the JSON property, estimate how quickly the 200-entry cap is reached, and assess read-modify-write overhead on lifecycle endpoints. Based on findings, decide on a rotation strategy — options include: lowering/tuning the cap per operation type, adding a time-based TTL alongside the count cap (e.g. drop entries older than N days), adding a `DELETE /memory/operation/log` or `POST /memory/operation/log/rotate` endpoint for explicit rotation, or splitting per-operation-type logs. Also review whether the same concern applies to `maintenance_log` (WP-054, currently capped at 100). Outcome: either confirm current approach is sufficient at expected scale, or implement the chosen rotation mechanism. |
-| 34 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
-| 35 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
-| 36 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009 | Tailscale/VPS hosting + TLS + API key auth. |
-| 37 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
+| 15 | R2 | WP-096 | API authentication (bearer tokens / API keys) | H | M | 1.5 | — | FastAPI middleware to authenticate all requests via bearer token or `X-API-Key` header. Enables safe external exposure of the service. See detail below. |
+| 16 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
+| 17 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
+| 18 | R2 | WP-090 | Handle non-ServiceUnavailable exceptions in `find_duplicate_memory` | L | L | 1.0 | WP-088 ✅ | `find_duplicate_memory()` in `memory_repo.py` can raise `CypherError` or other Memgraph-level exceptions (e.g. malformed query, vector index unavailable). These propagate uncaught from the `add_memory` handler, which only catches `ServiceUnavailable`. Options: (a) catch `CypherError` inside `find_duplicate_memory` and return `None` (fail-open), or (b) let it propagate to a new `except CypherError → 500` clause in the handler. Fail-open is safer for availability; fail-closed is safer for data integrity. Surfaced during WP-088 code review. |
+| 19 | R2 | WP-095 | `GET /memory/duplicates`: add Cypher-level safety cap + async wrap | L | L | 1.0 | WP-047 ✅ | Surfaced in WP-047 simplify review. (1) Add `LIMIT 50000` to the `find_near_duplicates` Cypher query as a guard against pathologically large `RELATED_TO` edge sets — prevents unbounded Bolt transfer at extreme scale. (2) Wrap `find_near_duplicates` call in `run_in_executor` in the async endpoint if concurrent usage becomes a concern (currently synchronous in async handler). Both are low-priority improvements; do when the store grows beyond ~10k memories or concurrency spikes. |
+| 20 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project) — now 18+ instances. |
+| 21 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
+| 22 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 23 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
+| 24 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
+| 25 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
+| 26 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
+| 27 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
+| 28 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
+| 29 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
+| 30 | R2 | WP-073 | InfoSec knowledge layer: document ingestion pipeline | H | H | 1.0 | WP-071 | PDF (pdfplumber) + Markdown → Document + Chunk nodes. Chunk embeddings use `KNOWLEDGE_EMBEDDING_MODEL`. Heading-aware chunking; HAS_NEXT edges for context expansion. chunk_review_mode (default on) prevents silent auto-SUPPORTS. Conservative threshold (distance < 0.20) for auto-inference; SUPPORTS edges start status=”auto-inferred”. See detail below. |
+| 31 | R2 | WP-076 | InfoSec knowledge layer: integration and separation tests | M | M | 1.0 | WP-094, WP-070–WP-075, WP-024 | Full integration + separation + dual-mode tests. Critical: autouse conftest separation test. Knowledge-only mode tests (all endpoints valid with zero Memory nodes). Feature flag off tests (404 for /knowledge/*, control_ids ignored). Dual-org jurisdiction test. merge_memory rewiring. Import audit (knowledge_bridge.py sole cross-layer import). See detail below. |
+| 32 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
+| 33 | R2 | WP-091 | Add `agent_id` to lifecycle operation log entries | L | L | 1.0 | WP-056 ✅ | The operation log introduced in WP-056 records `update`, `merge`, `archive`, and `restore` events but omits `agent_id` because the lifecycle endpoints do not currently accept it. Add `agent_id` as an optional field to the four request models (`UpdateMemoryRequest`, `MergeMemoryRequest`, and query params for `archive`/`restore`) and pass it through to `append_operation_log` entries. Enables per-agent traceability on all lifecycle mutations. |
+| 34 | R2 | WP-092 | Operation log size audit and rotation strategy | L | L | 1.0 | WP-056 ✅ | Review the real-world size and growth rate of `System.operation_log` under normal usage: measure byte size of the JSON property, estimate how quickly the 200-entry cap is reached, and assess read-modify-write overhead on lifecycle endpoints. Based on findings, decide on a rotation strategy — options include: lowering/tuning the cap per operation type, adding a time-based TTL alongside the count cap (e.g. drop entries older than N days), adding a `DELETE /memory/operation/log` or `POST /memory/operation/log/rotate` endpoint for explicit rotation, or splitting per-operation-type logs. Also review whether the same concern applies to `maintenance_log` (WP-054, currently capped at 100). Outcome: either confirm current approach is sufficient at expected scale, or implement the chosen rotation mechanism. |
+| 35 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
+| 36 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
+| 37 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
+| 38 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 
 > **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
 
@@ -882,6 +891,51 @@ Accept and pass through `min_score` and `neighbour_cap`. Existing callers that d
 - [ ] Integration test: `min_score` set high enough that no results pass — confirm empty list, 200 OK
 - [ ] Integration test: primary hit deduplication — confirm a node that is a primary hit does not appear in any `associated` list
 
+
+---
+
+### WP-096 — API authentication (bearer tokens / API keys)
+
+#### Motivation
+
+The service currently has no authentication layer — any process that can reach `localhost:8000` can read and write memories. Safe external exposure (Tailscale, VPS, mobile access) requires that every request be authenticated. This WP adds a lightweight, stateless auth layer that supports both human users (via a pre-shared bearer token / API key) and multiple independent agents (via per-agent keys), without introducing a user-account database or session state.
+
+#### Design
+
+**Authentication scheme:** `Authorization: Bearer <token>` header (primary) with `X-API-Key: <token>` as a fallback alias. Both are equivalent; a single check function handles both.
+
+**Key storage:** one or more valid tokens stored in `.env` as `API_KEYS` (comma-separated). Loaded at startup via `pydantic-settings`. No database, no key rotation endpoint in v1. Adding a new key requires a service restart.
+
+**FastAPI implementation:** a `verify_api_key` async dependency function injected via `Depends()` into the router. Applied globally via `app.include_router(..., dependencies=[Depends(verify_api_key)])` or at the app level, so no individual route handler needs to change. Returns `401 Unauthorized` with `WWW-Authenticate: Bearer` on failure.
+
+**Exemptions:** `GET /health` remains unauthenticated (used by uptime monitors and Docker health checks).
+
+**`memory_client` / CLI update:** add `API_KEY` env var support to `MemoryClient` so the Python client and CLI can authenticate automatically.
+
+**MCP server update:** pass `API_KEY` through the MCP server env so `memory-mcp` can authenticate.
+
+#### Files
+
+- `memory_service/auth.py` — new: `verify_api_key` dependency
+- `memory_service/config.py` — add `api_keys: list[str]` setting
+- `memory_service/main.py` — apply auth dependency globally; exempt `/health`
+- `memory_client/client.py` — add `api_key` param, inject as `Authorization` header
+- `memory_client/cli.py` — read `API_KEY` from env, pass to client
+- `.env.example` — document `API_KEYS` variable
+- `tests/test_wp096_auth.py` — unit + integration tests
+
+#### Definition of Success
+
+- [ ] All endpoints except `GET /health` return `401` when no valid token is provided
+- [ ] A valid `Authorization: Bearer <token>` is accepted on all protected endpoints
+- [ ] A valid `X-API-Key: <token>` is accepted as an alternative
+- [ ] Multiple keys in `API_KEYS` all work independently (supports per-agent keys)
+- [ ] `GET /health` remains unauthenticated
+- [ ] `MemoryClient` reads `API_KEY` from env and sends it automatically
+- [ ] MCP server passes `API_KEY` through to the service
+- [ ] Unit tests: 401 with missing/invalid token, 200 with valid token
+- [ ] Integration tests: run against live stack with `API_KEYS` set in `.env`
+- [ ] `.env.example` documents `API_KEYS`
 
 ---
 
