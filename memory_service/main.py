@@ -95,6 +95,10 @@ class AddMemoryRequest(BaseModel):
     related_ids: Optional[List[str]] = None
     cause_ids: List[str] = []
     effect_ids: List[str] = []
+    control_ids: List[str] = []
+    doc_ids: List[str] = []
+    control_relationship_type: Optional[str] = None  # "context" | "evidence" | "gap"
+    org_id: Optional[str] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -185,6 +189,8 @@ class MemoryHit(BaseModel):
     strand_ids: List[str] = []
     neighbours: List[str] = []
     associated: List[AssociatedMemoryHit] = []
+    controls: List[dict] = []
+    documents: List[dict] = []
 
 
 class SearchMemoryResponse(BaseModel):
@@ -664,12 +670,17 @@ class UpdateMemoryRequest(BaseModel):
     importance: Optional[int] = Field(default=None, ge=1, le=5)
     person_ids: Optional[List[str]] = None
     strand_ids: Optional[List[str]] = None
+    control_ids: Optional[List[str]] = None
+    doc_ids: Optional[List[str]] = None
+    control_relationship_type: Optional[str] = None
+    org_id: Optional[str] = None
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> "UpdateMemoryRequest":
         if all(v is None for v in [
             self.fact, self.so_what, self.tags,
             self.importance, self.person_ids, self.strand_ids,
+            self.control_ids, self.doc_ids, self.control_relationship_type, self.org_id,
         ]):
             raise ValueError("At least one field must be provided for update")
         return self
