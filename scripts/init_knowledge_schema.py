@@ -17,6 +17,7 @@ from scripts.schema_utils import create_constraint, get_embedding_dimension
 
 # New uniqueness constraints: (label, property)
 KNOWLEDGE_CONSTRAINTS = [
+    ("Framework", "id"),
     ("Norm", "id"),
     ("Control", "id"),
     ("Document", "id"),

@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-077 | Extract shared schema-init utilities + fix migrate_embeddings model routing | feature/knowledge-layer | L | L | WP-094 ✅ | Plan: docs/plans/wp-077.md |
+| WP-070 | InfoSec knowledge layer: norms & document write API | feature/knowledge-layer | H | M | WP-077 ✅ | Plan: docs/plans/wp-070.md |
 
 ### Knowledge layer branch
 

@@ -910,3 +910,9 @@ async def get_graph(
 ) -> GraphResponse:
     # TODO: Implement a query against Memgraph to return a filtered subgraph
     raise NotImplementedError("get_graph endpoint not implemented yet")
+
+
+# Knowledge layer router — only registered when ENABLE_KNOWLEDGE_LAYER=true
+if settings.enable_knowledge_layer:
+    from memory_service.knowledge_routes import router as knowledge_router
+    app.include_router(knowledge_router)
