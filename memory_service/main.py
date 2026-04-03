@@ -18,6 +18,7 @@ from memory_service.config import get_driver, settings
 from memory_service.embeddings import get_embedding, get_embedding_dimension
 
 
+
 def _get_build_hash() -> str:
     try:
         result = subprocess.run(
@@ -95,6 +96,10 @@ class AddMemoryRequest(BaseModel):
     related_ids: Optional[List[str]] = None
     cause_ids: List[str] = []
     effect_ids: List[str] = []
+    control_ids: List[str] = []
+    doc_ids: List[str] = []
+    control_relationship_type: Optional[Literal["context", "evidence", "gap"]] = None
+    org_id: Optional[str] = None
 
     @model_validator(mode="before")
     @classmethod
@@ -140,6 +145,8 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                     now_iso=now,
                     consolidated_decay_rate=settings.memory_consolidated_decay_rate,
                 )
+                # NOTE: control_ids/doc_ids silently ignored on dedup path — same behaviour
+                # as strand_ids. The existing memory is reinforced, not a new one created.
                 return AddMemoryResponse(memory_id=existing_id, deduplicated=True)
             memory_id = str(uuid.uuid4())
             memory_repo.add_memory(
@@ -148,6 +155,29 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                 initial_strength_factor=settings.initial_strength_factor,
                 importance_floor_factor=settings.importance_floor_factor,
             )
+            if settings.enable_knowledge_layer and (req.control_ids or req.doc_ids):
+                from memory_service import knowledge_bridge
+                if req.control_ids:
+                    missing = knowledge_bridge.validate_controls(session, req.control_ids)
+                    if missing:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Unknown control_ids: {missing}",
+                        )
+                if req.doc_ids:
+                    missing = knowledge_bridge.validate_documents(session, req.doc_ids)
+                    if missing:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Unknown doc_ids: {missing}",
+                        )
+                if req.control_ids:
+                    knowledge_bridge.link_controls(
+                        session, memory_id, req.control_ids,
+                        req.control_relationship_type, req.org_id,
+                    )
+                if req.doc_ids:
+                    knowledge_bridge.link_documents(session, memory_id, req.doc_ids)
             return AddMemoryResponse(memory_id=memory_id, strand_ids=req.strand_ids)
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
@@ -185,6 +215,8 @@ class MemoryHit(BaseModel):
     strand_ids: List[str] = []
     neighbours: List[str] = []
     associated: List[AssociatedMemoryHit] = []
+    controls: List[dict] = []
+    documents: List[dict] = []
 
 
 class SearchMemoryResponse(BaseModel):
@@ -219,6 +251,12 @@ async def search_memory(
             associated_map = memory_repo.fetch_associated(
                 session, list(primary_ids), cap, primary_ids
             )
+            hydration = {}
+            if settings.enable_knowledge_layer and primary_ids:
+                from memory_service import knowledge_bridge
+                hydration = knowledge_bridge.hydrate_controls_and_documents(
+                    session, list(primary_ids)
+                )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 
@@ -241,6 +279,8 @@ async def search_memory(
                     AssociatedMemoryHit(**a)
                     for a in associated_map.get(r["id"], [])
                 ],
+                controls=hydration.get(r["id"], {}).get("controls", []),
+                documents=hydration.get(r["id"], {}).get("documents", []),
             )
             for r in results
         ]
@@ -657,6 +697,11 @@ async def operation_log(request: Request) -> OperationLogResponse:
     return OperationLogResponse(entries=[OperationLogEntry(**e) for e in entries])
 
 
+# Fields handled by knowledge_bridge rather than memory_repo.update_memory.
+# Stripped from patch_fields before the repo call to prevent spurious SET clauses.
+_BRIDGE_FIELDS = {"control_ids", "doc_ids", "control_relationship_type", "org_id"}
+
+
 class UpdateMemoryRequest(BaseModel):
     fact: Optional[str] = None
     so_what: Optional[str] = None
@@ -664,12 +709,17 @@ class UpdateMemoryRequest(BaseModel):
     importance: Optional[int] = Field(default=None, ge=1, le=5)
     person_ids: Optional[List[str]] = None
     strand_ids: Optional[List[str]] = None
+    control_ids: Optional[List[str]] = None
+    doc_ids: Optional[List[str]] = None
+    control_relationship_type: Optional[Literal["context", "evidence", "gap"]] = None
+    org_id: Optional[str] = None
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> "UpdateMemoryRequest":
         if all(v is None for v in [
             self.fact, self.so_what, self.tags,
             self.importance, self.person_ids, self.strand_ids,
+            self.control_ids, self.doc_ids, self.control_relationship_type, self.org_id,
         ]):
             raise ValueError("At least one field must be provided for update")
         return self
@@ -721,7 +771,39 @@ async def update_memory(
                 merged_text = merged_fact + (" " + merged_so_what if merged_so_what else "")
                 patch_fields["text"] = merged_text
                 new_embedding = get_embedding(merged_text)
-            memory_repo.update_memory(session, memory_id, patch_fields, new_embedding, now)
+            # Strip bridge fields before passing to repo (repo knows nothing about these)
+            bridge_fields = {k: v for k, v in patch_fields.items() if k in _BRIDGE_FIELDS}
+            repo_patch = {k: v for k, v in patch_fields.items() if k not in _BRIDGE_FIELDS}
+            if not repo_patch:
+                current = memory_repo.get_memory_for_update(session, memory_id)
+                if current is None:
+                    raise HTTPException(status_code=404, detail="Memory not found or not active")
+            memory_repo.update_memory(session, memory_id, repo_patch, new_embedding, now)
+            if settings.enable_knowledge_layer and bridge_fields:
+                from memory_service import knowledge_bridge
+                if "control_ids" in bridge_fields:
+                    missing = knowledge_bridge.validate_controls(session, bridge_fields["control_ids"])
+                    if missing:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Unknown control_ids: {missing}",
+                        )
+                    knowledge_bridge.replace_control_edges(
+                        session, memory_id,
+                        bridge_fields["control_ids"],
+                        bridge_fields.get("control_relationship_type"),
+                        bridge_fields.get("org_id"),
+                    )
+                if "doc_ids" in bridge_fields:
+                    missing = knowledge_bridge.validate_documents(session, bridge_fields["doc_ids"])
+                    if missing:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Unknown doc_ids: {missing}",
+                        )
+                    knowledge_bridge.replace_doc_edges(
+                        session, memory_id, bridge_fields["doc_ids"],
+                    )
             memory_repo.append_operation_log(session, {
                 "operation": "update",
                 "memory_id": memory_id,
@@ -753,6 +835,9 @@ async def merge_memory(
                 req.strategy,
                 default_edge_decay_rate=settings.edge_decay_rate,
             )
+            if settings.enable_knowledge_layer:
+                from memory_service import knowledge_bridge
+                knowledge_bridge.rewire_cross_layer_edges(session, memory_id, req.target_id)
             memory_repo.append_operation_log(session, {
                 "operation": "merge",
                 "memory_id": memory_id,
@@ -910,3 +995,9 @@ async def get_graph(
 ) -> GraphResponse:
     # TODO: Implement a query against Memgraph to return a filtered subgraph
     raise NotImplementedError("get_graph endpoint not implemented yet")
+
+
+# Knowledge layer router — only registered when ENABLE_KNOWLEDGE_LAYER=true
+if settings.enable_knowledge_layer:
+    from memory_service.knowledge_routes import router as knowledge_router
+    app.include_router(knowledge_router)

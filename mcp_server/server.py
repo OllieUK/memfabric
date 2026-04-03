@@ -43,6 +43,10 @@ def memory_add(
     cause_ids: list[str] | None = None,
     effect_ids: list[str] | None = None,
     person_ids: list[str] | None = None,
+    control_ids: list[str] | None = None,
+    doc_ids: list[str] | None = None,
+    control_relationship_type: str | None = None,
+    org_id: str | None = None,
 ) -> dict:
     """Add a memory to the fabric.
 
@@ -63,6 +67,10 @@ def memory_add(
             importance=importance,
             strand_ids=strand_ids,
             person_ids=person_ids,
+            control_ids=control_ids,
+            doc_ids=doc_ids,
+            control_relationship_type=control_relationship_type,
+            org_id=org_id,
         )
     return result
 
@@ -324,10 +332,16 @@ def memory_update(
     importance: int | None = None,
     person_ids: list[str] | None = None,
     strand_ids: list[str] | None = None,
+    control_ids: list[str] | None = None,
+    doc_ids: list[str] | None = None,
+    control_relationship_type: str | None = None,
+    org_id: str | None = None,
 ) -> dict:
     """Update an existing active memory's content. Only include fields you want to change.
     fact/so_what changes trigger embedding recomputation. person_ids and strand_ids are full
-    replacements (existing edges are removed and recreated). Returns {memory_id, updated_at}."""
+    replacements (existing edges are removed and recreated). control_ids and doc_ids replace
+    cross-layer edges to knowledge controls and documents respectively.
+    Returns {memory_id, updated_at}."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.update_memory(
             memory_id,
@@ -337,6 +351,10 @@ def memory_update(
             importance=importance,
             person_ids=person_ids,
             strand_ids=strand_ids,
+            control_ids=control_ids,
+            doc_ids=doc_ids,
+            control_relationship_type=control_relationship_type,
+            org_id=org_id,
         )
 
 
@@ -377,6 +395,84 @@ def memory_find_duplicates(
 def memory_close_session() -> str:
     """Return the session close-out scaffold as plain text. Work through it before ending the session."""
     return _CLOSE_SESSION_SCAFFOLD
+
+
+if settings.enable_knowledge_layer:
+    @mcp.tool
+    def knowledge_search_controls(
+        query: str,
+        limit: int = 10,
+        framework_id: str | None = None,
+    ) -> list[dict]:
+        """Search InfoSec controls by semantic similarity.
+
+        Use this tool when an agent needs to find controls relevant to a topic,
+        threat, or gap (e.g. "access control for privileged accounts"). Returns
+        controls ranked by vector distance to the query, optionally filtered to a
+        single framework (e.g. "nist-csf-2.0" or "iso-27001-2022").
+
+        Do NOT use this for searching episodic memories — call memory_search instead.
+        Requires ENABLE_KNOWLEDGE_LAYER=true and at least one framework loaded via
+        ingest_framework.py.
+        """
+        with MemoryClient(base_url=settings.api_base_url) as client:
+            return client.search_controls(query, limit=limit, framework_id=framework_id)
+
+    @mcp.tool
+    def knowledge_search_chunks(
+        query: str,
+        limit: int = 10,
+        doc_id: str | None = None,
+    ) -> list[dict]:
+        """Search policy/procedure document chunks by semantic similarity.
+
+        Use when an agent needs to find specific passages in loaded documents that
+        are relevant to a topic (e.g. "data retention requirements" or "incident
+        escalation procedure"). Returns chunks ranked by vector distance, optionally
+        filtered to a single document by its doc_id.
+
+        Do NOT use this for searching episodic memories — call memory_search instead.
+        Requires ENABLE_KNOWLEDGE_LAYER=true and at least one document ingested.
+        """
+        with MemoryClient(base_url=settings.api_base_url) as client:
+            return client.search_chunks(query, limit=limit, doc_id=doc_id)
+
+    @mcp.tool
+    def knowledge_list_norms() -> list[dict]:
+        """Return all regulatory norms in the knowledge layer.
+
+        Use when an agent needs the full catalogue of norms to present options to
+        the user or to identify which norms apply to a given control. Each norm has
+        id, name, text, status, and effective_date.
+
+        This is a catalogue listing, not a search. For semantic search over norm
+        text, use knowledge_search_controls (norms are linked to controls via
+        IMPLEMENTS edges; searching controls surfaces related norms indirectly).
+        """
+        with MemoryClient(base_url=settings.api_base_url) as client:
+            return client.list_norms()
+
+    @mcp.tool
+    def knowledge_get_control(control_id: str) -> dict:
+        """Fetch a single InfoSec control by its ID.
+
+        Use when an agent already has a control_id (e.g. from knowledge_search_controls)
+        and needs its full details: name, description, framework_id, and created_at.
+        Returns 404 detail if the control does not exist.
+        """
+        with MemoryClient(base_url=settings.api_base_url) as client:
+            return client.get_control(control_id)
+
+    @mcp.tool
+    def knowledge_get_norm(norm_id: str) -> dict:
+        """Fetch a single regulatory norm by its ID.
+
+        Use when an agent already has a norm_id (e.g. from knowledge_list_norms)
+        and needs its full details: name, text, status, and effective_date.
+        Returns 404 detail if the norm does not exist.
+        """
+        with MemoryClient(base_url=settings.api_base_url) as client:
+            return client.get_norm(norm_id)
 
 
 def main() -> None:

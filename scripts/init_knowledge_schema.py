@@ -12,10 +12,12 @@ import sys
 from neo4j.exceptions import ClientError
 
 from memory_service.config import Settings, get_driver
+from scripts.schema_utils import create_constraint, get_embedding_dimension
 
 
 # New uniqueness constraints: (label, property)
 KNOWLEDGE_CONSTRAINTS = [
+    ("Framework", "id"),
     ("Norm", "id"),
     ("Control", "id"),
     ("Document", "id"),
@@ -24,26 +26,6 @@ KNOWLEDGE_CONSTRAINTS = [
     ("Organisation", "id"),
     ("Jurisdiction", "code"),   # primary key is 'code', not 'id'
 ]
-
-
-def get_embedding_dimension(model_name: str) -> int:
-    """Load the named SentenceTransformer model and return its output dimension."""
-    from sentence_transformers import SentenceTransformer
-    return SentenceTransformer(model_name).get_sentence_embedding_dimension()
-
-
-def create_constraint(session, label: str, prop: str) -> None:
-    query = (
-        f"CREATE CONSTRAINT ON (n:{label}) ASSERT n.{prop} IS UNIQUE;"
-    )
-    try:
-        session.run(query)
-        print(f"  [OK] Constraint created: {label}.{prop} IS UNIQUE")
-    except ClientError as exc:
-        if "already exists" in str(exc).lower():
-            print(f"  [SKIP] Constraint already exists: {label}.{prop} IS UNIQUE")
-        else:
-            raise
 
 
 def validate_vector_index(

@@ -115,7 +115,7 @@ def _process_label(
             continue
 
         try:
-            embedding = get_embedding(text)
+            embedding = get_embedding(text, model_name=model_name)
         except Exception as exc:
             print(f"    [FAIL] {label} id={node_id!r} — embedding error: {exc}")
             failed += 1
@@ -180,7 +180,7 @@ def main() -> int:
     print(f"\nLoading embedding model '{model_name}' ...")
     try:
         # Force model load by generating a trivial embedding.
-        get_embedding("warm-up")
+        get_embedding("warm-up", model_name=model_name)
     except Exception as exc:
         driver.close()
         print(f"[FAIL] Could not load embedding model '{model_name}': {exc}")

@@ -663,5 +663,113 @@ def schedule_status() -> None:
     console.print(f"  Last long-rest:  {maint.get('last_long_rest_at', 'never')}")
 
 
+knowledge_app = typer.Typer(help="Search and manage the InfoSec knowledge layer.")
+app.add_typer(knowledge_app, name="knowledge")
+
+
+@knowledge_app.command("search-controls")
+def knowledge_search_controls(
+    query: str = typer.Option(..., "--query", "-q", help="Semantic search query"),
+    limit: int = typer.Option(10, "--limit", "-n", help="Maximum results to return"),
+    framework_id: Optional[str] = typer.Option(None, "--framework-id", help="Filter to a single framework ID"),
+) -> None:
+    """Search InfoSec controls by semantic similarity."""
+    try:
+        with _make_client() as client:
+            hits = client.search_controls(query, limit=limit, framework_id=framework_id)
+    except httpx.ConnectError:
+        console.print("[red]Connection error: is the memory service running?[/red]")
+        raise typer.Exit(1)
+    if not hits:
+        console.print("No controls found.")
+        return
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("ID")
+    table.add_column("Name")
+    table.add_column("Framework")
+    table.add_column("Distance", justify="right")
+    for h in hits:
+        table.add_row(h["id"], h["name"], h.get("framework_id", ""), f"{h['distance']:.4f}")
+    console.print(table)
+
+
+@knowledge_app.command("search-chunks")
+def knowledge_search_chunks(
+    query: str = typer.Option(..., "--query", "-q", help="Semantic search query"),
+    limit: int = typer.Option(10, "--limit", "-n", help="Maximum results to return"),
+    doc_id: Optional[str] = typer.Option(None, "--doc-id", help="Filter to a single document ID"),
+) -> None:
+    """Search document chunks by semantic similarity."""
+    try:
+        with _make_client() as client:
+            hits = client.search_chunks(query, limit=limit, doc_id=doc_id)
+    except httpx.ConnectError:
+        console.print("[red]Connection error: is the memory service running?[/red]")
+        raise typer.Exit(1)
+    if not hits:
+        console.print("No chunks found.")
+        return
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("ID")
+    table.add_column("Doc ID")
+    table.add_column("Seq", justify="right")
+    table.add_column("Distance", justify="right")
+    table.add_column("Text (truncated)")
+    for h in hits:
+        table.add_row(h["id"], h.get("doc_id", ""), str(h.get("sequence", "")), f"{h['distance']:.4f}", h["text"][:80])
+    console.print(table)
+
+
+@knowledge_app.command("list-norms")
+def knowledge_list_norms() -> None:
+    """List all regulatory norms in the knowledge layer."""
+    try:
+        with _make_client() as client:
+            norms = client.list_norms()
+    except httpx.ConnectError:
+        console.print("[red]Connection error: is the memory service running?[/red]")
+        raise typer.Exit(1)
+    if not norms:
+        console.print("No norms found.")
+        return
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("ID")
+    table.add_column("Name")
+    table.add_column("Status")
+    table.add_column("Effective Date")
+    for n in norms:
+        table.add_row(n["id"], n["name"], n.get("status", ""), n.get("effective_date") or "")
+    console.print(table)
+
+
+@knowledge_app.command("list-documents")
+def knowledge_list_documents() -> None:
+    """List all documents in the knowledge layer."""
+    try:
+        with _make_client() as client:
+            docs = client.list_documents()
+    except httpx.ConnectError:
+        console.print("[red]Connection error: is the memory service running?[/red]")
+        raise typer.Exit(1)
+    if not docs:
+        console.print("No documents found.")
+        return
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("ID")
+    table.add_column("Title")
+    table.add_column("Type")
+    table.add_column("Source URL")
+    for d in docs:
+        table.add_row(d["id"], d["title"], d.get("doc_type", ""), d.get("source_url") or "")
+    console.print(table)
+
+
+@knowledge_app.command("review-supports")
+def knowledge_review_supports() -> None:
+    """Interactively review and confirm/reject auto-inferred SUPPORTS edges."""
+    console.print("[yellow]review-supports is not yet available — coming in a future release.[/yellow]")
+    raise typer.Exit(0)
+
+
 if __name__ == "__main__":
     app()

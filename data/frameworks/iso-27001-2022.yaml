@@ -1,0 +1,49 @@
+framework_id: iso-27001-2022
+framework_name: ISO/IEC 27001
+framework_version: "2022"
+framework_description: Information security management systems requirements
+controls:
+  - id: iso-27001-2022.5
+    name: Leadership
+    description: Leadership and commitment, policy, and organizational roles
+  - id: iso-27001-2022.5.1
+    name: Leadership and Commitment
+    description: Top management shall demonstrate leadership and commitment
+    parent_id: iso-27001-2022.5
+  - id: iso-27001-2022.5.2
+    name: Information Security Policy
+    description: Top management shall establish an information security policy
+    parent_id: iso-27001-2022.5
+  - id: iso-27001-2022.6
+    name: Planning
+    description: Actions to address risks and opportunities
+  - id: iso-27001-2022.6.1
+    name: Actions to Address Risks and Opportunities
+    description: Risk assessment and treatment
+    parent_id: iso-27001-2022.6
+  - id: iso-27001-2022.8
+    name: Operation
+    description: Operational planning and control
+  - id: iso-27001-2022.A.5
+    name: Organizational Controls
+    description: Annex A — Organizational information security controls
+  - id: iso-27001-2022.A.5.1
+    name: Policies for Information Security
+    description: Information security policy and topic-specific policies shall be defined
+    parent_id: iso-27001-2022.A.5
+  - id: iso-27001-2022.A.8
+    name: Technological Controls
+    description: Annex A — Technological information security controls
+  - id: iso-27001-2022.A.8.2
+    name: Privileged Access Rights
+    description: Allocation and use of privileged access rights shall be restricted and managed
+    parent_id: iso-27001-2022.A.8
+  - id: iso-27001-2022.A.8.3
+    name: Information Access Restriction
+    description: Access to information and systems shall be restricted in accordance with policy
+    parent_id: iso-27001-2022.A.8
+norms: []
+documents: []
+chunks: []
+jurisdictions: []
+business_attributes: []

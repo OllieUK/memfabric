@@ -2,6 +2,9 @@
 #
 # Shared pytest fixtures and graph helpers for the Graph-Memory Fabric test suite.
 
+import importlib
+import os
+
 import pytest
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
@@ -25,6 +28,23 @@ def test_driver():
 def client(test_driver):
     app.state.driver = test_driver
     with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
+def knowledge_client(test_driver):
+    """TestClient with ENABLE_KNOWLEDGE_LAYER=true, wired to the live test_driver.
+
+    Reloads config and main so that the feature flag is picked up even if
+    conftest imported the app before the flag was set.
+    """
+    os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
+    import memory_service.config as cfg_mod
+    import memory_service.main as main_mod
+    importlib.reload(cfg_mod)
+    importlib.reload(main_mod)
+    main_mod.app.state.driver = test_driver
+    with TestClient(main_mod.app, raise_server_exceptions=True) as c:
         yield c
 
 
@@ -75,19 +95,22 @@ def get_memory_node(driver, memory_id: str) -> dict | None:
         return dict(record["m"])
 
 
-def cleanup_nodes(driver, *memory_ids, extra_ids: dict | None = None) -> None:
+def cleanup_nodes(driver, *memory_ids, extra_ids: dict[str, str | list[str]] | None = None) -> None:
     """Delete Memory nodes by id and any extra labelled nodes.
 
     Args:
         driver: neo4j Driver
         *memory_ids: Memory node ids to DETACH DELETE
-        extra_ids: mapping of {label: id} for additional nodes to delete
+        extra_ids: mapping of {label: id_or_ids} for additional nodes to delete.
+            Value can be a single str id or a list of str ids.
     """
     with driver.session() as session:
         for mid in memory_ids:
             session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
         for label, nid in (extra_ids or {}).items():
-            session.run(f"MATCH (n:{label} {{id: $id}}) DETACH DELETE n", id=nid)
+            ids = [nid] if isinstance(nid, str) else nid
+            for single_id in ids:
+                session.run(f"MATCH (n:{label} {{id: $id}}) DETACH DELETE n", id=single_id)
 
 
 def count_edges(driver, from_id: str, rel_type: str, to_id: str) -> int:

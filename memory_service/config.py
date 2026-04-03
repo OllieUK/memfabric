@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     knowledge_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     enable_knowledge_layer: bool = False
 
+    # Document ingestion pipeline (WP-073)
+    ingest_chunk_size: int = 2000
+    ingest_chunk_overlap: int = 200
+    ingest_min_chunk_chars: int = 50
+    ingest_auto_supports: bool = False
+    ingest_auto_supports_threshold: float = 0.20
+    ingest_chunk_review_mode: bool = True
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

@@ -31,6 +31,10 @@ class MemoryClient:
         person_ids: list[str] | None = None,
         strand_ids: list[str] | None = None,
         related_ids: list[str] | None = None,
+        control_ids: list[str] | None = None,
+        doc_ids: list[str] | None = None,
+        control_relationship_type: str | None = None,
+        org_id: str | None = None,
     ) -> dict:
         """POST /memory. Returns dict with memory_id, deduplicated, and strand_ids."""
         body: dict = {
@@ -52,6 +56,14 @@ class MemoryClient:
             body["project_id"] = project_id
         if related_ids is not None:
             body["related_ids"] = related_ids
+        if control_ids is not None:
+            body["control_ids"] = control_ids
+        if doc_ids is not None:
+            body["doc_ids"] = doc_ids
+        if control_relationship_type is not None:
+            body["control_relationship_type"] = control_relationship_type
+        if org_id is not None:
+            body["org_id"] = org_id
         response = self._http.post("/memory", json=body)
         response.raise_for_status()
         return response.json()
@@ -181,6 +193,10 @@ class MemoryClient:
         importance: int | None = None,
         person_ids: list[str] | None = None,
         strand_ids: list[str] | None = None,
+        control_ids: list[str] | None = None,
+        doc_ids: list[str] | None = None,
+        control_relationship_type: str | None = None,
+        org_id: str | None = None,
     ) -> dict:
         """PATCH /memory/{id}. Returns {memory_id, updated_at}."""
         body: dict = {}
@@ -196,6 +212,14 @@ class MemoryClient:
             body["person_ids"] = person_ids
         if strand_ids is not None:
             body["strand_ids"] = strand_ids
+        if control_ids is not None:
+            body["control_ids"] = control_ids
+        if doc_ids is not None:
+            body["doc_ids"] = doc_ids
+        if control_relationship_type is not None:
+            body["control_relationship_type"] = control_relationship_type
+        if org_id is not None:
+            body["org_id"] = org_id
         response = self._http.patch(f"/memory/{memory_id}", json=body)
         response.raise_for_status()
         return response.json()
@@ -300,5 +324,65 @@ class MemoryClient:
         if tag is not None:
             params["tag"] = tag
         response = self._http.get("/memory/graph", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def search_controls(
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+        framework_id: str | None = None,
+    ) -> list[dict]:
+        """POST /knowledge/search/controls. Returns list of ControlHit dicts."""
+        body: dict = {"query": query, "limit": limit}
+        if framework_id is not None:
+            body["framework_id"] = framework_id
+        response = self._http.post("/knowledge/search/controls", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def search_chunks(
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+        doc_id: str | None = None,
+    ) -> list[dict]:
+        """POST /knowledge/search/chunks. Returns list of ChunkHit dicts."""
+        body: dict = {"query": query, "limit": limit}
+        if doc_id is not None:
+            body["doc_id"] = doc_id
+        response = self._http.post("/knowledge/search/chunks", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def list_norms(self) -> list[dict]:
+        """GET /knowledge/norms. Returns list of NormResponse dicts."""
+        response = self._http.get("/knowledge/norms")
+        response.raise_for_status()
+        return response.json()
+
+    def list_documents(self) -> list[dict]:
+        """GET /knowledge/documents. Returns list of DocumentResponse dicts."""
+        response = self._http.get("/knowledge/documents")
+        response.raise_for_status()
+        return response.json()
+
+    def get_incomplete_jurisdictions(self) -> dict:
+        """GET /knowledge/incomplete-jurisdictions. Returns diagnostic dict."""
+        response = self._http.get("/knowledge/incomplete-jurisdictions")
+        response.raise_for_status()
+        return response.json()
+
+    def get_control(self, control_id: str) -> dict:
+        """GET /knowledge/controls/{control_id}. Returns ControlResponse dict."""
+        response = self._http.get(f"/knowledge/controls/{control_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def get_norm(self, norm_id: str) -> dict:
+        """GET /knowledge/norms/{norm_id}. Returns NormResponse dict."""
+        response = self._http.get(f"/knowledge/norms/{norm_id}")
         response.raise_for_status()
         return response.json()

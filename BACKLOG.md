@@ -11,6 +11,15 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
+| — | feature/knowledge-layer branch complete — ready to merge | — | — | — | — | All WPs WP-070–WP-076 done; 52 integration + 33 unit tests green |
+
+### Knowledge layer branch
+
+- **Branch:** `feature/knowledge-layer`
+- **Worktree:** `.worktrees/feature-knowledge-layer`
+- **WP sequence:** WP-077 → WP-070 → WP-071 → WP-072 → WP-024 → WP-073 → WP-074 → WP-075 → WP-076
+- **Rebase protocol:** after each core WP lands on master, run `git fetch origin && git rebase origin/master` from the worktree and force-push with `--force-with-lease`. Never let the branch fall more than 3–4 master commits behind.
+- **Merge strategy:** `git merge --no-ff feature/knowledge-layer` once WP-076 passes all integration tests on the live stack.
 
 ### Knowledge layer branch
 
@@ -49,25 +58,28 @@
 | 17 | R2 | WP-043 | Inline effective_strength sort in search | L | L | 1.0 | WP-029 ✅ | Add Cypher inline decay formula as search sort key. Currently deferred — stored strength post-decay-pass used as the current proxy. |
 | 18 | R2 | WP-090 | Handle non-ServiceUnavailable exceptions in `find_duplicate_memory` | L | L | 1.0 | WP-088 ✅ | `find_duplicate_memory()` in `memory_repo.py` can raise `CypherError` or other Memgraph-level exceptions (e.g. malformed query, vector index unavailable). These propagate uncaught from the `add_memory` handler, which only catches `ServiceUnavailable`. Options: (a) catch `CypherError` inside `find_duplicate_memory` and return `None` (fail-open), or (b) let it propagate to a new `except CypherError → 500` clause in the handler. Fail-open is safer for availability; fail-closed is safer for data integrity. Surfaced during WP-088 code review. |
 | 19 | R2 | WP-095 | `GET /memory/duplicates`: add Cypher-level safety cap + async wrap | L | L | 1.0 | WP-047 ✅ | Surfaced in WP-047 simplify review. (1) Add `LIMIT 50000` to the `find_near_duplicates` Cypher query as a guard against pathologically large `RELATED_TO` edge sets — prevents unbounded Bolt transfer at extreme scale. (2) Wrap `find_near_duplicates` call in `run_in_executor` in the async endpoint if concurrent usage becomes a concern (currently synchronous in async handler). Both are low-priority improvements; do when the store grows beyond ~10k memories or concurrency spikes. |
-| 20 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project) — now 18+ instances. |
+| 20 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project); WP-074 added 4 more (knowledge commands) — now 22+ instances. WP-074 simplify review also noted missing `HTTPStatusError` handling in the 4 new knowledge commands; fix alongside the extraction. |
 | 21 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 22 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 22 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints in `main.py` AND all 13 handlers in `knowledge_routes.py` (added WP-070/WP-071 — none have the guard). Do after WP-029 (adds more endpoints). |
 | 23 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
-| 24 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
-| 25 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
-| 26 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
-| 27 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
-| 28 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
-| 29 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
-| 30 | R2 | WP-073 | InfoSec knowledge layer: document ingestion pipeline | H | H | 1.0 | WP-071 | PDF (pdfplumber) + Markdown → Document + Chunk nodes. Chunk embeddings use `KNOWLEDGE_EMBEDDING_MODEL`. Heading-aware chunking; HAS_NEXT edges for context expansion. chunk_review_mode (default on) prevents silent auto-SUPPORTS. Conservative threshold (distance < 0.20) for auto-inference; SUPPORTS edges start status=”auto-inferred”. See detail below. |
-| 31 | R2 | WP-076 | InfoSec knowledge layer: integration and separation tests | M | M | 1.0 | WP-094, WP-070–WP-075, WP-024 | Full integration + separation + dual-mode tests. Critical: autouse conftest separation test. Knowledge-only mode tests (all endpoints valid with zero Memory nodes). Feature flag off tests (404 for /knowledge/*, control_ids ignored). Dual-org jurisdiction test. merge_memory rewiring. Import audit (knowledge_bridge.py sole cross-layer import). See detail below. |
-| 32 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
-| 33 | R2 | WP-091 | Add `agent_id` to lifecycle operation log entries | L | L | 1.0 | WP-056 ✅ | The operation log introduced in WP-056 records `update`, `merge`, `archive`, and `restore` events but omits `agent_id` because the lifecycle endpoints do not currently accept it. Add `agent_id` as an optional field to the four request models (`UpdateMemoryRequest`, `MergeMemoryRequest`, and query params for `archive`/`restore`) and pass it through to `append_operation_log` entries. Enables per-agent traceability on all lifecycle mutations. |
-| 34 | R2 | WP-092 | Operation log size audit and rotation strategy | L | L | 1.0 | WP-056 ✅ | Review the real-world size and growth rate of `System.operation_log` under normal usage: measure byte size of the JSON property, estimate how quickly the 200-entry cap is reached, and assess read-modify-write overhead on lifecycle endpoints. Based on findings, decide on a rotation strategy — options include: lowering/tuning the cap per operation type, adding a time-based TTL alongside the count cap (e.g. drop entries older than N days), adding a `DELETE /memory/operation/log` or `POST /memory/operation/log/rotate` endpoint for explicit rotation, or splitting per-operation-type logs. Also review whether the same concern applies to `maintenance_log` (WP-054, currently capped at 100). Outcome: either confirm current approach is sufficient at expected scale, or implement the chosen rotation mechanism. |
-| 35 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
-| 36 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
-| 37 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
-| 38 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
+| 24 | R2 | WP-096 | Generalise `validate_node_ids` and `replace_edges` utilities | L | M | 0.5 | WP-072 ✅ | Simplify review (WP-072) found that `validate_controls`/`validate_documents` in `knowledge_bridge.py` are structurally identical (UNWIND + OPTIONAL MATCH null-filter), and `replace_control_edges`/`replace_doc_edges` duplicate the person/strand replace pattern in `memory_repo.update_memory`. Extract (1) `validate_node_ids(session, ids, label)` generic validator and (2) `replace_edges(session, memory_id, target_ids, edge_type, target_label, edge_properties)` generic replacer. Low priority — all current callers are correct; this is a maintenance-reducing refactor. |
+| 25 | R2 | WP-097 | Ingest pipeline minor cleanup (M2 + M4 from WP-073 simplify) | L | L | 1.0 | WP-073 ✅ | (M2) `POST /knowledge/chunk/supports` uses singular `chunk` while all other routes use plural (`/chunks`, `/controls`) — rename to `POST /knowledge/chunks/supports` for URL consistency; update test references. (M4) `chunk_markdown` in `scripts/chunkers.py` does not treat `# ` (H1) headings as section boundaries — only `## ` and `### ` trigger flush. Extend regex to include H1 headings. Both are non-breaking cleanup items; M2 requires a route rename (breaking API change — coordinate with WP-074 CLI implementation). |
+| 26 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
+| 27 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
+| 28 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
+| 29 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
+| 30 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
+| 31 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
+| 32 | R2 | WP-073 | InfoSec knowledge layer: document ingestion pipeline | H | H | 1.0 | WP-071 | PDF (pdfplumber) + Markdown → Document + Chunk nodes. Chunk embeddings use `KNOWLEDGE_EMBEDDING_MODEL`. Heading-aware chunking; HAS_NEXT edges for context expansion. chunk_review_mode (default on) prevents silent auto-SUPPORTS. Conservative threshold (distance < 0.20) for auto-inference; SUPPORTS edges start status=”auto-inferred”. See detail below. |
+| 33 | R2 | WP-076 | InfoSec knowledge layer: integration and separation tests | M | M | 1.0 | WP-094, WP-070–WP-075, WP-024 | Full integration + separation + dual-mode tests. Critical: autouse conftest separation test. Knowledge-only mode tests (all endpoints valid with zero Memory nodes). Feature flag off tests (404 for /knowledge/*, control_ids ignored). Dual-org jurisdiction test. merge_memory rewiring. Import audit (knowledge_bridge.py sole cross-layer import). See detail below. |
+| 34 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | H | M | 1.5 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer. |
+| 35 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
+| 36 | R2 | WP-091 | Add `agent_id` to lifecycle operation log entries | L | L | 1.0 | WP-056 ✅ | The operation log introduced in WP-056 records `update`, `merge`, `archive`, and `restore` events but omits `agent_id` because the lifecycle endpoints do not currently accept it. Add `agent_id` as an optional field to the four request models (`UpdateMemoryRequest`, `MergeMemoryRequest`, and query params for `archive`/`restore`) and pass it through to `append_operation_log` entries. Enables per-agent traceability on all lifecycle mutations. |
+| 37 | R2 | WP-092 | Operation log size audit and rotation strategy | L | L | 1.0 | WP-056 ✅ | Review the real-world size and growth rate of `System.operation_log` under normal usage: measure byte size of the JSON property, estimate how quickly the 200-entry cap is reached, and assess read-modify-write overhead on lifecycle endpoints. Based on findings, decide on a rotation strategy — options include: lowering/tuning the cap per operation type, adding a time-based TTL alongside the count cap (e.g. drop entries older than N days), adding a `DELETE /memory/operation/log` or `POST /memory/operation/log/rotate` endpoint for explicit rotation, or splitting per-operation-type logs. Also review whether the same concern applies to `maintenance_log` (WP-054, currently capped at 100). Outcome: either confirm current approach is sufficient at expected scale, or implement the chosen rotation mechanism. |
+| 38 | R3 | WP-042 | Self-contained `memory_client` packaging | L | L | 1.0 | WP-031 ✅ | Move `pyproject.toml` into `memory_client/` for independent install. Re-scored from medium value because it is packaging polish rather than core product capability. |
+| 39 | R3 | WP-062 | Concept-drift analysis over time | M | H | 0.67 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
+| 40 | R3 | WP-010 | Remote/mobile access | L | H | 0.33 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
+| 41 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.33 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 
 > **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
 
@@ -274,6 +286,131 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - Simplify: replaced raw Cypher cleanup in test with `cleanup_nodes` helper (consistent with `test_i6`)
 
 **Retrospective:** Minimal, clean change. WP-052 pattern made this trivial. Simplify surfaced a test-cleanup inconsistency that was easy to fix. Two-stage review passed with no spec gaps.
+
+---
+
+### WP-077 — Extract schema-init utils + fix embeddings multi-model routing ✅
+
+> **Completed 2026-04-03.** Commit `ac1a506` on `feature/knowledge-layer`.
+
+- Created `scripts/schema_utils.py` with shared `create_constraint()` + `get_embedding_dimension()`
+- `init_schema.py` and `init_knowledge_schema.py` now import from `scripts.schema_utils` (no duplication)
+- `memory_service/embeddings.py`: added `_model_cache: dict[str, SentenceTransformer]`, `_load_model_by_name()`, and optional `model_name` parameter throughout `get_model`/`get_embedding`/`get_embedding_dimension`/`_cache_key`
+- `scripts/migrate_embeddings.py`: both `get_embedding()` call sites now pass `model_name=model_name`
+- 11 unit tests, all green; no integration tests (pure Python, no Memgraph)
+
+**Retrospective:** Three /simplify wins caught during verification: (1) `ClientError` import was missing from both init scripts after extraction — runtime `NameError` averted; (2) `_load_model` and `_load_model_by_name` had duplicate offline-setup blocks — extracted to `_make_st_kwargs()`; (3) `_cache_key` ternary simplified to `model_name or _model_name`. Background agents (even with `bypassPermissions`) cannot write files or run Bash in this environment — implementation was done directly in-session. This is now the established pattern for all WPs on this branch.
+
+---
+
+### WP-072 — InfoSec knowledge layer: cross-layer Memory edges ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Created `memory_service/knowledge_bridge.py` (ADR-001 Guardrail 3 — sole cross-layer import module): 8 functions covering `validate_controls`, `validate_documents`, `link_controls`, `link_documents`, `replace_control_edges`, `replace_doc_edges`, `rewire_cross_layer_edges`, `hydrate_controls_and_documents`
+- Extended `AddMemoryRequest`, `UpdateMemoryRequest` with `control_ids`, `doc_ids`, `control_relationship_type: Literal["context","evidence","gap"]`, `org_id`; extended `MemoryHit` with `controls: List[dict]`, `documents: List[dict]`
+- Wired bridge into `add_memory` (validate + link), `update_memory` (bridge-field stripping + replace), `merge_memory` (rewire), `search_memory` (hydrate) — all guarded by `settings.enable_knowledge_layer`
+- Extended `memory_client/client.py` and `mcp_server/server.py` `memory_add`/`memory_update` tools with all 4 new params
+- 14 bridge unit tests + 5 model tests + 12 route tests = 31 tests, all green; integration tests deferred to WP-076
+- Simplify fixes: added `if req.doc_ids:` guard on `link_documents` call; promoted `_BRIDGE_FIELDS` to module level
+- New backlog item WP-096: generalise `validate_node_ids` + `replace_edges` utilities (low priority)
+
+**Retrospective:** Two-wave approach (bridge module first, route wiring second) worked well — Wave 1 was fully reviewable in isolation before Wave 2 added route complexity. Quality review caught bridge-only PATCH not returning 404 for non-existent memory (fixed before merge). Simplify review caught missing `if req.doc_ids:` guard. `_BRIDGE_FIELDS` as module-level constant is the correct pattern. Lazy `from memory_service import knowledge_bridge` inside route handlers is intentional to avoid pytest collection order issues.
+
+---
+
+### WP-076 — InfoSec knowledge layer: integration and separation tests ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Folded WP-024: `cleanup_nodes` in `tests/conftest.py` extended to accept `dict[str, str | list[str]]` — backward-compatible
+- Added `knowledge_client` fixture to `conftest.py` (module-scoped, reloads app with `ENABLE_KNOWLEDGE_LAYER=true`) — eliminates duplication across all knowledge-layer test files
+- Created `tests/test_wp076_separation.py`: autouse module-scoped `separation_data` fixture seeds 20 Controls + 50 Chunks + 5 Memory nodes; 3 integration tests assert zero cross-layer leakage in search; 1 static AST import-audit test enforces ADR-001 at all times
+- Created `tests/test_wp076_integration.py`: 38 integration tests across `TestKnowledgeSchemaIntegration` (4), `TestKnowledgeWriteIntegration` (13), `TestKnowledgeSearchIntegration` (7), `TestCrossLayerIntegration` (14)
+- Updated `tests/test_wp075_traceability.py`: appended `TestTraceabilityIntegration` with 11 integration tests for all four traceability endpoints including org-scoped filtering, knowledge-only mode, and gap-analysis classification
+- **52 integration tests + 33 unit tests, all green** against live Memgraph + FastAPI stack
+
+**Retrospective:** Fixture-scope bugs were the dominant failure mode: (1) a session-scoped fixture cannot request a module-scoped one — `separation_data` had to be demoted to module scope; (2) a fixture inside a class body cannot exceed `scope="class"` — `seed_search_data` had to be extracted to module level; (3) the `SearchMemoryResponse` wrapper (`{"memories": [...]}`) was not unwrapped in one test assertion. The dedup-collision issue (missing control validation silently skipped on dedup path) required cleaning sentinel memories by fact prefix before each test run. The `knowledge_client` fixture duplication (3 independent copies across test files) was caught by the code quality review and consolidated into conftest.py.
+
+---
+
+### WP-075 — InfoSec knowledge layer: SABSA bidirectional traceability ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added `trace_up`, `trace_down`, `attribute_coverage`, `gap_analysis` repo functions to `knowledge_repo.py`
+- Added `get_business_attribute` and `list_controls` helper functions (extracted during simplify to eliminate inline duplicate queries)
+- Added 11 Pydantic models and 4 route handlers to `knowledge_routes.py`: `GET /knowledge/controls/{id}/trace-up`, `GET /knowledge/controls/{id}/trace-down` (with `org_id` query param), `GET /knowledge/attributes/{id}/coverage`, `POST /knowledge/gap-analysis`
+- `trace_down` uses OPTIONAL MATCH throughout — fully functional with zero Memory nodes (ADR-001 knowledge-only mode)
+- `MemoryRef.relationship_type` typed as `Literal["context", "evidence", "gap"]` matching existing codebase convention
+- `trace_down` not-found detection via MATCH failure (`.single()` returns None) — eliminates redundant pre-check round-trip
+- 32 unit tests, all green; integration tests deferred to WP-076
+- Simplify fixes: removed `get_control()` pre-check from `trace_down` (MATCH detects not-found); extracted `get_business_attribute()` and `list_controls()` helpers; fixed `result is None` branch in `trace_down` to return `None` (not empty dict)
+
+**Retrospective:** The `MATCH (c:Control {id: $id}) OPTIONAL MATCH ...` pattern for not-found detection is more efficient than a pre-check query — one round-trip instead of two. The simplify review caught the redundant pre-check and two inline queries that should have been helpers. Clearing all 32 tests required one additional fix post-simplify: the `result is None` fallback in `trace_down` was returning an empty dict instead of `None`, which had been the correct pre-simplify behaviour but broke after the pre-check was removed.
+
+---
+
+### WP-074 — InfoSec knowledge layer: CLI, MCP tools, and ETL ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added `enable_knowledge_layer: bool = False` to `MCPSettings` in `mcp_server/config.py`
+- Added 7 `MemoryClient` methods: `search_controls`, `search_chunks`, `list_norms`, `list_documents`, `get_incomplete_jurisdictions`, `get_control`, `get_norm`
+- Added 5 feature-flag-gated MCP tools in `mcp_server/server.py` inside `if settings.enable_knowledge_layer:` block: `knowledge_search_controls`, `knowledge_search_chunks`, `knowledge_list_norms`, `knowledge_get_control`, `knowledge_get_norm`
+- Added `knowledge` Typer sub-app to CLI with 5 subcommands: `search-controls`, `search-chunks`, `list-norms`, `list-documents`, `review-supports` (stub)
+- Created `scripts/ingest_framework.py`: YAML-validated bulk ETL; upserts Framework → Controls → Norms → Documents → Chunks → Jurisdictions → BusinessAttributes; idempotent (409 = "already existed"); `--dry-run` stops after validation
+- Created `data/frameworks/`: `nist-csf-2.0.yaml` (15 controls), `iso-27001-2022.yaml` (11 controls), `jurisdictions.yaml` (10), `business-attributes.yaml` (8 SABSA attributes)
+- Added `pyyaml` to `pyproject.toml` dependencies
+- Created `KNOWLEDGE_LAYER.md`: 429-line operational runbook covering separation invariants, node/edge reference, ingest procedures, embedding model guidance, and ADR references
+- 15 unit tests, all green; integration tests deferred to WP-076
+- Simplify fixes: removed 5 redundant `Console()` instantiations (use module-level); simplified `review-supports` stub message (removed implementation details and unused param); normalised Jurisdictions/BusinessAttributes error-counting to `if s != "error"` pattern
+- Deferred: WP-025 updated to cover 4 new knowledge CLI commands (missing `HTTPStatusError` handling + extract shared handler)
+
+**Retrospective:** Parallel Group A → Group B → Group C agent dispatch worked cleanly — zero file conflicts across 6 agents. The `if settings.enable_knowledge_layer:` conditional wrapping `@mcp.tool` function definitions (not just decorators) is the correct FastMCP pattern for feature-flagged tools registered at import time. `review-supports` intentionally stubbed — full implementation deferred to WP-075 when the SUPPORTS status update endpoint is available.
+
+---
+
+### WP-073 — InfoSec knowledge layer: document ingestion pipeline ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added `create_supports_edge` and `get_chunks_for_control` to `knowledge_repo.py` — SUPPORTS edge (Chunk→Control) with `confidence` and `status`; returns ordered by confidence DESC
+- Added `SupportsCreate`/`SupportsResponse`/`ChunkWithSupports` Pydantic models + `POST /knowledge/chunk/supports` + `GET /knowledge/controls/{id}/chunks` routes to `knowledge_routes.py`; `confidence` range-validated via `Field(ge=0.0, le=1.0)`
+- Added 6 ingest config settings to `config.py` and `.env.example`: `ingest_chunk_size`, `ingest_chunk_overlap`, `ingest_min_chunk_chars`, `ingest_auto_supports`, `ingest_auto_supports_threshold`, `ingest_chunk_review_mode`
+- Created `scripts/chunkers.py`: `chunk_markdown` (heading-aware, heading prepended into text) + `chunk_pdf` (pdfplumber, overlapping char windows); infinite-loop guard on `overlap >= chunk_size`
+- Created `scripts/ingest_document.py`: HTTP-only ingest CLI; PDF + Markdown; UUIDs per chunk; review mode (default on) + auto-SUPPORTS mode with threshold; `[WARN]` messages on HTTP failure (not silent)
+- Added `pdfplumber` to `pyproject.toml` dependencies; `fpdf2` to `dev` extras
+- 26 unit tests (13 ingest + 13 chunkers), all green; integration tests deferred to WP-076
+- Deferred minor items: M2 (`chunk/supports` singular URL), M4 (H1 heading handling in `chunk_markdown`)
+
+**Retrospective:** Through-`main()` test pattern (patch `sys.argv` + `httpx.Client` + `IngestSettings`) is robust for CLI script tests — avoids false positives from inline logic reimplementation. Quality review (`simplify`) caught: (C1) infinite loop in `chunk_pdf` when `overlap >= chunk_size` (fixed), (I1) missing confidence range validation (fixed via `Field(ge=0.0, le=1.0)`), (I2) four ingest tests reimplementing production logic inline instead of calling `main()` (replaced). M1 (silent HTTPError suppression) fixed inline. Two minor items deferred to backlog.
+
+---
+
+### WP-071 — InfoSec knowledge layer: search API ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added 5 repo functions to `knowledge_repo.py`: `search_controls` (vector, `ctrl_embedding_idx`), `search_chunks` (vector, `chunk_embedding_idx`), `list_norms`, `list_documents`, `list_incomplete_jurisdictions`
+- Added 4 Pydantic models + 5 route handlers to `knowledge_routes.py`: `POST /knowledge/search/controls`, `POST /knowledge/search/chunks`, `GET /knowledge/norms`, `GET /knowledge/documents`, `GET /knowledge/incomplete-jurisdictions`
+- `docs/plans/wp-071.md` written; 17 unit tests (11 Group A + 8 Group B), all green; integration tests deferred to WP-076
+- **Retrospective:** Parallel task dispatch (repo + routes simultaneously) worked cleanly — no file conflicts. Quality review surfaced missing `TestListDocuments` Group A tests (fixed) and absence of `ServiceUnavailable` guard across all 13 `knowledge_routes.py` handlers (logged to WP-023).
+
+---
+
+### WP-070 — InfoSec knowledge layer: write API ✅
+
+> **Completed 2026-04-03.** Commit `a1c1148` on `feature/knowledge-layer`.
+
+- Created `memory_service/knowledge_repo.py`: upsert/get for Framework, Control, Norm, Document, Chunk with correct Cypher (MERGE ON CREATE SET; optional CONTAINS/IMPLEMENTS/SOURCED_FROM/HAS_CHUNK/HAS_NEXT edges)
+- Created `memory_service/knowledge_routes.py`: FastAPI router (`/knowledge` prefix) with 10 endpoints; embeddings via `KNOWLEDGE_EMBEDDING_MODEL`; Document carries no embedding (chunks hold vectors)
+- `memory_service/main.py`: conditional `app.include_router(knowledge_router)` when `ENABLE_KNOWLEDGE_LAYER=true`
+- `scripts/init_knowledge_schema.py`: added missing `("Framework", "id")` uniqueness constraint
+- `docs/plans/wp-070.md`: self-contained plan written for future reference
+- 24 unit tests (13 repo + 11 route), all green; integration tests deferred to WP-076
+
+**Retrospective:** Implementation straightforward once the plan was written. Key discovery: FastAPI test fixture must reload `memory_service.config` + `memory_service.main` with `ENABLE_KNOWLEDGE_LAYER=true` AND patch `get_driver` before `TestClient` context starts — otherwise the module-level conditional doesn't register knowledge routes (settings singleton is already frozen from previous import). Pattern captured in `test_wp070.py::app_client` fixture for reuse in WP-071. Scope was intentionally narrowed vs. original BACKLOG spec (no jurisdiction scoping, no BusinessAttribute/Organisation endpoints, no MAPPED_TO cross-framework edges) — these are deferred to later WPs as needed.
 
 ---
 
