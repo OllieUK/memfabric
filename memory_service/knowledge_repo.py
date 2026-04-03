@@ -268,3 +268,133 @@ def get_chunk(session, chunk_id: str) -> dict | None:
     )
     record = result.single()
     return dict(record) if record else None
+
+
+# ---------------------------------------------------------------------------
+# Search functions (vector search over embeddings)
+# ---------------------------------------------------------------------------
+
+
+def search_controls(
+    session,
+    query_embedding: list[float],
+    limit: int,
+    framework_id: str | None,
+) -> list[dict]:
+    """Vector search over ctrl_embedding_idx.
+    Returns list of dicts: {id, name, description, framework_id, created_at, distance}.
+    No recall_count increment — knowledge search is reference lookup.
+    NOTE: vector_search returns up to $limit nodes before the WHERE filter is applied.
+    When filters are tight, response may be empty even if matching nodes exist further
+    down the ranking. This is expected behaviour.
+    """
+    result = session.run(
+        """
+        CALL vector_search.search("ctrl_embedding_idx", $limit, $query_vec)
+        YIELD node AS c, distance
+        WITH c, distance
+        WHERE ($framework_id IS NULL OR c.framework_id = $framework_id)
+        RETURN c.id AS id, c.name AS name, c.description AS description,
+               c.framework_id AS framework_id, c.created_at AS created_at,
+               distance
+        ORDER BY distance ASC
+        """,
+        limit=limit,
+        query_vec=query_embedding,
+        framework_id=framework_id,
+    )
+    return [dict(r) for r in result]
+
+
+def search_chunks(
+    session,
+    query_embedding: list[float],
+    limit: int,
+    doc_id: str | None,
+) -> list[dict]:
+    """Vector search over chunk_embedding_idx.
+    Returns list of dicts: {id, text, sequence, doc_id, created_at, distance}.
+    No recall_count increment.
+    NOTE: Same post-index filter caveat as search_controls.
+    """
+    result = session.run(
+        """
+        CALL vector_search.search("chunk_embedding_idx", $limit, $query_vec)
+        YIELD node AS ch, distance
+        WITH ch, distance
+        WHERE ($doc_id IS NULL OR ch.doc_id = $doc_id)
+        RETURN ch.id AS id, ch.text AS text, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.created_at AS created_at,
+               distance
+        ORDER BY distance ASC
+        """,
+        limit=limit,
+        query_vec=query_embedding,
+        doc_id=doc_id,
+    )
+    return [dict(r) for r in result]
+
+
+# ---------------------------------------------------------------------------
+# List functions (enumerate all nodes)
+# ---------------------------------------------------------------------------
+
+
+def list_norms(session) -> list[dict]:
+    """Return all Norm nodes, ordered by name.
+    Returns list of dicts: {id, name, text, status, effective_date, created_at}.
+    """
+    result = session.run(
+        """
+        MATCH (n:Norm)
+        RETURN n.id AS id, n.name AS name, n.text AS text, n.status AS status,
+               n.effective_date AS effective_date, n.created_at AS created_at
+        ORDER BY n.name ASC
+        """
+    )
+    return [dict(r) for r in result]
+
+
+def list_documents(session) -> list[dict]:
+    """Return all Document nodes, ordered by title.
+    Returns list of dicts: {id, title, doc_type, source_url, created_at}.
+    """
+    result = session.run(
+        """
+        MATCH (d:Document)
+        RETURN d.id AS id, d.title AS title, d.doc_type AS doc_type,
+               d.source_url AS source_url, d.created_at AS created_at
+        ORDER BY d.title ASC
+        """
+    )
+    return [dict(r) for r in result]
+
+
+def list_incomplete_jurisdictions(session) -> dict:
+    """Return Norms and Controls with no APPLIES_IN edges.
+    Returns:
+      {
+        "norms_without_jurisdiction": [{"id": ..., "name": ...}, ...],
+        "controls_without_jurisdiction": [{"id": ..., "name": ...}, ...]
+      }
+    """
+    norms_result = session.run(
+        """
+        MATCH (n:Norm)
+        WHERE NOT (n)-[:APPLIES_IN]->(:Jurisdiction)
+        RETURN n.id AS id, n.name AS name
+        ORDER BY n.name ASC
+        """
+    )
+    controls_result = session.run(
+        """
+        MATCH (c:Control)
+        WHERE NOT (c)-[:APPLIES_IN]->(:Jurisdiction)
+        RETURN c.id AS id, c.name AS name
+        ORDER BY c.name ASC
+        """
+    )
+    return {
+        "norms_without_jurisdiction": [dict(r) for r in norms_result],
+        "controls_without_jurisdiction": [dict(r) for r in controls_result],
+    }

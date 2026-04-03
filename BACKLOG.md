@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-071 | InfoSec knowledge layer: search API | feature/knowledge-layer | H | M | WP-070 ✅ | Plan: docs/plans/wp-071.md (to be written) |
+| WP-072 | InfoSec knowledge layer: cross-layer Memory edges | feature/knowledge-layer | H | M | WP-070 ✅, WP-071 ✅ | Plan: docs/plans/wp-072.md ✅ |
 
 ### Knowledge layer branch
 
@@ -51,7 +51,7 @@
 | 18 | R2 | WP-095 | `GET /memory/duplicates`: add Cypher-level safety cap + async wrap | L | L | 1.0 | WP-047 ✅ | Surfaced in WP-047 simplify review. (1) Add `LIMIT 50000` to the `find_near_duplicates` Cypher query as a guard against pathologically large `RELATED_TO` edge sets — prevents unbounded Bolt transfer at extreme scale. (2) Wrap `find_near_duplicates` call in `run_in_executor` in the async endpoint if concurrent usage becomes a concern (currently synchronous in async handler). Both are low-priority improvements; do when the store grows beyond ~10k memories or concurrency spikes. |
 | 19 | R2 | WP-025 | Extract shared CLI error handler | L | L | 1.0 | — | 4+ identical `except httpx.*` blocks in `cli.py`. Extract once. WP-078 added 2 more (list-projects, create-project) — now 18+ instances. |
 | 20 | R2 | WP-026 | `MemoryType` mirror in `memory_client` | L | L | 1.0 | WP-007 ✅ | Mirror enum so callers get IDE completion without cross-package import. |
-| 21 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints. Do after WP-029 (adds more endpoints). |
+| 21 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints in `main.py` AND all 13 handlers in `knowledge_routes.py` (added WP-070/WP-071 — none have the guard). Do after WP-029 (adds more endpoints). |
 | 22 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
 | 23 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
 | 24 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
@@ -288,6 +288,17 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - 11 unit tests, all green; no integration tests (pure Python, no Memgraph)
 
 **Retrospective:** Three /simplify wins caught during verification: (1) `ClientError` import was missing from both init scripts after extraction — runtime `NameError` averted; (2) `_load_model` and `_load_model_by_name` had duplicate offline-setup blocks — extracted to `_make_st_kwargs()`; (3) `_cache_key` ternary simplified to `model_name or _model_name`. Background agents (even with `bypassPermissions`) cannot write files or run Bash in this environment — implementation was done directly in-session. This is now the established pattern for all WPs on this branch.
+
+---
+
+### WP-071 — InfoSec knowledge layer: search API ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added 5 repo functions to `knowledge_repo.py`: `search_controls` (vector, `ctrl_embedding_idx`), `search_chunks` (vector, `chunk_embedding_idx`), `list_norms`, `list_documents`, `list_incomplete_jurisdictions`
+- Added 4 Pydantic models + 5 route handlers to `knowledge_routes.py`: `POST /knowledge/search/controls`, `POST /knowledge/search/chunks`, `GET /knowledge/norms`, `GET /knowledge/documents`, `GET /knowledge/incomplete-jurisdictions`
+- `docs/plans/wp-071.md` written; 17 unit tests (11 Group A + 8 Group B), all green; integration tests deferred to WP-076
+- **Retrospective:** Parallel task dispatch (repo + routes simultaneously) worked cleanly — no file conflicts. Quality review surfaced missing `TestListDocuments` Group A tests (fixed) and absence of `ServiceUnavailable` guard across all 13 `knowledge_routes.py` handlers (logged to WP-023).
 
 ---
 

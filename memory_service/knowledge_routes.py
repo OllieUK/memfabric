@@ -7,7 +7,7 @@
 # logic lives in knowledge_bridge.py.
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -103,6 +103,41 @@ class ChunkResponse(BaseModel):
     sequence: int
     doc_id: str
     created_at: str
+
+
+# ---------------------------------------------------------------------------
+# Search request/response models
+# ---------------------------------------------------------------------------
+
+
+class ControlSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+    framework_id: Optional[str] = None
+
+
+class ChunkSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+    doc_id: Optional[str] = None
+
+
+class ControlHit(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    framework_id: str
+    created_at: str
+    distance: float
+
+
+class ChunkHit(BaseModel):
+    id: str
+    text: str
+    sequence: int
+    doc_id: str
+    created_at: str
+    distance: float
 
 
 # ---------------------------------------------------------------------------
@@ -216,3 +251,55 @@ async def get_chunk(chunk_id: str, request: Request) -> ChunkResponse:
     if record is None:
         raise HTTPException(status_code=404, detail=f"Chunk '{chunk_id}' not found")
     return ChunkResponse(**record)
+
+
+# ---------------------------------------------------------------------------
+# Search endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/search/controls", response_model=List[ControlHit])
+async def search_controls(req: ControlSearchRequest, request: Request) -> List[ControlHit]:
+    query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
+    with request.app.state.driver.session() as session:
+        hits = knowledge_repo.search_controls(session, query_vec, req.limit, req.framework_id)
+    return [ControlHit(**h) for h in hits]
+
+
+@router.post("/search/chunks", response_model=List[ChunkHit])
+async def search_chunks(req: ChunkSearchRequest, request: Request) -> List[ChunkHit]:
+    query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
+    with request.app.state.driver.session() as session:
+        hits = knowledge_repo.search_chunks(session, query_vec, req.limit, req.doc_id)
+    return [ChunkHit(**h) for h in hits]
+
+
+# ---------------------------------------------------------------------------
+# Catalogue list endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/norms", response_model=List[NormResponse])
+async def list_norms(request: Request) -> List[NormResponse]:
+    with request.app.state.driver.session() as session:
+        norms = knowledge_repo.list_norms(session)
+    return [NormResponse(**n) for n in norms]
+
+
+@router.get("/documents", response_model=List[DocumentResponse])
+async def list_documents(request: Request) -> List[DocumentResponse]:
+    with request.app.state.driver.session() as session:
+        docs = knowledge_repo.list_documents(session)
+    return [DocumentResponse(**d) for d in docs]
+
+
+# ---------------------------------------------------------------------------
+# Diagnostic endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/incomplete-jurisdictions")
+async def list_incomplete_jurisdictions(request: Request) -> dict:
+    with request.app.state.driver.session() as session:
+        result = knowledge_repo.list_incomplete_jurisdictions(session)
+    return result
