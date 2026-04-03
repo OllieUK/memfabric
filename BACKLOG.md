@@ -11,7 +11,7 @@
 
 | ID | Title | Phase | Value | Effort | Depends on | Notes |
 |----|-------|-------|-------|--------|------------|-------|
-| WP-075 | InfoSec knowledge layer: SABSA bidirectional traceability | feature/knowledge-layer | H | M | WP-072 ✅, WP-074 ✅ | Plan: docs/plans/wp-075.md |
+| WP-076 | InfoSec knowledge layer: integration and separation tests | feature/knowledge-layer | M | M | WP-094, WP-070–WP-075, WP-024 | Plan: docs/plans/wp-076.md — NEXT |
 
 ### Knowledge layer branch
 
@@ -303,6 +303,23 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 - New backlog item WP-096: generalise `validate_node_ids` + `replace_edges` utilities (low priority)
 
 **Retrospective:** Two-wave approach (bridge module first, route wiring second) worked well — Wave 1 was fully reviewable in isolation before Wave 2 added route complexity. Quality review caught bridge-only PATCH not returning 404 for non-existent memory (fixed before merge). Simplify review caught missing `if req.doc_ids:` guard. `_BRIDGE_FIELDS` as module-level constant is the correct pattern. Lazy `from memory_service import knowledge_bridge` inside route handlers is intentional to avoid pytest collection order issues.
+
+---
+
+### WP-075 — InfoSec knowledge layer: SABSA bidirectional traceability ✅
+
+> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+
+- Added `trace_up`, `trace_down`, `attribute_coverage`, `gap_analysis` repo functions to `knowledge_repo.py`
+- Added `get_business_attribute` and `list_controls` helper functions (extracted during simplify to eliminate inline duplicate queries)
+- Added 11 Pydantic models and 4 route handlers to `knowledge_routes.py`: `GET /knowledge/controls/{id}/trace-up`, `GET /knowledge/controls/{id}/trace-down` (with `org_id` query param), `GET /knowledge/attributes/{id}/coverage`, `POST /knowledge/gap-analysis`
+- `trace_down` uses OPTIONAL MATCH throughout — fully functional with zero Memory nodes (ADR-001 knowledge-only mode)
+- `MemoryRef.relationship_type` typed as `Literal["context", "evidence", "gap"]` matching existing codebase convention
+- `trace_down` not-found detection via MATCH failure (`.single()` returns None) — eliminates redundant pre-check round-trip
+- 32 unit tests, all green; integration tests deferred to WP-076
+- Simplify fixes: removed `get_control()` pre-check from `trace_down` (MATCH detects not-found); extracted `get_business_attribute()` and `list_controls()` helpers; fixed `result is None` branch in `trace_down` to return `None` (not empty dict)
+
+**Retrospective:** The `MATCH (c:Control {id: $id}) OPTIONAL MATCH ...` pattern for not-found detection is more efficient than a pre-check query — one round-trip instead of two. The simplify review caught the redundant pre-check and two inline queries that should have been helpers. Clearing all 32 tests required one additional fix post-simplify: the `result is None` fallback in `trace_down` was returning an empty dict instead of `None`, which had been the correct pre-simplify behaviour but broke after the pre-check was removed.
 
 ---
 

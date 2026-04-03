@@ -7,7 +7,7 @@
 # logic lives in knowledge_bridge.py.
 
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -163,6 +163,80 @@ class ChunkWithSupports(BaseModel):
     created_at: str
     confidence: float
     status: str
+
+
+# ---------------------------------------------------------------------------
+# Traceability models
+# ---------------------------------------------------------------------------
+
+
+class BusinessAttributeRef(BaseModel):
+    id: str
+    name: str
+
+
+class NormRef(BaseModel):
+    id: str
+    name: str
+    status: str
+
+
+class TraceUpResponse(BaseModel):
+    control_id: str
+    business_attributes: List[BusinessAttributeRef]
+    norms: List[NormRef]
+
+
+class ChunkRef(BaseModel):
+    id: str
+    text: str
+    confidence: Optional[float] = None
+    status: Optional[str] = None
+
+
+class DocumentWithChunks(BaseModel):
+    id: str
+    title: str
+    chunks: List[ChunkRef]
+
+
+class MemoryRef(BaseModel):
+    id: str
+    text: str
+    relationship_type: Literal["context", "evidence", "gap"]
+
+
+class TraceDownResponse(BaseModel):
+    control_id: str
+    documents: List[DocumentWithChunks]
+    evidence_memories: List[MemoryRef]
+    gap_memories: List[MemoryRef]
+
+
+class AttributeCoverageResponse(BaseModel):
+    attribute_id: str
+    total_controls: int
+    covered_controls: int
+    coverage_pct: float
+    uncovered_control_ids: List[str]
+
+
+class GapAnalysisRequest(BaseModel):
+    control_ids: List[str] = []
+    org_id: Optional[str] = None
+
+
+class ControlGapEntry(BaseModel):
+    control_id: str
+    control_name: str
+    has_chunks: bool
+    has_evidence_memories: bool
+
+
+class GapAnalysisResponse(BaseModel):
+    covered: List[ControlGapEntry]
+    partial: List[ControlGapEntry]
+    uncovered: List[ControlGapEntry]
 
 
 # ---------------------------------------------------------------------------
@@ -358,3 +432,62 @@ async def get_chunks_for_control(control_id: str, request: Request) -> List[Chun
             raise HTTPException(status_code=404, detail=f"Control not found: {control_id}")
         chunks = knowledge_repo.get_chunks_for_control(session, control_id)
     return [ChunkWithSupports(**c) for c in chunks]
+
+
+# ---------------------------------------------------------------------------
+# Traceability endpoints (WP-075)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/controls/{control_id}/trace-up", response_model=TraceUpResponse)
+async def trace_up(control_id: str, request: Request) -> TraceUpResponse:
+    with request.app.state.driver.session() as session:
+        result = knowledge_repo.trace_up(session, control_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Control '{control_id}' not found")
+    return TraceUpResponse(
+        control_id=result["control_id"],
+        business_attributes=[BusinessAttributeRef(**ba) for ba in result["business_attributes"]],
+        norms=[NormRef(**n) for n in result["norms"]],
+    )
+
+
+@router.get("/controls/{control_id}/trace-down", response_model=TraceDownResponse)
+async def trace_down(control_id: str, request: Request, org_id: Optional[str] = None) -> TraceDownResponse:
+    with request.app.state.driver.session() as session:
+        result = knowledge_repo.trace_down(session, control_id, org_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Control '{control_id}' not found")
+    return TraceDownResponse(
+        control_id=result["control_id"],
+        documents=[
+            DocumentWithChunks(
+                id=d["id"],
+                title=d["title"],
+                chunks=[ChunkRef(**ch) for ch in d["chunks"]],
+            )
+            for d in result["documents"]
+        ],
+        evidence_memories=[MemoryRef(**m) for m in result["evidence_memories"]],
+        gap_memories=[MemoryRef(**m) for m in result["gap_memories"]],
+    )
+
+
+@router.get("/attributes/{attribute_id}/coverage", response_model=AttributeCoverageResponse)
+async def attribute_coverage(attribute_id: str, request: Request) -> AttributeCoverageResponse:
+    with request.app.state.driver.session() as session:
+        result = knowledge_repo.attribute_coverage(session, attribute_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"BusinessAttribute '{attribute_id}' not found")
+    return AttributeCoverageResponse(**result)
+
+
+@router.post("/gap-analysis", response_model=GapAnalysisResponse)
+async def gap_analysis(req: GapAnalysisRequest, request: Request) -> GapAnalysisResponse:
+    with request.app.state.driver.session() as session:
+        result = knowledge_repo.gap_analysis(session, req.control_ids, req.org_id)
+    return GapAnalysisResponse(
+        covered=[ControlGapEntry(**e) for e in result["covered"]],
+        partial=[ControlGapEntry(**e) for e in result["partial"]],
+        uncovered=[ControlGapEntry(**e) for e in result["uncovered"]],
+    )
