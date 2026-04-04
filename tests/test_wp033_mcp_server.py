@@ -207,30 +207,31 @@ def test_i1_list_strands_returns_strands():
 
 
 @pytest.mark.integration
-def test_i2_memory_add_returns_uuid():
-    from mcp_server.server import memory_add
-    import uuid
+def test_i2_memory_add_and_search(test_driver):
+    """Create a tagged memory, search for it, then clean up."""
+    from mcp_server.server import memory_add, memory_search
+    from tests.conftest import cleanup_nodes
 
     result = memory_add(
         fact="WP-033 integration test memory",
         type="fact",
         agent_id="test-agent-wp033",
         importance=1,
+        tags=["test"],
     )
     assert isinstance(result, dict)
-    assert isinstance(result["memory_id"], str)
-    assert len(result["memory_id"]) == 36  # UUID format: 8-4-4-4-12
+    memory_id = result["memory_id"]
+    assert isinstance(memory_id, str)
+    assert len(memory_id) == 36  # UUID format: 8-4-4-4-12
 
-
-@pytest.mark.integration
-def test_i3_memory_search_finds_i2_memory():
-    from mcp_server.server import memory_search
-
-    results = memory_search(query="WP-033 integration test", limit=5)
-    assert isinstance(results, list)
-    assert len(results) >= 1
-    texts = [r.get("text", "") for r in results]
-    assert any("WP-033 integration test memory" in t for t in texts)
+    try:
+        results = memory_search(query="WP-033 integration test", limit=5)
+        assert isinstance(results, list)
+        assert len(results) >= 1
+        texts = [r.get("text", "") for r in results]
+        assert any("WP-033 integration test memory" in t for t in texts)
+    finally:
+        cleanup_nodes(test_driver, memory_id)
 
 
 @pytest.mark.integration
