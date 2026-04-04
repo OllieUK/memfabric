@@ -1,0 +1,1972 @@
+- id: '1'
+  heading: Scope
+  type: clause
+  suggested_control_id: iso-27001-2022.1
+  notes: ''
+  text: This document specifies the requirements for establishing, implementing, maintaining and continually improving an
+    information security management system within the context of the organization. This document also includes requirements
+    for the assessment and treatment of information security risks tailored to the needs of the organization. The requirements
+    set out in this document are generic and are intended to be applicable to all organizations, regardless of type, size
+    or nature. Excluding any of the requirements specified in Clauses 4 to 10 is not acceptable when an organization claims
+    conformity to this document.
+- id: '2'
+  heading: Normative references
+  type: clause
+  suggested_control_id: iso-27001-2022.2
+  notes: ''
+  text: The following documents are referred to in the text in such a way that some or all of their content constitutes requirements
+    of this document. For dated references, only the edition cited applies. For undated referencIensfo trhmea ltaitoens tt
+    eedchitnioonlo ogfy th—e rSeefecurernitcye dte dcohcnuiqmueesn t— (in Icnlufodrimnga tainoyn asmeceunrditmy emntasn) aagpepmlieens.t
+    systems — Overview and vocabulary ISO/IEC 27000,
+- id: '3'
+  heading: Terms and definitions
+  type: clause
+  suggested_control_id: iso-27001-2022.3
+  notes: ''
+  text: 'For the purposes of this document, the terms and definitions given in ISO/IEC 27000 apply. ISOand IECmaintain terminology
+    databases for use in standardization at the following addresses:
+
+    — ISO Online browsing platform: available at https:// www .iso .org/ obp
+
+    — IEC Electropedia: available at https:// www .electropedia .org/'
+  statements:
+  - id: iso-27001-2022.3.stmt-1
+    label: —
+    body: 'For the purposes of this document, the terms and definitions given in ISO/IEC 27000 apply. ISOand IECmaintain terminology
+      databases for use in standardization at the following addresses iSO Online browsing platform: available at https://
+      www .iso .org/ obp.'
+    notes: ''
+  - id: iso-27001-2022.3.stmt-2
+    label: —
+    body: 'For the purposes of this document, the terms and definitions given in ISO/IEC 27000 apply. ISOand IECmaintain terminology
+      databases for use in standardization at the following addresses iEC Electropedia: available at https:// www .electropedia
+      .org/.'
+    notes: ''
+- id: '4'
+  heading: Context of the organization
+  type: clause
+  suggested_control_id: iso-27001-2022.4
+  notes: ''
+  text: ''
+- id: '4.1'
+  heading: Understanding the organization and its context
+  type: clause
+  suggested_control_id: iso-27001-2022.4.1
+  notes: ''
+  text: 'The organization shall determine external and internal issues that are relevant to its purpose and that affect its
+    ability to achieve the intended outcome(s) of its information security management system.
+
+    NOTE Determining these issues refers to establishing the external and internal context of the organization considered
+    in Clause 5.4.1 of ISO 31000:2018 .'
+- id: '4.2'
+  heading: Understanding the needs and expectations of interested parties
+  type: clause
+  suggested_control_id: iso-27001-2022.4.2
+  notes: ''
+  text: 'The organization shall determine:
+
+    a) interested parties that are relevant to the information security management system;
+
+    b) the relevant requirements of these interested parties;
+
+    c) which of these requirements will be addressed through the information security management system.
+
+    NOTE The requirements of interested parties can include legal and regulatory requirements and contractual obligations.'
+  statements:
+  - id: iso-27001-2022.4.2.a
+    label: a)
+    body: The organization shall determine interested parties that are relevant to the information security management system.
+    notes: ''
+  - id: iso-27001-2022.4.2.b
+    label: b)
+    body: The organization shall determine the relevant requirements of these interested parties.
+    notes: ''
+  - id: iso-27001-2022.4.2.c
+    label: c)
+    body: The organization shall determine which of these requirements will be addressed through the information security
+      management system.
+    notes: ''
+- id: '4.3'
+  heading: Determining the scope of the information security management system
+  type: clause
+  suggested_control_id: iso-27001-2022.4.3
+  notes: ''
+  text: 'The organization shall determine the boundaries and applicability of the information security management system to
+    establish its scope. When determining this scope, the organization shall consider:
+
+    a) the external and internal issues referred to in 4.1;
+
+    b) the requirements referred to in 4.2;
+
+    c) interfaces and dependencies between activities performed by the organization, and those that are performed by other
+    organizations. The scope shall be available as documented information.'
+  statements:
+  - id: iso-27001-2022.4.3.a
+    label: a)
+    body: The organization shall determine the boundaries and applicability of the information security management system
+      to establish its scope. When determining this scope, the organization shall consider the external and internal issues
+      referred to in 4.1.
+    notes: ''
+  - id: iso-27001-2022.4.3.b
+    label: b)
+    body: The organization shall determine the boundaries and applicability of the information security management system
+      to establish its scope. When determining this scope, the organization shall consider the requirements referred to in
+      4.2.
+    notes: ''
+  - id: iso-27001-2022.4.3.c
+    label: c)
+    body: The organization shall determine the boundaries and applicability of the information security management system
+      to establish its scope. When determining this scope, the organization shall consider interfaces and dependencies between
+      activities performed by the organization, and those that are performed by other organizations.
+    notes: ''
+- id: '4.4'
+  heading: Information security management system
+  type: clause
+  suggested_control_id: iso-27001-2022.4.4
+  notes: ''
+  text: The organization shall establish, implement, maintain and continually improve an information security management system,
+    including the processes needed and their interactions, in accordance with the requirements of this document.
+- id: '5'
+  heading: Leadership
+  type: clause
+  suggested_control_id: iso-27001-2022.5
+  notes: ''
+  text: ''
+- id: '5.1'
+  heading: Leadership and commitment
+  type: clause
+  suggested_control_id: iso-27001-2022.5.1
+  notes: ''
+  text: 'Top management shall demonstrate leadership and commitment with respect to the information security management system
+    by:
+
+    a) ensuring the information security policy and the information security objectives are established and are compatible
+    with the strategic direction of the organization;
+
+    b) ensuring the integration of the information security management system requirements into the organization’s processes;
+
+    c) ensuring that the resources needed for the information security management system are available;
+
+    d) communicating the importance of effective information security management and of conforming to the information security
+    management system requirements;
+
+    e) ensuring that the information security management system achieves its intended outcome(s);
+
+    f) directing and supporting persons to contribute to the effectiveness of the information security management system;
+
+    g) promoting continual improvement; and
+
+    h) supporting other relevant management roles to demonstrate their leadership as it applies to their areas of responsibility.
+
+    NOTE Reference to “business” in this document can be interpreted broadly to mean those activities that are core to the
+    purposes of the organization’s existence.'
+  statements:
+  - id: iso-27001-2022.5.1.a
+    label: a)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by ensuring the information security policy and the information security objectives are established and are compatible
+      with the strategic direction of the organization.
+    notes: ''
+  - id: iso-27001-2022.5.1.b
+    label: b)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by ensuring the integration of the information security management system requirements into the organization’s processes.
+    notes: ''
+  - id: iso-27001-2022.5.1.c
+    label: c)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by ensuring that the resources needed for the information security management system are available.
+    notes: ''
+  - id: iso-27001-2022.5.1.d
+    label: d)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by communicating the importance of effective information security management and of conforming to the information security
+      management system requirements.
+    notes: ''
+  - id: iso-27001-2022.5.1.e
+    label: e)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by ensuring that the information security management system achieves its intended outcome(s).
+    notes: ''
+  - id: iso-27001-2022.5.1.f
+    label: f)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by directing and supporting persons to contribute to the effectiveness of the information security management system.
+    notes: ''
+  - id: iso-27001-2022.5.1.g
+    label: g)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by promoting continual improvement.
+    notes: ''
+  - id: iso-27001-2022.5.1.h
+    label: h)
+    body: Top management shall demonstrate leadership and commitment with respect to the information security management system
+      by supporting other relevant management roles to demonstrate their leadership as it applies to their areas of responsibility.
+    notes: ''
+- id: '5.2'
+  heading: Policy
+  type: clause
+  suggested_control_id: iso-27001-2022.5.2
+  notes: ''
+  text: 'Top management shall establish an information security policy that:
+
+    a) is appropriate to the purpose of the organization;
+
+    b) includes information security objectives (see 6.2) or provides the framework for setting information security objectives;
+
+    c) includes a commitment to satisfy applicable requirements related to information security;
+
+    d) includes a commitment to continual improvement of the information security management system. The information security
+    policy shall:
+
+    e) be available as documented information;
+
+    f) be communicated within the organization;
+
+    g) be available to interested parties, as appropriate.'
+  statements:
+  - id: iso-27001-2022.5.2.block-1
+    label: block-1
+    body: Top management shall establish an information security policy that.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.5.2.block-1.a
+      label: a)
+      body: Top management shall establish an information security policy that is appropriate to the purpose of the organization.
+      notes: ''
+    - id: iso-27001-2022.5.2.block-1.b
+      label: b)
+      body: Top management shall establish an information security policy that includes information security objectives (see
+        6.2) or provides the framework for setting information security objectives.
+      notes: ''
+    - id: iso-27001-2022.5.2.block-1.c
+      label: c)
+      body: Top management shall establish an information security policy that includes a commitment to satisfy applicable
+        requirements related to information security.
+      notes: ''
+    - id: iso-27001-2022.5.2.block-1.d
+      label: d)
+      body: Top management shall establish an information security policy that includes a commitment to continual improvement
+        of the information security management system.
+      notes: ''
+  - id: iso-27001-2022.5.2.block-2
+    label: block-2
+    body: The information security policy shall.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.5.2.block-2.e
+      label: e)
+      body: The information security policy shall be available as documented information.
+      notes: ''
+    - id: iso-27001-2022.5.2.block-2.f
+      label: f)
+      body: The information security policy shall be communicated within the organization.
+      notes: ''
+    - id: iso-27001-2022.5.2.block-2.g
+      label: g)
+      body: The information security policy shall be available to interested parties, as appropriate.
+      notes: ''
+- id: '5.3'
+  heading: Organizational roles, responsibilities and authorities
+  type: clause
+  suggested_control_id: iso-27001-2022.5.3
+  notes: ''
+  text: 'Top management shall ensure that the responsibilities and authorities for roles relevant to information security
+    are assigned and communicated within the organization. Top management shall assign the responsibility and authority for:
+
+    a) ensuring that the information security management system conforms to the requirements of this document;
+
+    b) reporting on the performance of the information security management system to top management.
+
+    NOTE Top management can also assign responsibilities and authorities for reporting performance of the information security
+    management system within the organization.'
+  statements:
+  - id: iso-27001-2022.5.3.a
+    label: a)
+    body: Top management shall ensure that the responsibilities and authorities for roles relevant to information security
+      are assigned and communicated within the organization. Top management shall assign the responsibility and authority
+      for ensuring that the information security management system conforms to the requirements of this document.
+    notes: ''
+  - id: iso-27001-2022.5.3.b
+    label: b)
+    body: Top management shall ensure that the responsibilities and authorities for roles relevant to information security
+      are assigned and communicated within the organization. Top management shall assign the responsibility and authority
+      for reporting on the performance of the information security management system to top management.
+    notes: ''
+- id: '6'
+  heading: Planning
+  type: clause
+  suggested_control_id: iso-27001-2022.6
+  notes: ''
+  text: ''
+- id: '6.1'
+  heading: Actions to address risks and opportunities
+  type: clause
+  suggested_control_id: iso-27001-2022.6.1
+  notes: ''
+  text: ''
+- id: 6.1.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-27001-2022.6.1.1
+  notes: ''
+  text: 'When planning for the information security management system, the organization shall consider the issues referred
+    to in 4.1 and the requirements referred to in 4.2 and determine the risks and opportunities that need to be addressed
+    to:
+
+    a) ensure the information security management system can achieve its intended outcome(s);
+
+    b) prevent, or reduce, undesired effects;
+
+    c) achieve continual improvement. The organization shall plan:
+
+    d) actions to address these risks and opportunities; and
+
+    e) how to
+
+    1) integrate and implement the actions into its information security management system processes; and
+
+    2) evaluate the effectiveness of these actions.'
+  statements:
+  - id: iso-27001-2022.6.1.1.block-1
+    label: block-1
+    body: When planning for the information security management system, the organization shall consider the issues referred
+      to in 4.1 and the requirements referred to in 4.2 and determine the risks and opportunities that need to be addressed
+      to.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.1.block-1.a
+      label: a)
+      body: When planning for the information security management system, the organization shall consider the issues referred
+        to in 4.1 and the requirements referred to in 4.2 and determine the risks and opportunities that need to be addressed
+        to ensure the information security management system can achieve its intended outcome(s).
+      notes: ''
+    - id: iso-27001-2022.6.1.1.block-1.b
+      label: b)
+      body: When planning for the information security management system, the organization shall consider the issues referred
+        to in 4.1 and the requirements referred to in 4.2 and determine the risks and opportunities that need to be addressed
+        to prevent, or reduce, undesired effects.
+      notes: ''
+    - id: iso-27001-2022.6.1.1.block-1.c
+      label: c)
+      body: When planning for the information security management system, the organization shall consider the issues referred
+        to in 4.1 and the requirements referred to in 4.2 and determine the risks and opportunities that need to be addressed
+        to achieve continual improvement.
+      notes: ''
+  - id: iso-27001-2022.6.1.1.block-2
+    label: block-2
+    body: The organization shall plan.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.1.block-2.d
+      label: d)
+      body: The organization shall plan actions to address these risks and opportunities.
+      notes: ''
+    - id: iso-27001-2022.6.1.1.block-2.e
+      label: e)
+      body: The organization shall plan how to.
+      notes: ''
+      statements:
+      - id: iso-27001-2022.6.1.1.block-2.e.1
+        label: 1)
+        body: The organization shall plan how to integrate and implement the actions into its information security management
+          system processes.
+        notes: ''
+      - id: iso-27001-2022.6.1.1.block-2.e.2
+        label: 2)
+        body: The organization shall plan how to evaluate the effectiveness of these actions.
+        notes: ''
+- id: 6.1.2
+  heading: Information security risk assessment
+  type: clause
+  suggested_control_id: iso-27001-2022.6.1.2
+  notes: ''
+  text: 'The organization shall define and apply an information security risk assessment process that:
+
+    a) establishes and maintains information security risk criteria that include:
+
+    1) the risk acceptance criteria; and
+
+    2) criteria for performing information security risk assessments;
+
+    b) ensures that repeated information security risk assessments produce consistent, valid and comparable results;
+
+    c) identifies the information security risks:
+
+    1) apply the information security risk assessment process to identify risks associated with the loss of confidentiality,
+    integrity and availability for information within the scope of the information security management system; and
+
+    2) identify the risk owners;
+
+    d) analyses the information security risks:
+
+    1) assess the potential consequences that would result if the risks identified in 6.1.2 c) 1) were to materialize;
+
+    2) assess the realistic likelihood of the occurrence of the risks identified in 6.1.2 c) 1); and
+
+    3) determine the levels of risk;
+
+    e) evaluates the information security risks:
+
+    1) compare the results of risk analysis with the risk criteria established in 6.1.2 a); and
+
+    2) prioritize the analysed risks for risk treatment. The organization shall retain documented information about the information
+    security risk assessment process.'
+  statements:
+  - id: iso-27001-2022.6.1.2.a
+    label: a)
+    body: The organization shall define and apply an information security risk assessment process that establishes and maintains
+      information security risk criteria that include.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.2.a.1
+      label: 1)
+      body: The organization shall define and apply an information security risk assessment process that establishes and maintains
+        information security risk criteria that include the risk acceptance criteria.
+      notes: ''
+    - id: iso-27001-2022.6.1.2.a.2
+      label: 2)
+      body: The organization shall define and apply an information security risk assessment process that establishes and maintains
+        information security risk criteria that include criteria for performing information security risk assessments.
+      notes: ''
+  - id: iso-27001-2022.6.1.2.b
+    label: b)
+    body: The organization shall define and apply an information security risk assessment process that ensures that repeated
+      information security risk assessments produce consistent, valid and comparable results.
+    notes: ''
+  - id: iso-27001-2022.6.1.2.c
+    label: c)
+    body: The organization shall define and apply an information security risk assessment process that identifies the information
+      security risks.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.2.c.1
+      label: 1)
+      body: The organization shall define and apply an information security risk assessment process that identifies the information
+        security risks apply the information security risk assessment process to identify risks associated with the loss of
+        confidentiality, integrity and availability for information within the scope of the information security management
+        system.
+      notes: ''
+    - id: iso-27001-2022.6.1.2.c.2
+      label: 2)
+      body: The organization shall define and apply an information security risk assessment process that identifies the information
+        security risks identify the risk owners.
+      notes: ''
+  - id: iso-27001-2022.6.1.2.d
+    label: d)
+    body: The organization shall define and apply an information security risk assessment process that analyses the information
+      security risks.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.2.d.1
+      label: 1)
+      body: The organization shall define and apply an information security risk assessment process that analyses the information
+        security risks assess the potential consequences that would result if the risks identified in 6.1.2 c) 1) were to
+        materialize.
+      notes: ''
+    - id: iso-27001-2022.6.1.2.d.2
+      label: 2)
+      body: The organization shall define and apply an information security risk assessment process that analyses the information
+        security risks assess the realistic likelihood of the occurrence of the risks identified in 6.1.2 c) 1).
+      notes: ''
+    - id: iso-27001-2022.6.1.2.d.3
+      label: 3)
+      body: The organization shall define and apply an information security risk assessment process that analyses the information
+        security risks determine the levels of risk.
+      notes: ''
+  - id: iso-27001-2022.6.1.2.e
+    label: e)
+    body: The organization shall define and apply an information security risk assessment process that evaluates the information
+      security risks.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.2.e.1
+      label: 1)
+      body: The organization shall define and apply an information security risk assessment process that evaluates the information
+        security risks compare the results of risk analysis with the risk criteria established in 6.1.2 a).
+      notes: ''
+    - id: iso-27001-2022.6.1.2.e.2
+      label: 2)
+      body: The organization shall define and apply an information security risk assessment process that evaluates the information
+        security risks prioritize the analysed risks for risk treatment.
+      notes: ''
+- id: 6.1.3
+  heading: Information security risk treatment
+  type: clause
+  suggested_control_id: iso-27001-2022.6.1.3
+  notes: ''
+  text: 'The organization shall define and apply an information security risk treatment process to:
+
+    a) select appropriate information security risk treatment options, taking account of the risk assessment results;
+
+    b) determine all controls that are necessary to implement the information security risk treatment option(s) chosen;
+
+    NOTE 1 Organizations can design controls as required, or identify them from any source.
+
+    c) compare the controls determined in 6.1.3 b) above with those in Annex Aand verify that no necessary controls have been
+    omitted;
+
+    NOTE 2 Annex Acontains a list of possible information security controls. Users of this document are directed to Annex
+    Ato ensure that no necessary information security controls are overlooked.
+
+    NOTE 3 The information security controls listed in Annex Aare not exhaustive and additional information security controls
+    can be included if needed.
+
+    d) produce a Statement of Applicability that contains:
+
+    — the necessary controls (see 6.1.3 b) and c));
+
+    — justification for their inclusion;
+
+    — whether the necessary controls are implemented or not; and
+
+    — the justification for excluding any of the Annex Acontrols.
+
+    e) formulate an information security risk treatment plan; and
+
+    f) obtain risk owners’ approval of the information security risk treatment plan and acceptance of the residual information
+    security risks. The organization shall retain documented information about the information security risk treatment process.
+
+    NOTE 4 The information security risk assessment and treatment process in this document aligns with the principles and
+    generic guidelines provided in ISO 31000 .'
+  statements:
+  - id: iso-27001-2022.6.1.3.a
+    label: a)
+    body: The organization shall define and apply an information security risk treatment process to select appropriate information
+      security risk treatment options, taking account of the risk assessment results.
+    notes: ''
+  - id: iso-27001-2022.6.1.3.b
+    label: b)
+    body: The organization shall define and apply an information security risk treatment process to determine all controls
+      that are necessary to implement the information security risk treatment option(s) chosen.
+    notes: ''
+  - id: iso-27001-2022.6.1.3.c
+    label: c)
+    body: The organization shall define and apply an information security risk treatment process to compare the controls determined
+      in 6.1.3 b) above with those in Annex Aand verify that no necessary controls have been omitted.
+    notes: ''
+  - id: iso-27001-2022.6.1.3.d
+    label: d)
+    body: The organization shall define and apply an information security risk treatment process to produce a Statement of
+      Applicability that contains.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.1.3.d.stmt-1
+      label: —
+      body: The organization shall define and apply an information security risk treatment process to produce a Statement
+        of Applicability that contains the necessary controls (see 6.1.3 b) and c)).
+      notes: ''
+    - id: iso-27001-2022.6.1.3.d.stmt-2
+      label: —
+      body: The organization shall define and apply an information security risk treatment process to produce a Statement
+        of Applicability that contains justification for their inclusion.
+      notes: ''
+    - id: iso-27001-2022.6.1.3.d.stmt-3
+      label: —
+      body: The organization shall define and apply an information security risk treatment process to produce a Statement
+        of Applicability that contains whether the necessary controls are implemented or not.
+      notes: ''
+    - id: iso-27001-2022.6.1.3.d.stmt-4
+      label: —
+      body: The organization shall define and apply an information security risk treatment process to produce a Statement
+        of Applicability that contains the justification for excluding any of the Annex Acontrols.
+      notes: ''
+  - id: iso-27001-2022.6.1.3.e
+    label: e)
+    body: The organization shall define and apply an information security risk treatment process to formulate an information
+      security risk treatment plan.
+    notes: ''
+  - id: iso-27001-2022.6.1.3.f
+    label: f)
+    body: The organization shall define and apply an information security risk treatment process to obtain risk owners’ approval
+      of the information security risk treatment plan and acceptance of the residual information security risks.
+    notes: ''
+- id: '6.2'
+  heading: Information security objectives and planning to achieve them
+  type: clause
+  suggested_control_id: iso-27001-2022.6.2
+  notes: ''
+  text: 'The organization shall establish information security objectives at relevant functions and levels. The information
+    security objectives shall:
+
+    a) be consistent with the information security policy;
+
+    b) be measurable (if practicable);
+
+    c) take into account applicable information security requirements, and results from risk assessment and risk treatment;
+
+    d) be monitored;
+
+    e) be communicated;
+
+    f) be updated as appropriate;
+
+    g) be available as documented information. The organization shall retain documented information on the information security
+    objectives. When planning how to achieve its information security objectives, the organization shall determine:
+
+    h) what will be done;
+
+    i) what resources will be required;
+
+    j) who will be responsible;
+
+    k) when it will be completed; and
+
+    l) how the results will be evaluated.'
+  statements:
+  - id: iso-27001-2022.6.2.block-1
+    label: block-1
+    body: The organization shall establish information security objectives at relevant functions and levels. The information
+      security objectives shall.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.2.block-1.a
+      label: a)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall be consistent with the information security policy.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-1.b
+      label: b)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall be measurable (if practicable).
+      notes: ''
+    - id: iso-27001-2022.6.2.block-1.c
+      label: c)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall take into account applicable information security requirements, and results from risk assessment
+        and risk treatment.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-1.d
+      label: d)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall be monitored.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-1.e
+      label: e)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall be communicated.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-1.f
+      label: f)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall be updated as appropriate.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-1.g
+      label: g)
+      body: The organization shall establish information security objectives at relevant functions and levels. The information
+        security objectives shall be available as documented information.
+      notes: ''
+  - id: iso-27001-2022.6.2.block-2
+    label: block-2
+    body: The organization shall retain documented information on the information security objectives. When planning how to
+      achieve its information security objectives, the organization shall determine.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.6.2.block-2.h
+      label: h)
+      body: The organization shall retain documented information on the information security objectives. When planning how
+        to achieve its information security objectives, the organization shall determine what will be done.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-2.i
+      label: i)
+      body: The organization shall retain documented information on the information security objectives. When planning how
+        to achieve its information security objectives, the organization shall determine what resources will be required.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-2.j
+      label: j)
+      body: The organization shall retain documented information on the information security objectives. When planning how
+        to achieve its information security objectives, the organization shall determine who will be responsible.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-2.k
+      label: k)
+      body: The organization shall retain documented information on the information security objectives. When planning how
+        to achieve its information security objectives, the organization shall determine when it will be completed.
+      notes: ''
+    - id: iso-27001-2022.6.2.block-2.l
+      label: l)
+      body: The organization shall retain documented information on the information security objectives. When planning how
+        to achieve its information security objectives, the organization shall determine how the results will be evaluated.
+      notes: ''
+- id: '6.3'
+  heading: Planning of changes
+  type: clause
+  suggested_control_id: iso-27001-2022.6.3
+  notes: ''
+  text: When the organization determines the need for changes to the information security management system, the changes shall
+    be carried out in a planned manner.
+- id: '7'
+  heading: Support
+  type: clause
+  suggested_control_id: iso-27001-2022.7
+  notes: ''
+  text: ''
+- id: '7.1'
+  heading: Resources
+  type: clause
+  suggested_control_id: iso-27001-2022.7.1
+  notes: ''
+  text: The organization shall determine and provide the resources needed for the establishment, implementation, maintenance
+    and continual improvement of the information security management system.
+- id: '7.2'
+  heading: Competence
+  type: clause
+  suggested_control_id: iso-27001-2022.7.2
+  notes: ''
+  text: 'The organization shall:
+
+    a) determine the necessary competence of person(s) doing work under its control that affects its information security
+    performance;
+
+    b) ensure that these persons are competent on the basis of appropriate education, training, or experience;
+
+    c) where applicable, take actions to acquire the necessary competence, and evaluate the effectiveness of the actions taken;
+    and
+
+    d) retain appropriate documented information as evidence of competence.
+
+    NOTE Applicable actions can include, for example: the provision of training to, the mentoring of, or the re- assignment
+    of current employees; or the hiring or contracting of competent persons.'
+  statements:
+  - id: iso-27001-2022.7.2.a
+    label: a)
+    body: The organization shall determine the necessary competence of person(s) doing work under its control that affects
+      its information security performance.
+    notes: ''
+  - id: iso-27001-2022.7.2.b
+    label: b)
+    body: The organization shall ensure that these persons are competent on the basis of appropriate education, training,
+      or experience.
+    notes: ''
+  - id: iso-27001-2022.7.2.c
+    label: c)
+    body: The organization shall where applicable, take actions to acquire the necessary competence, and evaluate the effectiveness
+      of the actions taken.
+    notes: ''
+  - id: iso-27001-2022.7.2.d
+    label: d)
+    body: The organization shall retain appropriate documented information as evidence of competence.
+    notes: ''
+- id: '7.3'
+  heading: Awareness
+  type: clause
+  suggested_control_id: iso-27001-2022.7.3
+  notes: ''
+  text: 'Persons doing work under the organization’s control shall be aware of:
+
+    a) the information security policy;
+
+    b) their contribution to the effectiveness of the information security management system, including the benefits of improved
+    information security performance; and
+
+    c) the implications of not conforming with the information security management system requirements.'
+  statements:
+  - id: iso-27001-2022.7.3.a
+    label: a)
+    body: Persons doing work under the organization’s control shall be aware of the information security policy.
+    notes: ''
+  - id: iso-27001-2022.7.3.b
+    label: b)
+    body: Persons doing work under the organization’s control shall be aware of their contribution to the effectiveness of
+      the information security management system, including the benefits of improved information security performance.
+    notes: ''
+  - id: iso-27001-2022.7.3.c
+    label: c)
+    body: Persons doing work under the organization’s control shall be aware of the implications of not conforming with the
+      information security management system requirements.
+    notes: ''
+- id: '7.4'
+  heading: Communication
+  type: clause
+  suggested_control_id: iso-27001-2022.7.4
+  notes: ''
+  text: 'The organization shall determine the need for internal and external communications relevant to the information security
+    management system including:
+
+    a) on what to communicate;
+
+    b) when to communicate;
+
+    c) with whom to communicate;
+
+    d) how to communicate.'
+  statements:
+  - id: iso-27001-2022.7.4.a
+    label: a)
+    body: The organization shall determine the need for internal and external communications relevant to the information security
+      management system including on what to communicate.
+    notes: ''
+  - id: iso-27001-2022.7.4.b
+    label: b)
+    body: The organization shall determine the need for internal and external communications relevant to the information security
+      management system including when to communicate.
+    notes: ''
+  - id: iso-27001-2022.7.4.c
+    label: c)
+    body: The organization shall determine the need for internal and external communications relevant to the information security
+      management system including with whom to communicate.
+    notes: ''
+  - id: iso-27001-2022.7.4.d
+    label: d)
+    body: The organization shall determine the need for internal and external communications relevant to the information security
+      management system including how to communicate.
+    notes: ''
+- id: '7.5'
+  heading: Documented information
+  type: clause
+  suggested_control_id: iso-27001-2022.7.5
+  notes: ''
+  text: ''
+- id: 7.5.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-27001-2022.7.5.1
+  notes: ''
+  text: 'The organization’s information security management system shall include:
+
+    a) documented information required by this document; and
+
+    b) documented information determined by the organization as being necessary for the effectiveness of the information security
+    management system.
+
+    NOTE The extent of documented information for an information security management system can differ from one organization
+    to another due to:
+
+    1) the size of organization and its type of activities, processes, products and services;
+
+    2) the complexity of processes and their interactions; and
+
+    3) the competence of persons.'
+  statements:
+  - id: iso-27001-2022.7.5.1.a
+    label: a)
+    body: The organization’s information security management system shall include documented information required by this
+      document.
+    notes: ''
+  - id: iso-27001-2022.7.5.1.b
+    label: b)
+    body: The organization’s information security management system shall include documented information determined by the
+      organization as being necessary for the effectiveness of the information security management system.
+    notes: ''
+  - id: iso-27001-2022.7.5.1.1
+    label: 1)
+    body: The organization’s information security management system shall include the size of organization and its type of
+      activities, processes, products and services.
+    notes: ''
+  - id: iso-27001-2022.7.5.1.2
+    label: 2)
+    body: The organization’s information security management system shall include the complexity of processes and their interactions.
+    notes: ''
+  - id: iso-27001-2022.7.5.1.3
+    label: 3)
+    body: The organization’s information security management system shall include the competence of persons.
+    notes: ''
+- id: 7.5.2
+  heading: Creating and updating
+  type: clause
+  suggested_control_id: iso-27001-2022.7.5.2
+  notes: ''
+  text: 'When creating and updating documented information the organization shall ensure appropriate:
+
+    a) identification and description (e.g. a title, date, author, or reference number);
+
+    b) format (e.g. language, software version, graphics) and media (e.g. paper, electronic); and
+
+    c) review and approval for suitability and adequacy.'
+  statements:
+  - id: iso-27001-2022.7.5.2.a
+    label: a)
+    body: When creating and updating documented information the organization shall ensure appropriate identification and description
+      (e.g. a title, date, author, or reference number).
+    notes: ''
+  - id: iso-27001-2022.7.5.2.b
+    label: b)
+    body: When creating and updating documented information the organization shall ensure appropriate format (e.g. language,
+      software version, graphics) and media (e.g. paper, electronic).
+    notes: ''
+  - id: iso-27001-2022.7.5.2.c
+    label: c)
+    body: When creating and updating documented information the organization shall ensure appropriate review and approval
+      for suitability and adequacy.
+    notes: ''
+- id: 7.5.3
+  heading: Control of documented information
+  type: clause
+  suggested_control_id: iso-27001-2022.7.5.3
+  notes: ''
+  text: 'Documented information required by the information security management system and by this document shall be controlled
+    to ensure:
+
+    a) it is available and suitable for use, where and when it is needed; and
+
+    b) it is adequately protected (e.g. from loss of confidentiality, improper use, or loss of integrity). For the control
+    of documented information, the organization shall address the following activities, as applicable:
+
+    c) distribution, access, retrieval and use;
+
+    d) storage and preservation, including the preservation of legibility;
+
+    e) control of changes (e.g. version control); and
+
+    f) retention and disposition. Documented information of external origin, determined by the organization to be necessary
+    for the planning and operation of the information security management system, shall be identified as appropriate, and
+    controlled.
+
+    NOTE Access can imply a decision regarding the permission to view the documented information only, or the permission and
+    authority to view and change the documented information, etc.'
+  statements:
+  - id: iso-27001-2022.7.5.3.block-1
+    label: block-1
+    body: Documented information required by the information security management system and by this document shall be controlled
+      to ensure.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.7.5.3.block-1.a
+      label: a)
+      body: Documented information required by the information security management system and by this document shall be controlled
+        to ensure it is available and suitable for use, where and when it is needed.
+      notes: ''
+    - id: iso-27001-2022.7.5.3.block-1.b
+      label: b)
+      body: Documented information required by the information security management system and by this document shall be controlled
+        to ensure it is adequately protected (e.g. from loss of confidentiality, improper use, or loss of integrity).
+      notes: ''
+  - id: iso-27001-2022.7.5.3.block-2
+    label: block-2
+    body: For the control of documented information, the organization shall address the following activities, as applicable.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.7.5.3.block-2.c
+      label: c)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        distribution, access, retrieval and use.
+      notes: ''
+    - id: iso-27001-2022.7.5.3.block-2.d
+      label: d)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        storage and preservation, including the preservation of legibility.
+      notes: ''
+    - id: iso-27001-2022.7.5.3.block-2.e
+      label: e)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        control of changes (e.g. version control).
+      notes: ''
+    - id: iso-27001-2022.7.5.3.block-2.f
+      label: f)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        retention and disposition.
+      notes: ''
+- id: '8'
+  heading: Operation
+  type: clause
+  suggested_control_id: iso-27001-2022.8
+  notes: ''
+  text: ''
+- id: '8.1'
+  heading: Operational planning and control
+  type: clause
+  suggested_control_id: iso-27001-2022.8.1
+  notes: ''
+  text: 'The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+    actions determined in Clause 6, by:
+
+    — establishing criteria for the processes;
+
+    — implementing control of the processes in accordance with the criteria. Documented information shall be available to
+    the extent necessary to have confidence that the processes have been carried out as planned. The organization shall control
+    planned changes and review the consequences of unintended changes, taking action to mitigate any adverse effects, as necessary.
+    The organization shall ensure that externally provided processes, products or services that are relevant to the information
+    security management system are controlled.'
+  statements:
+  - id: iso-27001-2022.8.1.stmt-1
+    label: —
+    body: The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+      actions determined in Clause 6, by establishing criteria for the processes.
+    notes: ''
+  - id: iso-27001-2022.8.1.stmt-2
+    label: —
+    body: The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+      actions determined in Clause 6, by implementing control of the processes in accordance with the criteria.
+    notes: ''
+- id: '8.2'
+  heading: Information security risk assessment
+  type: clause
+  suggested_control_id: iso-27001-2022.8.2
+  notes: ''
+  text: The organization shall perform information security risk assessments at planned intervals or when significant changes
+    are proposed or occur, taking account of the criteria established in 6.1.2 a). The organization shall retain documented
+    information of the results of the information security risk assessments.
+- id: '8.3'
+  heading: Information security risk treatment
+  type: clause
+  suggested_control_id: iso-27001-2022.8.3
+  notes: ''
+  text: The organization shall implement the information security risk treatment plan. The organization shall retain documented
+    information of the results of the information security risk treatment.
+- id: '9'
+  heading: Performance evaluation
+  type: clause
+  suggested_control_id: iso-27001-2022.9
+  notes: ''
+  text: ''
+- id: '9.1'
+  heading: Monitoring, measurement, analysis and evaluation
+  type: clause
+  suggested_control_id: iso-27001-2022.9.1
+  notes: ''
+  text: 'The organization shall determine:
+
+    a) what needs to be monitored and measured, including information security processes and controls;
+
+    b) the methods for monitoring, measurement, analysis and evaluation, as applicable, to ensure valid results. The methods
+    selected should produce comparable and reproducible results to be considered valid;
+
+    c) when the monitoring and measuring shall be performed;
+
+    d) who shall monitor and measure;
+
+    e) when the results from monitoring and measurement shall be analysed and evaluated;
+
+    f) who shall analyse and evaluate these results. Documented information shall be available as evidence of the results.
+    The organization shall evaluate the information security performance and the effectiveness of the information security
+    management system.'
+  statements:
+  - id: iso-27001-2022.9.1.a
+    label: a)
+    body: The organization shall determine what needs to be monitored and measured, including information security processes
+      and controls.
+    notes: ''
+  - id: iso-27001-2022.9.1.b
+    label: b)
+    body: The organization shall determine the methods for monitoring, measurement, analysis and evaluation, as applicable,
+      to ensure valid results. The methods selected should produce comparable and reproducible results to be considered valid.
+    notes: ''
+  - id: iso-27001-2022.9.1.c
+    label: c)
+    body: The organization shall determine when the monitoring and measuring shall be performed.
+    notes: ''
+  - id: iso-27001-2022.9.1.d
+    label: d)
+    body: The organization shall determine who shall monitor and measure.
+    notes: ''
+  - id: iso-27001-2022.9.1.e
+    label: e)
+    body: The organization shall determine when the results from monitoring and measurement shall be analysed and evaluated.
+    notes: ''
+  - id: iso-27001-2022.9.1.f
+    label: f)
+    body: The organization shall determine who shall analyse and evaluate these results.
+    notes: ''
+- id: '9.2'
+  heading: Internal audit
+  type: clause
+  suggested_control_id: iso-27001-2022.9.2
+  notes: ''
+  text: ''
+- id: 9.2.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-27001-2022.9.2.1
+  notes: ''
+  text: 'The organization shall conduct internal audits at planned intervals to provide information on whether the information
+    security management system:
+
+    a) conforms to
+
+    1) the organization’s own requirements for its information security management system;
+
+    2) the requirements of this document;
+
+    b) is effectively implemented and maintained.'
+  statements:
+  - id: iso-27001-2022.9.2.1.a
+    label: a)
+    body: The organization shall conduct internal audits at planned intervals to provide information on whether the information
+      security management system conforms to.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.9.2.1.a.1
+      label: 1)
+      body: The organization shall conduct internal audits at planned intervals to provide information on whether the information
+        security management system conforms to the organization’s own requirements for its information security management
+        system.
+      notes: ''
+    - id: iso-27001-2022.9.2.1.a.2
+      label: 2)
+      body: The organization shall conduct internal audits at planned intervals to provide information on whether the information
+        security management system conforms to the requirements of this document.
+      notes: ''
+  - id: iso-27001-2022.9.2.1.b
+    label: b)
+    body: The organization shall conduct internal audits at planned intervals to provide information on whether the information
+      security management system is effectively implemented and maintained.
+    notes: ''
+- id: 9.2.2
+  heading: Internal audit programme
+  type: clause
+  suggested_control_id: iso-27001-2022.9.2.2
+  notes: ''
+  text: 'The organization shall plan, establish, implement and maintain an audit programme(s), including the frequency, methods,
+    responsibilities, planning requirements and reporting. When establishing the internal audit programme(s), the organization
+    shall consider the importance of the processes concerned and the results of previous audits. The organization shall:
+
+    a) define the audit criteria and scope for each audit;
+
+    b) select auditors and conduct audits that ensure objectivity and the impartiality of the audit process;
+
+    c) ensure that the results of the audits are reported to relevant management; Documented information shall be available
+    as evidence of the implementation of the audit programme(s) and the audit results.'
+  statements:
+  - id: iso-27001-2022.9.2.2.a
+    label: a)
+    body: The organization shall plan, establish, implement and maintain an audit programme(s), including the frequency, methods,
+      responsibilities, planning requirements and reporting. When establishing the internal audit programme(s), the organization
+      shall consider the importance of the processes concerned and the results of previous audits. The organization shall
+      define the audit criteria and scope for each audit.
+    notes: ''
+  - id: iso-27001-2022.9.2.2.b
+    label: b)
+    body: The organization shall plan, establish, implement and maintain an audit programme(s), including the frequency, methods,
+      responsibilities, planning requirements and reporting. When establishing the internal audit programme(s), the organization
+      shall consider the importance of the processes concerned and the results of previous audits. The organization shall
+      select auditors and conduct audits that ensure objectivity and the impartiality of the audit process.
+    notes: ''
+  - id: iso-27001-2022.9.2.2.c
+    label: c)
+    body: The organization shall plan, establish, implement and maintain an audit programme(s), including the frequency, methods,
+      responsibilities, planning requirements and reporting. When establishing the internal audit programme(s), the organization
+      shall consider the importance of the processes concerned and the results of previous audits. The organization shall
+      ensure that the results of the audits are reported to relevant management.
+    notes: ''
+- id: '9.3'
+  heading: Management review
+  type: clause
+  suggested_control_id: iso-27001-2022.9.3
+  notes: ''
+  text: ''
+- id: 9.3.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-27001-2022.9.3.1
+  notes: ''
+  text: Top management shall review the organization's information security management system at planned intervals to ensure
+    its continuing suitability, adequacy and effectiveness.
+- id: 9.3.2
+  heading: Management review inputs
+  type: clause
+  suggested_control_id: iso-27001-2022.9.3.2
+  notes: ''
+  text: 'The management review shall include consideration of:
+
+    a) the status of actions from previous management reviews;
+
+    b) changes in external and internal issues that are relevant to the information security management system;
+
+    c) changes in needs and expectations of interested parties that are relevant to the information security management system;
+
+    d) feedback on the information security performance, including trends in:
+
+    1) nonconformities and corrective actions;
+
+    2) monitoring and measurement results;
+
+    3) audit results;
+
+    4) fulfilment of information security objectives;
+
+    e) feedback from interested parties;
+
+    f) results of risk assessment and status of risk treatment plan;
+
+    g) opportunities for continual improvement.'
+  statements:
+  - id: iso-27001-2022.9.3.2.a
+    label: a)
+    body: The management review shall include consideration of the status of actions from previous management reviews.
+    notes: ''
+  - id: iso-27001-2022.9.3.2.b
+    label: b)
+    body: The management review shall include consideration of changes in external and internal issues that are relevant to
+      the information security management system.
+    notes: ''
+  - id: iso-27001-2022.9.3.2.c
+    label: c)
+    body: The management review shall include consideration of changes in needs and expectations of interested parties that
+      are relevant to the information security management system.
+    notes: ''
+  - id: iso-27001-2022.9.3.2.d
+    label: d)
+    body: The management review shall include consideration of feedback on the information security performance, including
+      trends in.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.9.3.2.d.1
+      label: 1)
+      body: The management review shall include consideration of feedback on the information security performance, including
+        trends in nonconformities and corrective actions.
+      notes: ''
+    - id: iso-27001-2022.9.3.2.d.2
+      label: 2)
+      body: The management review shall include consideration of feedback on the information security performance, including
+        trends in monitoring and measurement results.
+      notes: ''
+    - id: iso-27001-2022.9.3.2.d.3
+      label: 3)
+      body: The management review shall include consideration of feedback on the information security performance, including
+        trends in audit results.
+      notes: ''
+    - id: iso-27001-2022.9.3.2.d.4
+      label: 4)
+      body: The management review shall include consideration of feedback on the information security performance, including
+        trends in fulfilment of information security objectives.
+      notes: ''
+  - id: iso-27001-2022.9.3.2.e
+    label: e)
+    body: The management review shall include consideration of feedback from interested parties.
+    notes: ''
+  - id: iso-27001-2022.9.3.2.f
+    label: f)
+    body: The management review shall include consideration of results of risk assessment and status of risk treatment plan.
+    notes: ''
+  - id: iso-27001-2022.9.3.2.g
+    label: g)
+    body: The management review shall include consideration of opportunities for continual improvement.
+    notes: ''
+- id: 9.3.3
+  heading: Management review results
+  type: clause
+  suggested_control_id: iso-27001-2022.9.3.3
+  notes: ''
+  text: The results of the management review shall include decisions related to continual improvement opportunities and any
+    needs for changes to the information security management system. Documented information shall be available as evidence
+    of the results of management reviews.
+- id: '10'
+  heading: Improvement
+  type: clause
+  suggested_control_id: iso-27001-2022.10
+  notes: ''
+  text: ''
+- id: '10.1'
+  heading: Continual improvement
+  type: clause
+  suggested_control_id: iso-27001-2022.10.1
+  notes: ''
+  text: The organization shall continually improve the suitability, adequacy and effectiveness of the information security
+    management system.
+- id: '10.2'
+  heading: Nonconformity and corrective action
+  type: clause
+  suggested_control_id: iso-27001-2022.10.2
+  notes: ''
+  text: 'When a nonconformity occurs, the organization shall:
+
+    a) react to the nonconformity, and as applicable:
+
+    1) take action to control and correct it;
+
+    2) deal with the consequences;
+
+    b) evaluate the need for action to eliminate the causes of nonconformity, in order that it does not recur or occur elsewhere,
+    by:
+
+    1) reviewing the nonconformity;
+
+    2) determining the causes of the nonconformity; and
+
+    3) determining if similar nonconformities exist, or could potentially occur;
+
+    c) implement any action needed;
+
+    d) review the effectiveness of any corrective action taken; and
+
+    e) make changes to the information security management system, if necessary. Corrective actions shall be appropriate to
+    the effects of the nonconformities encountered. Documented information shall be available as evidence of:
+
+    f) the nature of the nonconformities and any subsequent actions taken,
+
+    g) the results of any corrective action.'
+  statements:
+  - id: iso-27001-2022.10.2.block-1
+    label: block-1
+    body: When a nonconformity occurs, the organization shall.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.10.2.block-1.a
+      label: a)
+      body: When a nonconformity occurs, the organization shall react to the nonconformity, and as applicable.
+      notes: ''
+      statements:
+      - id: iso-27001-2022.10.2.block-1.a.1
+        label: 1)
+        body: When a nonconformity occurs, the organization shall react to the nonconformity, and as applicable take action
+          to control and correct it.
+        notes: ''
+      - id: iso-27001-2022.10.2.block-1.a.2
+        label: 2)
+        body: When a nonconformity occurs, the organization shall react to the nonconformity, and as applicable deal with
+          the consequences.
+        notes: ''
+    - id: iso-27001-2022.10.2.block-1.b
+      label: b)
+      body: When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the causes of nonconformity,
+        in order that it does not recur or occur elsewhere, by.
+      notes: ''
+      statements:
+      - id: iso-27001-2022.10.2.block-1.b.1
+        label: 1)
+        body: When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the causes of
+          nonconformity, in order that it does not recur or occur elsewhere, by reviewing the nonconformity.
+        notes: ''
+      - id: iso-27001-2022.10.2.block-1.b.2
+        label: 2)
+        body: When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the causes of
+          nonconformity, in order that it does not recur or occur elsewhere, by determining the causes of the nonconformity.
+        notes: ''
+      - id: iso-27001-2022.10.2.block-1.b.3
+        label: 3)
+        body: When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the causes of
+          nonconformity, in order that it does not recur or occur elsewhere, by determining if similar nonconformities exist,
+          or could potentially occur.
+        notes: ''
+    - id: iso-27001-2022.10.2.block-1.c
+      label: c)
+      body: When a nonconformity occurs, the organization shall implement any action needed.
+      notes: ''
+    - id: iso-27001-2022.10.2.block-1.d
+      label: d)
+      body: When a nonconformity occurs, the organization shall review the effectiveness of any corrective action taken.
+      notes: ''
+    - id: iso-27001-2022.10.2.block-1.e
+      label: e)
+      body: When a nonconformity occurs, the organization shall make changes to the information security management system,
+        if necessary.
+      notes: ''
+  - id: iso-27001-2022.10.2.block-2
+    label: block-2
+    body: Corrective actions shall be appropriate to the effects of the nonconformities encountered. Documented information
+      shall be available as evidence of.
+    notes: ''
+    statements:
+    - id: iso-27001-2022.10.2.block-2.f
+      label: f)
+      body: Corrective actions shall be appropriate to the effects of the nonconformities encountered. Documented information
+        shall be available as evidence of the nature of the nonconformities and any subsequent actions taken.
+      notes: ''
+    - id: iso-27001-2022.10.2.block-2.g
+      label: g)
+      body: Corrective actions shall be appropriate to the effects of the nonconformities encountered. Documented information
+        shall be available as evidence of the results of any corrective action.
+      notes: ''
+- id: A.5.1
+  heading: Policies for information security
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.1
+  notes: ''
+  text: Information security policy and topic-specific policies shall be de- fined, approved by management, published, communicated
+    to and acknowledged by relevant personnel and relevant interested parties, and reviewed at planned intervals and if significant
+    changes occur.
+- id: A.5.2
+  heading: Information security roles and responsibilities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.2
+  notes: ''
+  text: Information security roles and responsibilities shall be defined and allocated according to the organization needs.
+- id: A.5.3
+  heading: Segregation of duties
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.3
+  notes: ''
+  text: Conflicting duties and conflicting areas of responsibility shall be seg- regated.
+- id: A.5.4
+  heading: Management responsibilities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.4
+  notes: ''
+  text: Management shall require all personnel to apply information security in accordance with the established information
+    security policy, top- ic-specific policies and procedures of the organization.
+- id: A.5.5
+  heading: Contact with authorities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.5
+  notes: ''
+  text: The organization shall establish and maintain contact with relevant authorities.
+- id: A.5.6
+  heading: Contact with special interest groups
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.6
+  notes: ''
+  text: The organization shall establish and maintain contact with special interest groups or other specialist security forums
+    and professional associations.
+- id: A.5.7
+  heading: Threat intelligence
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.7
+  notes: ''
+  text: Information relating to information security threats shall be collected and analysed to produce threat intelligence.
+- id: A.5.8
+  heading: Information security in project management Control
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.8
+  notes: ''
+  text: Information security shall be integrated into project management.
+- id: A.5.9
+  heading: Inventory of information and other associated assets
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.9
+  notes: ''
+  text: An inventory of information and other associated assets, including owners, shall be developed and maintained.
+- id: A.5.10
+  heading: Acceptable use of information and other associated assets
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.10
+  notes: ''
+  text: Rules for the acceptable use and procedures for handling information and other associated assets shall be identified,
+    documented and implemented.
+- id: A.5.11
+  heading: Return of assets
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.11
+  notes: ''
+  text: Personnel and other interested parties as appropriate shall return all the organization’s assets in their possession
+    upon change or termination of their employment, contract or agreement.
+- id: A.5.12
+  heading: Classification of information
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.12
+  notes: ''
+  text: Information shall be classified according to the information security needs of the organization based on confidentiality,
+    integrity, availability and relevant interested party requirements.
+- id: A.5.13
+  heading: Labelling of information
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.13
+  notes: ''
+  text: An appropriate set of procedures for information labelling shall be developed and implemented in accordance with the
+    information clas- sification scheme adopted by the organization.
+- id: A.5.14
+  heading: Information transfer
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.14
+  notes: ''
+  text: Information transfer rules, procedures, or agreements shall be in place for all types of transfer facilities within
+    the organization and between the organization and other parties.
+- id: A.5.15
+  heading: Access control
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.15
+  notes: ''
+  text: Rules to control physical and logical access to information and other associated assets shall be established and implemented
+    based on busi- ness and information security requirements.
+- id: A.5.16
+  heading: Identity management
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.16
+  notes: ''
+  text: The full life cycle of identities shall be managed.
+- id: A.5.17
+  heading: Authentication information
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.17
+  notes: ''
+  text: Allocation and management of authentication information shall be controlled by a management process, including advising
+    personnel on appropriate handling of authentication information.
+- id: A.5.18
+  heading: Access rights
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.18
+  notes: ''
+  text: Access rights to information and other associated assets shall be provisioned, reviewed, modified and removed in accordance
+    with the organization’s topic-specific policy on and rules for access control.
+- id: A.5.19
+  heading: Information security in supplier relationships
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.19
+  notes: ''
+  text: Processes and procedures shall be defined and implemented to manage the information security risks associated with
+    the use of supplier’s products or services.
+- id: A.5.20
+  heading: Addressing information security within supplier agreements
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.20
+  notes: ''
+  text: Relevant information security requirements shall be established and agreed with each supplier based on the type of
+    supplier relationship.
+- id: A.5.21
+  heading: Managing information security in the information and communication technology (ICT) supply chain
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.21
+  notes: ''
+  text: Processes and procedures shall be defined and implemented to manage the information security risks associated with
+    the ICT products and services supply chain.
+- id: A.5.22
+  heading: Monitoring, review and change management of supplier services
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.22
+  notes: ''
+  text: The organization shall regularly monitor, review, evaluate and manage change in supplier information security practices
+    and service delivery.
+- id: A.5.23
+  heading: Information security for use of cloud services
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.23
+  notes: ''
+  text: Processes for acquisition, use, management and exit from cloud services shall be established in accordance with the
+    organization’s information security requirements.
+- id: A.5.24
+  heading: Information security incident management planning and preparation
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.24
+  notes: ''
+  text: The organization shall plan and prepare for managing information security incidents by defining, establishing and
+    communicating information security incident management processes, roles and responsibilities.
+- id: A.5.25
+  heading: Assessment and decision on information security events
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.25
+  notes: ''
+  text: The organization shall assess information security events and decide if they are to be categorized as information
+    security incidents.
+- id: A.5.26
+  heading: Response to information security incidents
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.26
+  notes: ''
+  text: Information security incidents shall be responded to in accordance with the documented procedures.
+- id: A.5.27
+  heading: Learning from information security incidents
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.27
+  notes: ''
+  text: Knowledge gained from information security incidents shall be used to strengthen and improve the information security
+    controls.
+- id: A.5.28
+  heading: Collection of evidence
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.28
+  notes: ''
+  text: The organization shall establish and implement procedures for the iden- tification, collection, acquisition and preservation
+    of evidence related to information security events.
+- id: A.5.29
+  heading: Information security during disruption
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.29
+  notes: ''
+  text: The organization shall plan how to maintain information security at an appropriate level during disruption.
+- id: A.5.30
+  heading: ICTreadiness for business continuity
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.30
+  notes: ''
+  text: ICTreadiness shall be planned, implemented, maintained and tested based on business continuity objectives and ICTcontinuity
+    requirements.
+- id: A.5.31
+  heading: Legal, statutory, regulatory and contractual requirements
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.31
+  notes: ''
+  text: Legal, statutory, regulatory and contractual requirements relevant to information security and the organization’s
+    approach to meet these requirements shall be identified, documented and kept up to date.
+- id: A.5.32
+  heading: Intellectual property rights
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.32
+  notes: ''
+  text: The organization shall implement appropriate procedures to protect intellectual property rights.
+- id: A.5.33
+  heading: Protection of records
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.33
+  notes: ''
+  text: Records shall be protected from loss, destruction, falsification, unau- thorized access and unauthorized release.
+- id: A.5.34
+  heading: Privacy and protection of personal identifiable information (PII)
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.34
+  notes: ''
+  text: The organization shall identify and meet the requirements regarding the preservation of privacy and protection of
+    PIIaccording to applicable laws and regulations and contractual requirements.
+- id: A.5.35
+  heading: Independent review of information security
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.35
+  notes: ''
+  text: The organization’s approach to managing information security and its implementation including people, processes and
+    technologies shall be reviewed independently at planned intervals, or when significant changes occur.
+- id: A.5.36
+  heading: Compliance with policies, rules and standards for information
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.36
+  notes: ''
+  text: Compliance with the organization’s information security policy, top- security Control ic-specific policies, rules
+    and standards shall be regularly reviewed.
+- id: A.5.37
+  heading: Documented operating procedures
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.5.37
+  notes: ''
+  text: Operating procedures for information processing facilities shall be documented and made available to personnel who
+    need them.
+- id: A.6.1
+  heading: Screening
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.1
+  notes: ''
+  text: Background verification checks on all candidates to become personnel shall be carried out prior to joining the organization
+    and on an ongoing basis taking into consideration applicable laws, regulations and ethics and be proportional to the business
+    requirements, the classification of the information to be accessed and the perceived risks.
+- id: A.6.2
+  heading: Terms and conditions of employment
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.2
+  notes: ''
+  text: The employment contractual agreements shall state the personnel’s and the organization’s responsibilities for information
+    security.
+- id: A.6.3
+  heading: Information security awareness, education and training
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.3
+  notes: ''
+  text: Personnel of the organization and relevant interested parties shall receive appropriate information security awareness,
+    education and training and regular updates of the organization's information security policy, topic-specific policies
+    and procedures, as relevant for their job function.
+- id: A.6.4
+  heading: Disciplinary process
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.4
+  notes: ''
+  text: Adisciplinary process shall be formalized and communicated to take actions against personnel and other relevant interested
+    parties who have committed an information security policy violation.
+- id: A.6.5
+  heading: Responsibilities after termination or change of employment
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.5
+  notes: ''
+  text: Information security responsibilities and duties that remain valid after termination or change of employment shall
+    be defined, enforced and communicated to relevant personnel and other interested parties.
+- id: A.6.6
+  heading: Confidentiality or non-disclosure agreements
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.6
+  notes: ''
+  text: Confidentiality or non-disclosure agreements reflecting the organ- ization’s needs for the protection of information
+    shall be identified, documented, regularly reviewed and signed by personnel and other relevant interested parties.
+- id: A.6.7
+  heading: Remote working
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.7
+  notes: ''
+  text: Security measures shall be implemented when personnel are working remotely to protect information accessed, processed
+    or stored outside the organization’s premises.
+- id: A.6.8
+  heading: Information security event reporting
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.6.8
+  notes: ''
+  text: The organization shall provide a mechanism for personnel to report observed or suspected information security events
+    through appropriate channels in a timely manner.
+- id: A.7.1
+  heading: Physical security perimeters
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.1
+  notes: ''
+  text: Security perimeters shall be defined and used to protect areas that contain information and other associated assets.
+- id: A.7.2
+  heading: Physical entry
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.2
+  notes: ''
+  text: Secure areas shall be protected by appropriate entry controls and access points.
+- id: A.7.3
+  heading: Securing offices, rooms and facilities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.3
+  notes: ''
+  text: Physical security for offices, rooms and facilities shall be designed and implemented.
+- id: A.7.4
+  heading: Physical security monitoring
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.4
+  notes: ''
+  text: Premises shall be continuously monitored for unauthorized physical access.
+- id: A.7.5
+  heading: Protecting against physical and environmental threats
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.5
+  notes: ''
+  text: Protection against physical and environmental threats, such as natural disasters and other intentional or unintentional
+    physical threats to infrastructure shall be designed and implemented.
+- id: A.7.6
+  heading: Working in secure areas
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.6
+  notes: ''
+  text: Security measures for working in secure areas shall be designed and implemented.
+- id: A.7.7
+  heading: Clear desk and clear screen
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.7
+  notes: ''
+  text: Clear desk rules for papers and removable storage media and clear screen rules for information processing facilities
+    shall be defined and appropriately enforced.
+- id: A.7.8
+  heading: Equipment siting and protection
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.8
+  notes: ''
+  text: Equipment shall be sited securely and protected.
+- id: A.7.9
+  heading: Security of assets off-premises
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.9
+  notes: ''
+  text: Off-site assets shall be protected.
+- id: A.7.10
+  heading: Storage media
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.10
+  notes: ''
+  text: Storage media shall be managed through their life cycle of acquisition, use, transportation and disposal in accordance
+    with the organization’s classification scheme and handling requirements.
+- id: A.7.11
+  heading: Supporting utilities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.11
+  notes: ''
+  text: Information processing facilities shall be protected from power failures and other disruptions caused by failures
+    in supporting utilities.
+- id: A.7.12
+  heading: Cabling security
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.12
+  notes: ''
+  text: Cables carrying power, data or supporting information services shall be protected from interception, interference
+    or damage.
+- id: A.7.13
+  heading: Equipment maintenance
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.13
+  notes: ''
+  text: Equipment shall be maintained correctly to ensure availability, integrity and confidentiality of information.
+- id: A.7.14
+  heading: Secure disposal or re-use of equipment
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.7.14
+  notes: ''
+  text: Items of equipment containing storage media shall be verified to en- sure that any sensitive data and licensed software
+    has been removed or securely overwritten prior to disposal or re-use.
+- id: A.8.1
+  heading: User end point devices
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.1
+  notes: ''
+  text: Information stored on, processed by or accessible via user end point devices shall be protected.
+- id: A.8.2
+  heading: Privileged access rights
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.2
+  notes: ''
+  text: The allocation and use of privileged access rights shall be restricted and managed.
+- id: A.8.3
+  heading: Information access restriction
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.3
+  notes: ''
+  text: Access to information and other associated assets shall be restricted in accordance with the established topic-specific
+    policy on access control.
+- id: A.8.4
+  heading: Access to source code
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.4
+  notes: ''
+  text: Read and write access to source code, development tools and software libraries shall be appropriately managed.
+- id: A.8.5
+  heading: Secure authentication
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.5
+  notes: ''
+  text: Secure authentication technologies and procedures shall be implemented based on information access restrictions and
+    the topic-specific policy on access control.
+- id: A.8.6
+  heading: Capacity management
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.6
+  notes: ''
+  text: The use of resources shall be monitored and adjusted in line with current and expected capacity requirements.
+- id: A.8.7
+  heading: Protection against malware
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.7
+  notes: ''
+  text: Protection against malware shall be implemented and supported by appropriate user awareness.
+- id: A.8.8
+  heading: Management of technical vulnerabilities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.8
+  notes: ''
+  text: Information about technical vulnerabilities of information systems in use shall be obtained, the organization’s exposure
+    to such vulnerabilities shall be evaluated and appropriate measures shall be taken.
+- id: A.8.9
+  heading: Configuration management
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.9
+  notes: ''
+  text: Configurations, including security configurations, of hardware, software, services and networks shall be established,
+    documented, implemented, monitored and reviewed.
+- id: A.8.10
+  heading: Information deletion
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.10
+  notes: ''
+  text: Information stored in information systems, devices or in any other storage media shall be deleted when no longer required.
+- id: A.8.11
+  heading: Data masking
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.11
+  notes: ''
+  text: Data masking shall be used in accordance with the organization’s topic-specific policy on access control and other
+    related topic-specific policies, and business requirements, taking applicable legislation into consideration.
+- id: A.8.12
+  heading: Data leakage prevention
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.12
+  notes: ''
+  text: Data leakage prevention measures shall be applied to systems, net- works and any other devices that process, store
+    or transmit sensitive information.
+- id: A.8.13
+  heading: Information backup
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.13
+  notes: ''
+  text: Backup copies of information, software and systems shall be maintained and regularly tested in accordance with the
+    agreed topic-specific policy on backup.
+- id: A.8.14
+  heading: Redundancy of information processing facilities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.14
+  notes: ''
+  text: Information processing facilities shall be implemented with redundancy sufficient to meet availability requirements.
+- id: A.8.15
+  heading: Logging
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.15
+  notes: ''
+  text: Logs that record activities, exceptions, faults and other relevant events shall be produced, stored, protected and
+    analysed.
+- id: A.8.16
+  heading: Monitoring activities
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.16
+  notes: ''
+  text: Networks, systems and applications shall be monitored for anomalous behaviour and appropriate actions taken to evaluate
+    potential infor- mation security incidents.
+- id: A.8.17
+  heading: Clock synchronization
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.17
+  notes: ''
+  text: The clocks of information processing systems used by the organization shall be synchronized to approved time sources.
+- id: A.8.18
+  heading: Use of privileged utility programs
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.18
+  notes: ''
+  text: The use of utility programs that can be capable of overriding system and application controls shall be restricted
+    and tightly controlled.
+- id: A.8.19
+  heading: Installation of software on operational systems
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.19
+  notes: ''
+  text: Procedures and measures shall be implemented to securely manage software installation on operational systems.
+- id: A.8.20
+  heading: Networks security
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.20
+  notes: ''
+  text: Networks and network devices shall be secured, managed and controlled to protect information in systems and applications.
+- id: A.8.21
+  heading: Security of network services
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.21
+  notes: ''
+  text: Security mechanisms, service levels and service requirements of network services shall be identified, implemented
+    and monitored.
+- id: A.8.22
+  heading: Segregation of networks
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.22
+  notes: ''
+  text: Groups of information services, users and information systems shall be segregated in the organization’s networks.
+- id: A.8.23
+  heading: Web filtering
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.23
+  notes: ''
+  text: Access to external websites shall be managed to reduce exposure to malicious content.
+- id: A.8.24
+  heading: Use of cryptography
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.24
+  notes: ''
+  text: Rules for the effective use of cryptography, including cryptographic key management, shall be defined and implemented.
+- id: A.8.25
+  heading: Secure development life cycle
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.25
+  notes: ''
+  text: Rules for the secure development of software and systems shall be established and applied.
+- id: A.8.26
+  heading: Application security requirements
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.26
+  notes: ''
+  text: Information security requirements shall be identified, specified and approved when developing or acquiring applications.
+- id: A.8.27
+  heading: Secure system architecture and engineering principles
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.27
+  notes: ''
+  text: Principles for engineering secure systems shall be established, docu- mented, maintained and applied to any information
+    system development activities.
+- id: A.8.28
+  heading: Secure coding
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.28
+  notes: ''
+  text: Secure coding principles shall be applied to software development.
+- id: A.8.29
+  heading: Security testing in development and acceptance
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.29
+  notes: ''
+  text: Security testing processes shall be defined and implemented in the development life cycle.
+- id: A.8.30
+  heading: Outsourced development
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.30
+  notes: ''
+  text: The organization shall direct, monitor and review the activities related to outsourced system development.
+- id: A.8.31
+  heading: Separation of development, test and production environments
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.31
+  notes: ''
+  text: Development, testing and production environments shall be separated and secured.
+- id: A.8.32
+  heading: Change management
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.32
+  notes: ''
+  text: Changes to information processing facilities and information systems shall be subject to change management procedures.
+- id: A.8.33
+  heading: Test information
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.33
+  notes: ''
+  text: Test information shall be appropriately selected, protected and managed.
+- id: A.8.34
+  heading: Protection of information systems during audit testing
+  type: annex_control
+  suggested_control_id: iso-27001-2022.a.8.34
+  notes: ''
+  text: Audit tests and other assurance activities involving assessment of op- erational systems shall be planned and agreed
+    between the tester and appropriate management.

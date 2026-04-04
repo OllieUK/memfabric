@@ -100,36 +100,58 @@ def main() -> None:
             }, gid)
 
         ok = err = 0
-        for e in entries:
-            fw_id = e["suggested_control_id"]
+
+        def _load_entry(fw_id: str, name: str, body: str | None, parent_id: str | None) -> None:
+            nonlocal ok, err
             parts = fw_id.split(".")
-            # Determine level from id structure
             if "a" in parts:
-                level = "clause"   # Annex A controls
+                level = "clause"       # Annex A controls and their statements
             elif len(parts) == 2:
-                level = "clause"   # Top-level clause: iso-27001-2022.6
+                level = "clause"       # Top-level clause: iso-27001-2022.6
+            elif len(parts) == 3:
+                level = "sub-clause"   # iso-27001-2022.6.1
             else:
-                level = "sub-clause"  # Sub-clause: iso-27001-2022.6.1.2
+                level = "sub-clause"   # Deep sub-clause / statement node
 
-            payload: dict = {
-                "id": fw_id,
-                "name": e["heading"],
-                "level": level,
-            }
-            if e.get("text"):
-                payload["body"] = e["text"]
-
-            # Parent linkage
-            if len(parts) > 2:
-                payload["parent_id"] = ".".join(parts[:-1])
-            elif len(parts) == 2 and "a" not in parts:
-                payload["parent_id"] = framework_id
+            payload: dict = {"id": fw_id, "name": name, "level": level}
+            if body:
+                payload["body"] = body
+            if parent_id:
+                payload["parent_id"] = parent_id
 
             s = _post(client, "/knowledge/frameworks", payload, fw_id)
             if s == "error":
                 err += 1
             else:
                 ok += 1
+
+        def _load_statements(stmts: list, parent_fw_id: str) -> None:
+            """Recursively load normative sub-statement nodes (parent before child)."""
+            for s in stmts:
+                _load_entry(s["id"], s.get("label", s["id"]), s.get("body"), parent_fw_id)
+                children = s.get("statements", [])
+                if children:
+                    _load_statements(children, s["id"])
+
+        for e in entries:
+            fw_id = e["suggested_control_id"]
+            parts = fw_id.split(".")
+
+            # Determine parent for top-level entry
+            if len(parts) > 2:
+                parent_id = ".".join(parts[:-1])
+            elif len(parts) == 2 and "a" not in parts:
+                parent_id = framework_id
+            else:
+                parent_id = None
+
+            _load_entry(fw_id, e["heading"], e.get("text") or None, parent_id)
+
+            # Load statement sub-hierarchy (leaf normative obligations)
+            stmts = e.get("statements", [])
+            if stmts:
+                _load_statements(stmts, fw_id)
+
         print(f"   {ok} upserted, {err} errors")
 
         # 3. Document
