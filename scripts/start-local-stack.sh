@@ -41,8 +41,12 @@ docker compose up -d
 
 wait_for_memgraph
 
-export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
-export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
+# EMBEDDING_LOCAL_FILES_ONLY=true (default) tells our embeddings module to pass
+# local_files_only=True to SentenceTransformer, preventing any model downloads.
+# We do NOT set HF_HUB_OFFLINE or TRANSFORMERS_OFFLINE: transformers>=4.50 calls
+# model_info() inside AutoTokenizer even for locally-cached models, and those env
+# vars turn that into a hard error rather than a no-op. local_files_only=True alone
+# is the correct download guard.
 export EMBEDDING_LOCAL_FILES_ONLY="${EMBEDDING_LOCAL_FILES_ONLY:-true}"
 
 reload_flag=()
