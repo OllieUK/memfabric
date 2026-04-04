@@ -526,29 +526,27 @@ class TestKnowledgeSearchIntegration:
 # ---------------------------------------------------------------------------
 
 
+def _cl_wipe(s):
+    """Delete all test-wp076-cl-* nodes and any orphaned Memory nodes from this test class."""
+    s.run("MATCH (n) WHERE n.id STARTS WITH 'test-wp076-cl-' DETACH DELETE n")
+    s.run(
+        "MATCH (m:Memory)-[:PRODUCED_BY]->(a:Agent {id: $agent_id}) DETACH DELETE m",
+        agent_id="test-wp076-cl-agent",
+    )
+    # Catch fact-text-prefixed orphans (created when validation returns 400 before PRODUCED_BY edge)
+    s.run("MATCH (m:Memory) WHERE m.fact STARTS WITH 'wp076-cl-' DETACH DELETE m")
+    s.run("MATCH (m:Memory) WHERE m.fact STARTS WITH 'test-wp076-cl' DETACH DELETE m")
+    # Catch by test tag (safety net)
+    s.run("MATCH (m:Memory) WHERE 'test' IN m.tags AND m.fact CONTAINS 'wp076' DETACH DELETE m")
+
+
 @pytest.fixture(scope="module", autouse=True)
 def cl_cleanup(test_driver):
     with test_driver.session() as s:
-        s.run("MATCH (n) WHERE n.id STARTS WITH 'test-wp076-cl-' DETACH DELETE n")
-        s.run(
-            "MATCH (m:Memory)-[:PRODUCED_BY]->(a:Agent {id: $agent_id}) DETACH DELETE m",
-            agent_id="test-wp076-cl-agent",
-        )
-        # Also clean any sentinel memories from prior runs (dedup uses embedding similarity,
-        # not exact-text match, so stale memories with similar embeddings cause dedup collisions)
-        s.run(
-            "MATCH (m:Memory) WHERE m.fact STARTS WITH 'wp076-cl-' DETACH DELETE m"
-        )
+        _cl_wipe(s)
     yield
     with test_driver.session() as s:
-        s.run("MATCH (n) WHERE n.id STARTS WITH 'test-wp076-cl-' DETACH DELETE n")
-        s.run(
-            "MATCH (m:Memory)-[:PRODUCED_BY]->(a:Agent {id: $agent_id}) DETACH DELETE m",
-            agent_id="test-wp076-cl-agent",
-        )
-        s.run(
-            "MATCH (m:Memory) WHERE m.fact STARTS WITH 'wp076-cl-' DETACH DELETE m"
-        )
+        _cl_wipe(s)
 
 
 @pytest.mark.integration
