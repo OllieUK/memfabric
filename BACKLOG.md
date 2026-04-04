@@ -268,7 +268,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-077 — Extract schema-init utils + fix embeddings multi-model routing ✅
 
-> **Completed 2026-04-03.** Commit `ac1a506` on `feature/knowledge-layer`.
+> **Completed 2026-04-03.** See `docs/CHANGELOG.md` for full retrospective. Commit `ac1a506` on `feature/knowledge-layer`.
 
 - Created `scripts/schema_utils.py` with shared `create_constraint()` + `get_embedding_dimension()`
 - `init_schema.py` and `init_knowledge_schema.py` now import from `scripts.schema_utils` (no duplication)
@@ -282,7 +282,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-072 — InfoSec knowledge layer: cross-layer Memory edges ✅
 
-> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Merged via `feature/knowledge-layer` (commit `d9b78d0`). See `docs/CHANGELOG.md` for full retrospective.
 
 - Created `memory_service/knowledge_bridge.py` (ADR-001 Guardrail 3 — sole cross-layer import module): 8 functions covering `validate_controls`, `validate_documents`, `link_controls`, `link_documents`, `replace_control_edges`, `replace_doc_edges`, `rewire_cross_layer_edges`, `hydrate_controls_and_documents`
 - Extended `AddMemoryRequest`, `UpdateMemoryRequest` with `control_ids`, `doc_ids`, `control_relationship_type: Literal["context","evidence","gap"]`, `org_id`; extended `MemoryHit` with `controls: List[dict]`, `documents: List[dict]`
@@ -298,7 +298,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-076 — InfoSec knowledge layer: integration and separation tests ✅
 
-> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Merged via `feature/knowledge-layer` (commit `d9b78d0`). See `docs/CHANGELOG.md` for full retrospective.
 
 - Folded WP-024: `cleanup_nodes` in `tests/conftest.py` extended to accept `dict[str, str | list[str]]` — backward-compatible
 - Added `knowledge_client` fixture to `conftest.py` (module-scoped, reloads app with `ENABLE_KNOWLEDGE_LAYER=true`) — eliminates duplication across all knowledge-layer test files
@@ -313,7 +313,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-075 — InfoSec knowledge layer: SABSA bidirectional traceability ✅
 
-> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Merged via `feature/knowledge-layer` (commit `d9b78d0`). See `docs/CHANGELOG.md` for full retrospective.
 
 - Added `trace_up`, `trace_down`, `attribute_coverage`, `gap_analysis` repo functions to `knowledge_repo.py`
 - Added `get_business_attribute` and `list_controls` helper functions (extracted during simplify to eliminate inline duplicate queries)
@@ -330,7 +330,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-074 — InfoSec knowledge layer: CLI, MCP tools, and ETL ✅
 
-> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Merged via `feature/knowledge-layer` (commit `d9b78d0`). See `docs/CHANGELOG.md` for full retrospective.
 
 - Added `enable_knowledge_layer: bool = False` to `MCPSettings` in `mcp_server/config.py`
 - Added 7 `MemoryClient` methods: `search_controls`, `search_chunks`, `list_norms`, `list_documents`, `get_incomplete_jurisdictions`, `get_control`, `get_norm`
@@ -350,7 +350,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-073 — InfoSec knowledge layer: document ingestion pipeline ✅
 
-> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Merged via `feature/knowledge-layer` (commit `d9b78d0`). See `docs/CHANGELOG.md` for full retrospective.
 
 - Added `create_supports_edge` and `get_chunks_for_control` to `knowledge_repo.py` — SUPPORTS edge (Chunk→Control) with `confidence` and `status`; returns ordered by confidence DESC
 - Added `SupportsCreate`/`SupportsResponse`/`ChunkWithSupports` Pydantic models + `POST /knowledge/chunk/supports` + `GET /knowledge/controls/{id}/chunks` routes to `knowledge_routes.py`; `confidence` range-validated via `Field(ge=0.0, le=1.0)`
@@ -367,7 +367,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-071 — InfoSec knowledge layer: search API ✅
 
-> **Completed 2026-04-03.** On `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Merged via `feature/knowledge-layer` (commit `d9b78d0`). See `docs/CHANGELOG.md` for full retrospective.
 
 - Added 5 repo functions to `knowledge_repo.py`: `search_controls` (vector, `ctrl_embedding_idx`), `search_chunks` (vector, `chunk_embedding_idx`), `list_norms`, `list_documents`, `list_incomplete_jurisdictions`
 - Added 4 Pydantic models + 5 route handlers to `knowledge_routes.py`: `POST /knowledge/search/controls`, `POST /knowledge/search/chunks`, `GET /knowledge/norms`, `GET /knowledge/documents`, `GET /knowledge/incomplete-jurisdictions`
@@ -378,7 +378,7 @@ Episodic memories capture events, decisions, and facts from lived experience. Bu
 
 ### WP-070 — InfoSec knowledge layer: write API ✅
 
-> **Completed 2026-04-03.** Commit `a1c1148` on `feature/knowledge-layer`.
+> **Completed 2026-04-03.** Commit `a1c1148` on `feature/knowledge-layer`. See `docs/CHANGELOG.md` for full retrospective.
 
 - Created `memory_service/knowledge_repo.py`: upsert/get for Framework, Control, Norm, Document, Chunk with correct Cypher (MERGE ON CREATE SET; optional CONTAINS/IMPLEMENTS/SOURCED_FROM/HAS_CHUNK/HAS_NEXT edges)
 - Created `memory_service/knowledge_routes.py`: FastAPI router (`/knowledge` prefix) with 10 endpoints; embeddings via `KNOWLEDGE_EMBEDDING_MODEL`; Document carries no embedding (chunks hold vectors)

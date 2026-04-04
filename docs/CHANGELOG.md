@@ -4,6 +4,124 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-076 — InfoSec knowledge layer: integration and separation tests
+
+**Completed:** 2026-04-03. Merged via `feature/knowledge-layer` (commit `d9b78d0`).
+
+- Folded WP-024: `cleanup_nodes` in `tests/conftest.py` extended to accept `dict[str, str | list[str]]` — backward-compatible
+- Added `knowledge_client` fixture to `conftest.py` (module-scoped, reloads app with `ENABLE_KNOWLEDGE_LAYER=true`) — eliminates duplication across all knowledge-layer test files
+- Created `tests/test_wp076_separation.py`: autouse module-scoped `separation_data` fixture seeds 20 Controls + 50 Chunks + 5 Memory nodes; 3 integration tests assert zero cross-layer leakage in search; 1 static AST import-audit test enforces ADR-001 at all times
+- Created `tests/test_wp076_integration.py`: 38 integration tests across `TestKnowledgeSchemaIntegration` (4), `TestKnowledgeWriteIntegration` (13), `TestKnowledgeSearchIntegration` (7), `TestCrossLayerIntegration` (14)
+- Updated `tests/test_wp075_traceability.py`: appended `TestTraceabilityIntegration` with 11 integration tests for all four traceability endpoints including org-scoped filtering, knowledge-only mode, and gap-analysis classification
+- **52 integration tests + 33 unit tests, all green** against live Memgraph + FastAPI stack
+
+**Retrospective:** Fixture-scope bugs were the dominant failure mode: (1) a session-scoped fixture cannot request a module-scoped one — `separation_data` had to be demoted to module scope; (2) a fixture inside a class body cannot exceed `scope="class"` — `seed_search_data` had to be extracted to module level; (3) the `SearchMemoryResponse` wrapper (`{"memories": [...]}`) was not unwrapped in one test assertion. The dedup-collision issue (missing control validation silently skipped on dedup path) required cleaning sentinel memories by fact prefix before each test run. The `knowledge_client` fixture duplication (3 independent copies across test files) was caught by the code quality review and consolidated into conftest.py.
+
+---
+
+## WP-075 — InfoSec knowledge layer: SABSA bidirectional traceability
+
+**Completed:** 2026-04-03. On `feature/knowledge-layer`.
+
+- Added `trace_up`, `trace_down`, `attribute_coverage`, `gap_analysis` repo functions to `knowledge_repo.py`
+- Added `get_business_attribute` and `list_controls` helper functions (extracted during simplify to eliminate inline duplicate queries)
+- Added 11 Pydantic models and 4 route handlers to `knowledge_routes.py`: `GET /knowledge/controls/{id}/trace-up`, `GET /knowledge/controls/{id}/trace-down` (with `org_id` query param), `GET /knowledge/attributes/{id}/coverage`, `POST /knowledge/gap-analysis`
+- `trace_down` uses OPTIONAL MATCH throughout — fully functional with zero Memory nodes (ADR-001 knowledge-only mode)
+- `MemoryRef.relationship_type` typed as `Literal["context", "evidence", "gap"]` matching existing codebase convention
+- 32 unit tests, all green; integration tests run in WP-076
+- Simplify fixes: removed `get_control()` pre-check from `trace_down` (MATCH detects not-found); extracted `get_business_attribute()` and `list_controls()` helpers; fixed `result is None` branch in `trace_down` to return `None` (not empty dict)
+
+**Retrospective:** The `MATCH (c:Control {id: $id}) OPTIONAL MATCH ...` pattern for not-found detection is more efficient than a pre-check query — one round-trip instead of two. Simplify review caught the redundant pre-check and two inline queries that should have been helpers. Clearing all 32 tests required one fix post-simplify: the `result is None` fallback in `trace_down` was returning an empty dict instead of `None`.
+
+---
+
+## WP-074 — InfoSec knowledge layer: CLI, MCP tools, and ETL
+
+**Completed:** 2026-04-03. On `feature/knowledge-layer`.
+
+- Added `enable_knowledge_layer: bool = False` to `MCPSettings` in `mcp_server/config.py`
+- Added 7 `MemoryClient` methods: `search_controls`, `search_chunks`, `list_norms`, `list_documents`, `get_incomplete_jurisdictions`, `get_control`, `get_norm`
+- Added 5 feature-flag-gated MCP tools in `mcp_server/server.py` inside `if settings.enable_knowledge_layer:` block: `knowledge_search_controls`, `knowledge_search_chunks`, `knowledge_list_norms`, `knowledge_get_control`, `knowledge_get_norm`
+- Added `knowledge` Typer sub-app to CLI with 5 subcommands: `search-controls`, `search-chunks`, `list-norms`, `list-documents`, `review-supports` (stub)
+- Created `scripts/ingest_framework.py`: YAML-validated bulk ETL; upserts Framework → Controls → Norms → Documents → Chunks → Jurisdictions → BusinessAttributes; idempotent (409 = "already existed"); `--dry-run` stops after validation
+- Created `data/frameworks/`: `nist-csf-2.0.yaml` (15 controls), `iso-27001-2022.yaml` (11 controls), `jurisdictions.yaml` (10), `business-attributes.yaml` (8 SABSA attributes)
+- Added `pyyaml` to `pyproject.toml` dependencies; created `KNOWLEDGE_LAYER.md` (429-line operational runbook)
+- 15 unit tests, all green; integration tests run in WP-076
+
+**Retrospective:** Parallel Group A → Group B → Group C agent dispatch worked cleanly — zero file conflicts across 6 agents. The `if settings.enable_knowledge_layer:` conditional wrapping `@mcp.tool` function definitions (not just decorators) is the correct FastMCP pattern for feature-flagged tools registered at import time. `review-supports` intentionally stubbed — full implementation deferred to WP-075.
+
+---
+
+## WP-073 — InfoSec knowledge layer: document ingestion pipeline
+
+**Completed:** 2026-04-03. On `feature/knowledge-layer`.
+
+- Added `create_supports_edge` and `get_chunks_for_control` to `knowledge_repo.py` — SUPPORTS edge (Chunk→Control) with `confidence` and `status`
+- Added `SupportsCreate`/`SupportsResponse`/`ChunkWithSupports` Pydantic models + `POST /knowledge/chunk/supports` + `GET /knowledge/controls/{id}/chunks` routes
+- Added 6 ingest config settings to `config.py` and `.env.example`: `ingest_chunk_size`, `ingest_chunk_overlap`, `ingest_min_chunk_chars`, `ingest_auto_supports`, `ingest_auto_supports_threshold`, `ingest_chunk_review_mode`
+- Created `scripts/chunkers.py`: `chunk_markdown` (heading-aware, heading prepended into text) + `chunk_pdf` (pdfplumber, overlapping char windows); infinite-loop guard on `overlap >= chunk_size`
+- Created `scripts/ingest_document.py`: HTTP-only ingest CLI; PDF + Markdown; UUIDs per chunk; review mode (default on) + auto-SUPPORTS mode with threshold
+- Added `pdfplumber` to `pyproject.toml` dependencies
+- 26 unit tests (13 ingest + 13 chunkers), all green; integration tests run in WP-076
+
+**Retrospective:** Through-`main()` test pattern (patch `sys.argv` + `httpx.Client` + `IngestSettings`) is robust for CLI script tests. Quality review caught: infinite loop in `chunk_pdf` when `overlap >= chunk_size` (fixed), missing confidence range validation (fixed via `Field(ge=0.0, le=1.0)`), four ingest tests reimplementing production logic inline instead of calling `main()` (replaced). Two minor items deferred: M2 (singular URL inconsistency → WP-097), M4 (H1 heading handling → WP-097).
+
+---
+
+## WP-072 — InfoSec knowledge layer: cross-layer Memory edges
+
+**Completed:** 2026-04-03. On `feature/knowledge-layer`.
+
+- Created `memory_service/knowledge_bridge.py` (ADR-001 Guardrail 3 — sole cross-layer import module): 8 functions covering `validate_controls`, `validate_documents`, `link_controls`, `link_documents`, `replace_control_edges`, `replace_doc_edges`, `rewire_cross_layer_edges`, `hydrate_controls_and_documents`
+- Extended `AddMemoryRequest`, `UpdateMemoryRequest` with `control_ids`, `doc_ids`, `control_relationship_type`, `org_id`; extended `MemoryHit` with `controls`, `documents`
+- Wired bridge into `add_memory`, `update_memory`, `merge_memory`, `search_memory` — all guarded by `settings.enable_knowledge_layer`
+- Extended `memory_client/client.py` and `mcp_server/server.py` with all 4 new params
+- 14 bridge unit tests + 5 model tests + 12 route tests = 31 tests, all green; integration tests run in WP-076
+
+**Retrospective:** Two-wave approach (bridge module first, route wiring second) worked well. Quality review caught bridge-only PATCH not returning 404 for non-existent memory (fixed). Simplify review caught missing `if req.doc_ids:` guard. `_BRIDGE_FIELDS` as module-level constant is the correct pattern. Lazy `from memory_service import knowledge_bridge` inside route handlers is intentional to avoid pytest collection order issues.
+
+---
+
+## WP-071 — InfoSec knowledge layer: search API
+
+**Completed:** 2026-04-03. On `feature/knowledge-layer`.
+
+- Added 5 repo functions to `knowledge_repo.py`: `search_controls` (vector, `ctrl_embedding_idx`), `search_chunks` (vector, `chunk_embedding_idx`), `list_norms`, `list_documents`, `list_incomplete_jurisdictions`
+- Added 4 Pydantic models + 5 route handlers to `knowledge_routes.py`: `POST /knowledge/search/controls`, `POST /knowledge/search/chunks`, `GET /knowledge/norms`, `GET /knowledge/documents`, `GET /knowledge/incomplete-jurisdictions`
+- 17 unit tests, all green; integration tests run in WP-076
+
+**Retrospective:** Parallel task dispatch (repo + routes simultaneously) worked cleanly — no file conflicts. Quality review surfaced missing `TestListDocuments` Group A tests (fixed) and absence of `ServiceUnavailable` guard across all 13 `knowledge_routes.py` handlers (logged to WP-023).
+
+---
+
+## WP-070 — InfoSec knowledge layer: write API
+
+**Completed:** 2026-04-03. Commit `a1c1148` on `feature/knowledge-layer`.
+
+- Created `memory_service/knowledge_repo.py`: upsert/get for Framework, Control, Norm, Document, Chunk with MERGE ON CREATE SET; optional CONTAINS/IMPLEMENTS/SOURCED_FROM/HAS_CHUNK/HAS_NEXT edges
+- Created `memory_service/knowledge_routes.py`: FastAPI router (`/knowledge` prefix) with 10 endpoints; embeddings via `KNOWLEDGE_EMBEDDING_MODEL`; Document carries no embedding (chunks hold vectors)
+- `memory_service/main.py`: conditional `app.include_router(knowledge_router)` when `ENABLE_KNOWLEDGE_LAYER=true`
+- `scripts/init_knowledge_schema.py`: added missing `("Framework", "id")` uniqueness constraint
+- 24 unit tests (13 repo + 11 route), all green; integration tests run in WP-076
+
+**Retrospective:** Key discovery: FastAPI test fixture must reload `memory_service.config` + `memory_service.main` with `ENABLE_KNOWLEDGE_LAYER=true` AND patch `get_driver` before `TestClient` context starts — otherwise the module-level conditional doesn't register knowledge routes. Pattern captured in `test_wp070.py::app_client` fixture for reuse. Scope intentionally narrowed vs. original BACKLOG spec (no jurisdiction scoping in this WP, no MAPPED_TO cross-framework edges) — deferred to later WPs.
+
+---
+
+## WP-077 — Extract schema-init utils + fix embeddings multi-model routing
+
+**Completed:** 2026-04-03. Commit `ac1a506` on `feature/knowledge-layer`.
+
+- Created `scripts/schema_utils.py` with shared `create_constraint()` + `get_embedding_dimension()`
+- `init_schema.py` and `init_knowledge_schema.py` now import from `scripts.schema_utils` (no duplication)
+- `memory_service/embeddings.py`: added `_model_cache: dict[str, SentenceTransformer]`, `_load_model_by_name()`, and optional `model_name` parameter throughout `get_model`/`get_embedding`/`get_embedding_dimension`/`_cache_key`
+- `scripts/migrate_embeddings.py`: both `get_embedding()` call sites now pass `model_name=model_name`
+- 11 unit tests, all green; no integration tests (pure Python, no Memgraph)
+
+**Retrospective:** Three simplify wins: (1) `ClientError` import was missing from both init scripts after extraction — runtime `NameError` averted; (2) `_load_model` and `_load_model_by_name` had duplicate offline-setup blocks — extracted to `_make_st_kwargs()`; (3) `_cache_key` ternary simplified. Background agents cannot write files or run Bash in this environment — established as the in-session implementation pattern for all WPs on this branch.
+
+---
+
 ## WP-047 — Near-duplicate detection for memory review
 
 **Completed:** 2026-04-02
