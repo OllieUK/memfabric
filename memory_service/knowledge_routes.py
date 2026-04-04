@@ -29,6 +29,9 @@ class FrameworkCreate(BaseModel):
     name: str
     version: Optional[str] = None
     description: Optional[str] = None
+    level: str = "framework"           # framework | category | section | clause | sub-clause
+    body: Optional[str] = None         # requirement text; used for embedding when present
+    parent_id: Optional[str] = None    # if set, creates CONTAINS edge parent→this
 
 
 class FrameworkResponse(BaseModel):
@@ -36,22 +39,8 @@ class FrameworkResponse(BaseModel):
     name: str
     version: Optional[str] = None
     description: Optional[str] = None
-    created_at: str
-
-
-class ControlCreate(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    framework_id: str
-    parent_id: Optional[str] = None  # if set, creates CONTAINS edge parent→this
-
-
-class ControlResponse(BaseModel):
-    id: str
-    name: str
-    description: Optional[str] = None
-    framework_id: str
+    level: str
+    body: Optional[str] = None
     created_at: str
 
 
@@ -110,7 +99,7 @@ class ChunkResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class ControlSearchRequest(BaseModel):
+class FrameworkSearchRequest(BaseModel):
     query: str
     limit: int = 10
     framework_id: Optional[str] = None
@@ -122,11 +111,11 @@ class ChunkSearchRequest(BaseModel):
     doc_id: Optional[str] = None
 
 
-class ControlHit(BaseModel):
+class FrameworkHit(BaseModel):
     id: str
     name: str
-    description: Optional[str] = None
-    framework_id: str
+    level: str
+    body: Optional[str] = None
     created_at: str
     distance: float
 
@@ -142,14 +131,14 @@ class ChunkHit(BaseModel):
 
 class SupportsCreate(BaseModel):
     chunk_id: str
-    control_id: str
+    framework_id: str
     confidence: float = Field(ge=0.0, le=1.0)
     status: str = "auto-inferred"
 
 
 class SupportsResponse(BaseModel):
     chunk_id: str
-    control_id: str
+    framework_id: str
     confidence: float
     status: str
     created_at: str
