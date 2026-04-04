@@ -142,17 +142,22 @@ def add_memory(
             memory_id=memory_id,
         )
 
-    # Step 4 — Link to each Strand via IN_STRAND edge (strand must already exist)
-    for strand_id in req.strand_ids:
+    # Step 4 — Link to each Strand via IN_STRAND edge (strand must already exist).
+    # If no strand_ids provided, fall back to strand-inbox (weight=0.3) so every
+    # memory is always connected to at least one strand.
+    strand_ids_to_link = req.strand_ids if req.strand_ids else ["strand-inbox"]
+    strand_weight = 1.0 if req.strand_ids else 0.3
+    for strand_id in strand_ids_to_link:
         session.run(
             """
             MATCH (s:Strand {id: $strand_id})
             WITH s
             MATCH (m:Memory {id: $memory_id})
-            CREATE (m)-[:IN_STRAND {weight: 1.0}]->(s)
+            CREATE (m)-[:IN_STRAND {weight: $weight}]->(s)
             """,
             strand_id=strand_id,
             memory_id=memory_id,
+            weight=strand_weight,
         )
 
     # Step 5 — RELATED_TO edges

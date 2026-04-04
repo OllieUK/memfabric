@@ -54,6 +54,13 @@ def memory_add(
     "engineering-implementer"). Do NOT omit it or pass "claude-code" unless you
     ARE the main Claude Code session. Returns the memory_id (existing if a
     duplicate was detected).
+
+    strand_ids should always be provided so the memory is correctly threaded.
+    ALWAYS call memory_list_strands() first to get the current strand catalogue
+    with IDs, names, and descriptions — do not guess strand IDs. If strand_ids
+    is omitted, the memory is auto-assigned to strand-inbox (weight=0.3) and
+    flagged for review; re-thread it via memory_update() once you know the
+    correct strand.
     """
     with MemoryClient(base_url=settings.api_base_url) as client:
         result = client.add_memory(
@@ -71,6 +78,11 @@ def memory_add(
             doc_ids=doc_ids,
             control_relationship_type=control_relationship_type,
             org_id=org_id,
+        )
+    if not strand_ids:
+        result["warning"] = (
+            "No strand_ids provided — memory auto-assigned to strand-inbox. "
+            "Call memory_list_strands() and re-thread via memory_update() with the correct strand."
         )
     return result
 
@@ -161,7 +173,11 @@ def _render_section(memories: list[dict]) -> list[str]:
 
 @mcp.tool
 def memory_list_strands() -> list[dict]:
-    """Return all strands. Use strand IDs when calling memory_add."""
+    """Return all strands from the graph (authoritative live list).
+
+    Call this before memory_add or memory_update to get current strand IDs,
+    names, descriptions, and categories. Do not guess or hard-code strand IDs.
+    """
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.list_strands()
 

@@ -137,6 +137,14 @@ STRANDS = [
         "description": "How Oliver sees himself, struggles or successes with self-image, and ongoing identity questions.",
         "category": "Shadow Domain",
     },
+    # Inbox — catch-all for memories stored without an explicit strand assignment.
+    # Memories here should be reviewed and re-threaded to a proper strand.
+    {
+        "id": "strand-inbox",
+        "name": "Inbox",
+        "description": "Catch-all for memories stored without an explicit strand. Review and re-thread to the correct strand.",
+        "category": "Inbox",
+    },
 ]
 
 
