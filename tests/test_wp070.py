@@ -231,12 +231,14 @@ def app_client():
 
     Reloads config + main to ensure settings.enable_knowledge_layer=True regardless of
     import order. Patches get_driver so the lifespan uses a mock (no live Memgraph needed).
+    Restores original module state on teardown to prevent leaking reloaded singletons.
     """
     import importlib
     import memory_service.config as cfg_mod
     import memory_service.main as main_mod
     from fastapi.testclient import TestClient
 
+    env_backup = os.environ.get("ENABLE_KNOWLEDGE_LAYER")
     os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
     importlib.reload(cfg_mod)
     importlib.reload(main_mod)
@@ -250,6 +252,14 @@ def app_client():
         with patch("memory_service.main.get_embedding_dimension"):
             with TestClient(main_mod.app) as client:
                 yield client, mock_session
+
+    # Restore original module state so subsequent test files see a consistent singleton
+    if env_backup is not None:
+        os.environ["ENABLE_KNOWLEDGE_LAYER"] = env_backup
+    else:
+        os.environ.pop("ENABLE_KNOWLEDGE_LAYER", None)
+    importlib.reload(cfg_mod)
+    importlib.reload(main_mod)
 
 
 class TestKnowledgeRoutes:

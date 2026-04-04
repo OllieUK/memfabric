@@ -31,9 +31,16 @@ def test_config_has_knowledge_embedding_model():
 
 
 def test_config_has_enable_knowledge_layer_default_false():
+    import os
     from memory_service.config import Settings
-    s = Settings()
-    assert s.enable_knowledge_layer is False
+    # Temporarily unset env var and bypass .env to test the code default value
+    env_backup = os.environ.pop("ENABLE_KNOWLEDGE_LAYER", None)
+    try:
+        s = Settings(_env_file=None)
+        assert s.enable_knowledge_layer is False
+    finally:
+        if env_backup is not None:
+            os.environ["ENABLE_KNOWLEDGE_LAYER"] = env_backup
 
 
 # ---------------------------------------------------------------------------
