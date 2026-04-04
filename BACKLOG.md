@@ -9,8 +9,7 @@
 
 ## Currently In Progress
 
-| ID | Title | Phase | Value | Effort | Depends on | Notes |
-|----|-------|-------|-------|--------|------------|-------|
+_None_
 
 ---
 
@@ -1102,4 +1101,52 @@ Modified: `memory_service/config.py`, `memory_service/main.py`, `scripts/migrate
 - [ ] `.env.example` documents both new settings
 - [ ] Existing WP-069 tests pass under new file names
 - [ ] Integration test: verify knowledge schema init uses the knowledge embedding model
+
+---
+
+### WP-099 — Knowledge layer schema correction: `:Framework` hierarchy, `body` field, retire `:Control`
+
+> **Architecture:** See [ADR-002](docs/architecture/ADR-002-knowledge-layer-graph-model.md) — all framework hierarchy nodes are `:Framework` with `level` + `body`.
+
+#### Motivation
+
+ADR-002 specifies that `:Framework` is the node type for the entire framework hierarchy — from the top-level standard down to individual clauses and Annex A controls. Each node carries a `level` property (e.g. `framework/category/section/clause`) and a `body` field containing the requirement text. The WP-070–076 implementation diverges from this: it uses `:Control` nodes (without `body`) for sub-framework items, and `:Framework` only for the top-level standard node.
+
+This is blocking correct ISO 27001 loading and will cause confusion for any downstream analytics, traceability, or gap analysis that traverses the hierarchy.
+
+#### Design
+
+**Node label change:** All nodes currently created as `:Control` via `POST /knowledge/controls` should instead be `:Framework` nodes. The `:Control` label is reserved (per ADR-002) for the organisation's internal security architecture — not for nodes in an external standard's hierarchy.
+
+**New fields on `:Framework`:**
+- `level: str` — position in hierarchy: `framework` | `category` | `section` | `clause` | `sub-clause` (exact vocabulary depends on the standard; stored as-is)
+- `body: str | None` — the full requirement text. Optional — section headers have no body.
+- `parent_id: str | None` — if set, creates `CONTAINS` edge from parent `:Framework` to this node
+
+**API changes:**
+- `POST /knowledge/frameworks` — add `level`, `body`, `parent_id` to `FrameworkCreate`; `level` defaults to `"framework"` for backward compatibility
+- `GET /knowledge/frameworks/{id}` — add `level`, `body` to `FrameworkResponse`
+- **Remove** `POST /knowledge/controls`, `GET /knowledge/controls/{id}`, `GET /knowledge/search/controls` — or redirect to framework equivalents
+- `POST /knowledge/search/frameworks` — new endpoint (replaces controls search), searches `:Framework` nodes by embedding on `body`
+- `POST /knowledge/chunk/supports` — `control_id` field renamed to `framework_id` (or accept both for backward compat during migration)
+
+**Schema / index changes:**
+- `init_knowledge_schema.py`: replace `ctrl_embedding_idx ON :Control(embedding)` with `framework_embedding_idx ON :Framework(embedding)` — note `:Framework` nodes without `body` have no embedding and are excluded from the index
+- Drop uniqueness constraint on `:Control(id)`; add/verify `UNIQUE :Framework(id)` (likely already exists)
+
+**Migration:**
+- Delete all existing `:Control` nodes and reload via updated loader scripts
+- `load_iso27001_chunks.py`: use `POST /knowledge/frameworks` with `parent_id` and `body` for all hierarchy nodes; drop all `POST /knowledge/controls` calls
+- `SUPPORTS` edges: `chunk_id → framework_id` (rename field in `SupportsCreate`)
+
+#### Acceptance criteria
+
+- [ ] `POST /knowledge/frameworks` accepts `level`, `body`, `parent_id`; creates `CONTAINS` edge when `parent_id` set
+- [ ] `GET /knowledge/frameworks/{id}` returns `level` and `body`
+- [ ] Vector search on framework `body` text works via new search endpoint
+- [ ] No `:Control` nodes in the graph after migration
+- [ ] ISO 27001 full load (137 entries) produces correct `:Framework` hierarchy, `body` populated on all leaf nodes, `CONTAINS` tree navigable from root
+- [ ] `SUPPORTS` edges link `:Chunk` → `:Framework` correctly
+- [ ] `init_knowledge_schema.py` creates `framework_embedding_idx` not `ctrl_embedding_idx`
+- [ ] All existing knowledge layer integration tests updated and passing
 

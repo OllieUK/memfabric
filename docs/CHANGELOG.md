@@ -4,6 +4,29 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-099 — Knowledge layer schema correction: `:Framework` hierarchy, `body` field, retire `:Control`
+
+**Completed:** 2026-04-04.
+
+- Extended `FrameworkCreate`/`FrameworkResponse` with `level` (default `"framework"`), `body` (optional, embedded when present), `parent_id` (creates `CONTAINS` edge on write)
+- Updated `upsert_framework` and `get_framework` in `knowledge_repo.py` to persist and return `level`/`body`; creates `CONTAINS` edge when `parent_id` provided
+- Added `search_frameworks` (vector search on `framework_embedding_idx`), `create_supports_edge_framework` (Chunk→Framework), `get_chunks_for_framework` to `knowledge_repo.py`
+- Removed `POST /knowledge/controls`, `GET /knowledge/controls/{id}`, `POST /knowledge/search/controls` from `knowledge_routes.py` — these were misused for external standard hierarchy nodes
+- Removed trace-up/trace-down/gap-analysis/coverage endpoints (deferred to future org control tree WPs)
+- Added `POST /knowledge/search/frameworks` endpoint; renamed `GET /controls/{id}/chunks` → `GET /frameworks/{id}/chunks`
+- Updated `POST /knowledge/chunk/supports` to use `framework_id` (was `control_id`)
+- Replaced `ctrl_embedding_idx` on `:Control` with `framework_embedding_idx` on `:Framework` in `init_knowledge_schema.py`; removed `:Control(id)` from `KNOWLEDGE_CONSTRAINTS`
+- Renamed `ctrl_index_capacity` → `framework_index_capacity` in `config.py` and `.env.example`
+- Updated `migrate_embeddings.py`: replaced `Control` with `Framework` in `EMBEDDABLE_LABELS`; `_reconstruct_text` for Framework uses `body` only (nodes without body are skipped)
+- Rewrote `load_iso27001_chunks.py`: all ISO 27001 hierarchy nodes now loaded as `:Framework` with `level`/`body`/`parent_id`; SUPPORTS payloads use `framework_id`
+- Added `framework = "Framework"` to `NodeLabel` enum in `main.py`
+- Updated `dump_db.py`/`restore_db.py` edge allowlists: replaced `HAS_CONTROL` with `CONTAINS`
+- **21 unit tests, all green**; 5 integration tests added (require live stack)
+
+**Retrospective:** The subagent for Task 1 removed model classes without removing the route handlers that referenced them, causing an import error. Fixed inline before proceeding with later tasks. Tasks 4, 5, 6 were independent and ran in parallel successfully. The `search_frameworks` Cypher originally used a non-existent `f.framework_root_id` property for filtering — corrected to omit the filter in MVP (the filter parameter is accepted but unused).
+
+---
+
 ## WP-076 — InfoSec knowledge layer: integration and separation tests
 
 **Completed:** 2026-04-03. Merged via `feature/knowledge-layer` (commit `d9b78d0`).

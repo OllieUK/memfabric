@@ -267,3 +267,184 @@ def test_load_iso27001_chunks_uses_framework_id_in_supports():
     source = inspect.getsource(mod)
     assert '"framework_id"' in source, "load_iso27001_chunks must use framework_id in SUPPORTS payload"
     assert '"control_id"' not in source, "load_iso27001_chunks must not use control_id"
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — live Memgraph + FastAPI
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+def test_framework_upsert_with_level_body_parent(client, test_driver):
+    """POST /knowledge/frameworks creates Framework with level+body, CONTAINS edge from parent."""
+    parent_id = "test-wp099-fw-root"
+    child_id = "test-wp099-fw-child"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": parent_id,
+            "name": "Test Root Framework",
+            "level": "framework",
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["level"] == "framework"
+        assert data["body"] is None
+
+        r = client.post("/knowledge/frameworks", json={
+            "id": child_id,
+            "name": "Test Child Clause",
+            "level": "clause",
+            "body": "This clause requires organisations to do X.",
+            "parent_id": parent_id,
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["level"] == "clause"
+        assert data["body"] == "This clause requires organisations to do X."
+
+        with test_driver.session() as s:
+            result = s.run(
+                """
+                MATCH (:Framework {id: $pid})-[:CONTAINS]->(c:Framework {id: $cid})
+                RETURN c.id AS id
+                """,
+                pid=parent_id, cid=child_id,
+            ).single()
+        assert result is not None, "CONTAINS edge not created"
+
+        r = client.get(f"/knowledge/frameworks/{child_id}")
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["level"] == "clause"
+        assert data["body"] == "This clause requires organisations to do X."
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=parent_id)
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=child_id)
+
+
+@pytest.mark.integration
+def test_supports_edge_chunk_to_framework(client, test_driver):
+    """POST /knowledge/chunk/supports creates SUPPORTS edge Chunk→Framework."""
+    fw_id = "test-wp099-fw-supports"
+    doc_id = "test-wp099-doc-supports"
+    chunk_id = "test-wp099-chunk-supports"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_id,
+            "name": "Test Framework for SUPPORTS",
+            "level": "clause",
+            "body": "Access control requirements.",
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/documents", json={
+            "id": doc_id,
+            "title": "Test Doc",
+            "doc_type": "standard",
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/chunks", json={
+            "id": chunk_id,
+            "text": "All users must authenticate before accessing systems.",
+            "sequence": 1,
+            "doc_id": doc_id,
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/chunk/supports", json={
+            "chunk_id": chunk_id,
+            "framework_id": fw_id,
+            "confidence": 0.95,
+            "status": "human-reviewed",
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["framework_id"] == fw_id
+        assert data["confidence"] == 0.95
+
+        with test_driver.session() as s:
+            result = s.run(
+                """
+                MATCH (:Chunk {id: $cid})-[s:SUPPORTS]->(f:Framework {id: $fid})
+                RETURN s.confidence AS confidence
+                """,
+                cid=chunk_id, fid=fw_id,
+            ).single()
+        assert result is not None, "SUPPORTS edge not created"
+        assert result["confidence"] == 0.95
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_id)
+            s.run("MATCH (n:Document {id: $id}) DETACH DELETE n", id=doc_id)
+            s.run("MATCH (n:Chunk {id: $id}) DETACH DELETE n", id=chunk_id)
+
+
+@pytest.mark.integration
+def test_framework_search_returns_body_nodes(client, test_driver):
+    """POST /knowledge/search/frameworks returns Framework nodes with body text."""
+    fw_root_id = "test-wp099-fw-search-root"
+    fw_leaf_id = "test-wp099-fw-search-leaf"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_root_id,
+            "name": "Test Root",
+            "level": "framework",
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_leaf_id,
+            "name": "Access control policy",
+            "level": "clause",
+            "body": "User access rights must be defined and reviewed periodically.",
+            "parent_id": fw_root_id,
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/search/frameworks", json={
+            "query": "user access rights review",
+            "limit": 5,
+        })
+        assert r.status_code == 200, r.text
+        hits = r.json()
+        ids = [h["id"] for h in hits]
+        assert fw_leaf_id in ids, f"Expected {fw_leaf_id} in search results, got {ids}"
+        assert fw_root_id not in ids, "Root (no body) should not appear in search results"
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_root_id)
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_leaf_id)
+
+
+@pytest.mark.integration
+def test_controls_endpoint_removed(client):
+    """POST /knowledge/controls must return 404 or 405 — route removed."""
+    r = client.post("/knowledge/controls", json={
+        "id": "test-ctrl",
+        "name": "Test Control",
+        "framework_id": "iso-27001-2022",
+    })
+    assert r.status_code in (404, 405), f"Expected 404/405 but got {r.status_code}"
+
+
+@pytest.mark.integration
+def test_init_knowledge_schema_creates_framework_embedding_idx(test_driver):
+    """After running init_knowledge_schema, framework_embedding_idx must exist on Framework."""
+    from scripts.init_knowledge_schema import main as init_main
+    rc = init_main()
+    assert rc == 0
+
+    with test_driver.session() as session:
+        result = session.run("SHOW INDEX INFO;")
+        found = False
+        for record in result:
+            label = record.get("label") or record.get("Label") or ""
+            prop = record.get("property") or record.get("Property") or ""
+            index_type = str(record.get("index type") or record.get("type") or "")
+            if label == "Framework" and prop == "embedding" and "vector" in index_type.lower():
+                found = True
+        assert found, "framework_embedding_idx not found after init_knowledge_schema"
