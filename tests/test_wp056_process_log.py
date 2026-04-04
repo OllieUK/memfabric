@@ -326,7 +326,7 @@ class TestOperationLogIntegration:
     """Live-stack integration tests for GET /memory/operation/log."""
 
     def _add_memory(self, client, text: str) -> str:
-        r = client.post("/memory", json={"text": text, "type": "fact", "agent_id": _AGENT_ID})
+        r = client.post("/memory", json={"text": text, "type": "fact", "agent_id": _AGENT_ID, "tags": ["test"]})
         assert r.status_code == 200, r.text
         return r.json()["memory_id"]
 

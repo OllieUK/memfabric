@@ -601,6 +601,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "control_ids": [cl_data["ctrl1_id"]],
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -622,6 +623,7 @@ class TestCrossLayerIntegration:
                 "agent_id": "test-wp076-cl-agent",
                 "control_ids": [cl_data["ctrl1_id"]],
                 "control_relationship_type": "evidence",
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -644,6 +646,7 @@ class TestCrossLayerIntegration:
                 "agent_id": "test-wp076-cl-agent",
                 "control_ids": [cl_data["ctrl1_id"]],
                 "org_id": "test-wp076-cl-org-eu",
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -665,6 +668,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "control_ids": [cl_data["ctrl1_id"]],
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -693,6 +697,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "doc_ids": [cl_data["doc1_id"]],
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -721,6 +726,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "doc_ids": [cl_data["doc1_id"]],
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -740,6 +746,7 @@ class TestCrossLayerIntegration:
             "type": "fact",
             "agent_id": "test-wp076-cl-agent",
             "control_ids": ["test-wp076-cl-nonexistent-ctrl"],
+            "tags": ["test"],
         })
         assert resp.status_code == 400, resp.text
         assert "test-wp076-cl-nonexistent-ctrl" in resp.json()["detail"]
@@ -754,6 +761,7 @@ class TestCrossLayerIntegration:
             "type": "fact",
             "agent_id": "test-wp076-cl-agent",
             "doc_ids": ["test-wp076-cl-nonexistent-doc"],
+            "tags": ["test"],
         })
         assert resp.status_code == 400, resp.text
         assert "test-wp076-cl-nonexistent-doc" in resp.json()["detail"]
@@ -769,6 +777,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "control_ids": [cl_data["ctrl1_id"]],
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -801,6 +810,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "doc_ids": [cl_data["doc1_id"]],
+                "tags": ["test"],
             })
             assert resp.status_code == 200, resp.text
             memory_id = resp.json()["memory_id"]
@@ -834,6 +844,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "control_ids": [cl_data["ctrl1_id"]],
+                "tags": ["test"],
             })
             assert source_resp.status_code == 200, source_resp.text
             source_id = source_resp.json()["memory_id"]
@@ -842,6 +853,7 @@ class TestCrossLayerIntegration:
                 "fact": "test-wp076-cl merge target control fact",
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
+                "tags": ["test"],
             })
             assert target_resp.status_code == 200, target_resp.text
             target_id = target_resp.json()["memory_id"]
@@ -876,6 +888,7 @@ class TestCrossLayerIntegration:
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
                 "doc_ids": [cl_data["doc1_id"]],
+                "tags": ["test"],
             })
             assert source_resp.status_code == 200, source_resp.text
             source_id = source_resp.json()["memory_id"]
@@ -884,6 +897,7 @@ class TestCrossLayerIntegration:
                 "fact": "test-wp076-cl merge target doc fact",
                 "type": "fact",
                 "agent_id": "test-wp076-cl-agent",
+                "tags": ["test"],
             })
             assert target_resp.status_code == 200, target_resp.text
             target_id = target_resp.json()["memory_id"]

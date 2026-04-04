@@ -37,8 +37,10 @@ def _add(client, text, *, type="fact", tags=None, agent_id=_AGENT_ID,
          project_id=None, related_ids=None):
     """Insert a Memory via POST /memory and return its id."""
     body = {"text": text, "type": type, "agent_id": agent_id}
-    if tags is not None:
-        body["tags"] = tags
+    merged_tags = list(tags or [])
+    if "test" not in merged_tags:
+        merged_tags.append("test")
+    body["tags"] = merged_tags
     if project_id is not None:
         body["project_id"] = project_id
     if related_ids is not None:
@@ -243,6 +245,7 @@ class TestSearchTraversalDirection:
             "fact": "ADHD affects focus.",
             "type": "fact",
             "agent_id": "test-agent-traversal",
+            "tags": ["test"],
         })
         cause_id = r_cause.json()["memory_id"]
 
@@ -251,6 +254,7 @@ class TestSearchTraversalDirection:
             "type": "insight",
             "agent_id": "test-agent-traversal",
             "cause_ids": [cause_id],
+            "tags": ["test"],
         })
         effect_id = r_effect.json()["memory_id"]
 
@@ -289,6 +293,7 @@ class TestSearchTraversalDirection:
             "fact": "Oliver trained as an engineer.",
             "type": "fact",
             "agent_id": "test-agent-traversal",
+            "tags": ["test"],
         })
         cause_id = r_cause.json()["memory_id"]
 
@@ -297,6 +302,7 @@ class TestSearchTraversalDirection:
             "type": "insight",
             "agent_id": "test-agent-traversal",
             "cause_ids": [cause_id],
+            "tags": ["test"],
         })
         effect_id = r_effect.json()["memory_id"]
 
@@ -350,6 +356,7 @@ class TestSearchTraversalDirection:
             "fact": "ADHD impairs working memory.",
             "type": "fact",
             "agent_id": "test-agent-traversal",
+            "tags": ["test"],
         })
         cause_id = r_cause.json()["memory_id"]
 
@@ -358,6 +365,7 @@ class TestSearchTraversalDirection:
             "type": "insight",
             "agent_id": "test-agent-traversal",
             "cause_ids": [cause_id],
+            "tags": ["test"],
         })
         effect_id = r_effect.json()["memory_id"]
 
@@ -412,6 +420,7 @@ class TestSearchMinImportance:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "importance": importance,
+            "tags": ["test"],
         })
         assert r.status_code == 200, f"Failed to insert memory: {r.text}"
         return r.json()["memory_id"]
@@ -540,6 +549,7 @@ def _add_with_person(client, driver, text: str, person_id: str) -> str:
         "type": "fact",
         "agent_id": _AGENT_ID,
         "person_ids": [person_id],
+        "tags": ["test"],
     }
     r = client.post("/memory", json=body)
     assert r.status_code == 200, f"Failed to insert memory: {r.text}"
@@ -610,7 +620,7 @@ class TestPersonIdsFilter:
                                       _PERSON_ID_MARA)
         with test_driver.session() as session:
             session.run(
-                "MATCH (m:Memory {id: $id}) SET m.tags = ['skills']",
+                "MATCH (m:Memory {id: $id}) SET m.tags = ['skills', 'test']",
                 id=mid_tagged,
             )
         mid_no_tag = _add_with_person(client, test_driver,

@@ -1,6 +1,16 @@
 # tests/conftest.py
 #
 # Shared pytest fixtures and graph helpers for the Graph-Memory Fabric test suite.
+#
+# Test hygiene rules (enforced by policy, not always by code):
+#   1. Every memory node created by a test MUST include tags=["test"] (or TEST_TAG).
+#   2. Every test that creates graph nodes MUST clean them up in a finally block or
+#      pytest fixture teardown.
+#   3. The session-scoped `cleanup_all_test_nodes` autouse fixture acts as a safety
+#      net at end-of-suite, deleting any nodes carrying TEST_TAG that slipped through.
+
+# Standard tag injected into every test-created memory.
+TEST_TAG = "test"
 
 import importlib
 import os
@@ -21,7 +31,35 @@ def test_driver():
     except Exception:
         pytest.skip("Memgraph not reachable — skipping integration tests")
     yield driver
+    # Safety-net: delete any test-tagged nodes that tests failed to clean up
+    _cleanup_by_tag(driver, TEST_TAG)
     driver.close()
+
+
+def _cleanup_by_tag(driver, tag: str) -> int:
+    """Delete all Memory nodes (and orphaned Agent/Project nodes) carrying *tag*.
+
+    Returns the number of Memory nodes deleted.  Called automatically at
+    session teardown; can also be called directly in tests that need it.
+    """
+    with driver.session() as session:
+        result = session.run(
+            "MATCH (m:Memory) WHERE $tag IN m.tags RETURN m.id AS id",
+            tag=tag,
+        )
+        ids = [r["id"] for r in result]
+    with driver.session() as session:
+        for mid in ids:
+            session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=mid)
+    # Clean up orphaned test Agent/Project nodes (those with 'test' in their id)
+    with driver.session() as session:
+        session.run("""
+            MATCH (n)
+            WHERE (n:Agent OR n:Project)
+              AND (toLower(n.id) CONTAINS 'test-' OR toLower(n.id) STARTS WITH 'test')
+            DETACH DELETE n
+        """)
+    return len(ids)
 
 
 @pytest.fixture

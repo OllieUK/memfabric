@@ -24,6 +24,7 @@ def _add_body(fact: str, **kwargs) -> dict:
         "type": "fact",
         "agent_id": _AGENT_ID,
         "importance": 3,
+        "tags": ["test"],
     }
     body.update(kwargs)
     return body

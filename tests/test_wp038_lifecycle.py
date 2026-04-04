@@ -29,7 +29,7 @@ runner = CliRunner()
 
 
 def _add_memory(client, text: str, *, type: str = "fact") -> str:
-    r = client.post("/memory", json={"text": text, "type": type, "agent_id": _AGENT_ID})
+    r = client.post("/memory", json={"text": text, "type": type, "agent_id": _AGENT_ID, "tags": ["test"]})
     assert r.status_code == 200, r.text
     return r.json()["memory_id"]
 

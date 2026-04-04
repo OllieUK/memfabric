@@ -32,7 +32,7 @@ def _make_req(max_hops=1, direction="none"):
 
 
 def _add_memory(client, text):
-    r = client.post("/memory", json={"text": text, "type": "fact", "agent_id": _AGENT_ID})
+    r = client.post("/memory", json={"text": text, "type": "fact", "agent_id": _AGENT_ID, "tags": ["test"]})
     assert r.status_code == 200, r.text
     return r.json()["memory_id"]
 

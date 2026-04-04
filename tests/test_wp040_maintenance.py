@@ -93,7 +93,7 @@ class TestShortRest:
             with test_driver.session() as session:
                 session.run(
                     "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
-                    "type: 'fact', tags: [], importance: 3, strength: 0.6, "
+                    "type: 'fact', tags: ['test'], importance: 3, strength: 0.6, "
                     "recall_count: 1, reinforcement_count: 0, "
                     "last_reinforced_at: '2026-01-01T00:00:00+00:00', "
                     "last_used_at: '2026-01-01T00:00:00+00:00', "
@@ -128,7 +128,7 @@ class TestShortRest:
             with test_driver.session() as session:
                 session.run(
                     "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
-                    "type: 'fact', tags: [], importance: 3, strength: 0.6, "
+                    "type: 'fact', tags: ['test'], importance: 3, strength: 0.6, "
                     "recall_count: 1, reinforcement_count: 0, "
                     "last_reinforced_at: '2020-01-01T00:00:00+00:00', "
                     "last_used_at: '2020-01-01T00:00:00+00:00', "
@@ -198,7 +198,7 @@ class TestLongRest:
                 ]:
                     session.run(
                         "CREATE (m:Memory {id: $id, fact: $fact, text: $fact, "
-                        "type: 'fact', tags: [], importance: 3, strength: 0.8, "
+                        "type: 'fact', tags: ['test'], importance: 3, strength: 0.8, "
                         "recall_count: 0, reinforcement_count: 0, "
                         "last_reinforced_at: '2026-01-01T00:00:00+00:00', "
                         "last_used_at: '2026-01-01T00:00:00+00:00', "
@@ -245,7 +245,7 @@ class TestLongRest:
                 ]:
                     session.run(
                         "CREATE (m:Memory {id: $id, fact: $fact, text: $fact, "
-                        "type: 'fact', tags: [], importance: 3, strength: 0.8, "
+                        "type: 'fact', tags: ['test'], importance: 3, strength: 0.8, "
                         "recall_count: 0, reinforcement_count: 0, "
                         "last_reinforced_at: '2026-01-01T00:00:00+00:00', "
                         "last_used_at: '2026-01-01T00:00:00+00:00', "
@@ -346,7 +346,7 @@ class TestDumpRestoreScript:
                 for mid in [m1, m2]:
                     session.run(
                         "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
-                        "type: 'fact', tags: [], importance: 3, strength: 0.6, embedding: []})",
+                        "type: 'fact', tags: ['test'], importance: 3, strength: 0.6, embedding: []})",
                         id=mid,
                     )
             data = {

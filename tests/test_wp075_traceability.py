@@ -624,6 +624,7 @@ def tr_data(knowledge_client, test_driver):
         "control_ids": [ids["ctrl_child"]],
         "control_relationship_type": "evidence",
         "org_id": "test-wp076-tr-org-eu",
+        "tags": ["test"],
     })
     assert resp_ev.status_code == 200
     memory_evidence_id = resp_ev.json()["memory_id"]
@@ -635,6 +636,7 @@ def tr_data(knowledge_client, test_driver):
         "control_ids": [ids["ctrl_child"]],
         "control_relationship_type": "gap",
         "org_id": "test-wp076-tr-org-eu",
+        "tags": ["test"],
     })
     assert resp_gap.status_code == 200
     memory_gap_id = resp_gap.json()["memory_id"]
@@ -759,6 +761,7 @@ class TestTraceabilityIntegration:
             "control_ids": [tr_data["ctrl_child"]],
             "control_relationship_type": "evidence",
             "org_id": "test-wp076-tr-org-us",
+            "tags": ["test"],
         })
         assert resp_us.status_code == 200
         memory_us_id = resp_us.json()["memory_id"]

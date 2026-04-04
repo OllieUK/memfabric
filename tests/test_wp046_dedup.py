@@ -21,7 +21,7 @@ _AGENT_ID = "test-wp046-agent"
 
 
 def _add(client, text, *, related_ids=None):
-    body = {"fact": text, "type": "fact", "agent_id": _AGENT_ID}
+    body = {"fact": text, "type": "fact", "agent_id": _AGENT_ID, "tags": ["test"]}
     if related_ids:
         body["related_ids"] = related_ids
     r = client.post("/memory", json=body)

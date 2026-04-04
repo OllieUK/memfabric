@@ -470,7 +470,7 @@ class TestWakeUpIntegration:
                     """
                     CREATE (:Memory {
                         id: $id, fact: $fact, text: $fact, type: 'fact',
-                        tags: ['strand-companion-ai-anchor'],
+                        tags: ['strand-companion-ai-anchor', 'test'],
                         importance: 5,
                         created_at: '2026-03-20T00:00:00+00:00',
                         last_used_at: '2026-03-26T00:00:00+00:00',
@@ -486,7 +486,7 @@ class TestWakeUpIntegration:
                     """
                     CREATE (:Memory {
                         id: $id, fact: $fact, text: $fact, type: 'fact',
-                        tags: ['strand-core-work-career'],
+                        tags: ['strand-core-work-career', 'test'],
                         importance: 5,
                         created_at: '2026-03-26T23:59:59+00:00',
                         last_used_at: '2026-03-26T23:59:59+00:00',

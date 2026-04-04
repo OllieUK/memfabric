@@ -103,7 +103,7 @@ def _cleanup_dedup(driver, *memory_ids):
 class TestPreWriteDedup:
     def test_exact_duplicate_returns_same_id_deduplicated_true(self, client, test_driver):
         fact = f"WP-088 exact dedup test {_uuid.uuid4()}"
-        body = {"fact": fact, "type": "fact", "agent_id": _DEDUP_AGENT}
+        body = {"fact": fact, "type": "fact", "agent_id": _DEDUP_AGENT, "tags": ["test"]}
         r1 = client.post("/memory", json=body)
         assert r1.status_code == 200
         mid1 = r1.json()["memory_id"]
@@ -118,7 +118,7 @@ class TestPreWriteDedup:
 
     def test_reinforcement_count_incremented_on_dedup(self, client, test_driver):
         fact = f"WP-088 reinforce test {_uuid.uuid4()}"
-        body = {"fact": fact, "type": "fact", "agent_id": _DEDUP_AGENT}
+        body = {"fact": fact, "type": "fact", "agent_id": _DEDUP_AGENT, "tags": ["test"]}
         r1 = client.post("/memory", json=body)
         assert r1.status_code == 200
         mid = r1.json()["memory_id"]
@@ -133,8 +133,8 @@ class TestPreWriteDedup:
     def test_different_fact_creates_new_memory(self, client, test_driver):
         # Use semantically unrelated phrases so cosine distance is well above 0.05.
         suffix = _uuid.uuid4()
-        r1 = client.post("/memory", json={"fact": f"Oliver drinks coffee every morning {suffix}", "type": "fact", "agent_id": _DEDUP_AGENT})
-        r2 = client.post("/memory", json={"fact": f"The project deadline is next Friday {suffix}", "type": "fact", "agent_id": _DEDUP_AGENT})
+        r1 = client.post("/memory", json={"fact": f"Oliver drinks coffee every morning {suffix}", "type": "fact", "agent_id": _DEDUP_AGENT, "tags": ["test"]})
+        r2 = client.post("/memory", json={"fact": f"The project deadline is next Friday {suffix}", "type": "fact", "agent_id": _DEDUP_AGENT, "tags": ["test"]})
         assert r1.status_code == 200
         assert r2.status_code == 200
         assert r1.json()["memory_id"] != r2.json()["memory_id"]
@@ -150,11 +150,11 @@ class TestPreWriteSemanticDedup:
         suffix = _uuid.uuid4()
         fact1 = f"The database is running slowly today {suffix}"
         fact2 = f"The database runs slow today {suffix}"
-        r1 = client.post("/memory", json={"fact": fact1, "type": "fact", "agent_id": _DEDUP_AGENT})
+        r1 = client.post("/memory", json={"fact": fact1, "type": "fact", "agent_id": _DEDUP_AGENT, "tags": ["test"]})
         assert r1.status_code == 200
         mid1 = r1.json()["memory_id"]
 
-        r2 = client.post("/memory", json={"fact": fact2, "type": "fact", "agent_id": _DEDUP_AGENT})
+        r2 = client.post("/memory", json={"fact": fact2, "type": "fact", "agent_id": _DEDUP_AGENT, "tags": ["test"]})
         assert r2.status_code == 200
         assert r2.json()["memory_id"] == mid1, (
             "Near-identical facts should resolve to the same memory_id. "
@@ -211,7 +211,7 @@ def _insert_raw_memories(driver, facts: list[str], agent_id: str = _CLEANUP_AGEN
                 MERGE (a:Agent {id: $agent_id})
                 CREATE (m:Memory {
                     id: $id, fact: $fact, text: $fact, type: 'fact',
-                    tags: [], importance: 3,
+                    tags: ['test'], importance: 3,
                     created_at: $now, last_used_at: $now,
                     embedding: [],
                     strength: 0.4, min_strength: 0.12,

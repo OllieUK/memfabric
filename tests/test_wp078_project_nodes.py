@@ -318,6 +318,7 @@ class TestProjectIntegration:
                 "agent_id": _AGENT_ID,
                 "project_id": _PROJECT_ID_A,
                 "importance": 1,
+                "tags": ["test"],
             })
             assert r.status_code == 200
             memory_id = r.json()["memory_id"]

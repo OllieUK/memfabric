@@ -95,6 +95,7 @@ class TestPostMemoryFactSoWhat:
             "so_what": so_what,
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
@@ -114,6 +115,7 @@ class TestPostMemoryFactSoWhat:
             "fact": fact,
             "type": "observation",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
@@ -132,6 +134,7 @@ class TestPostMemoryFactSoWhat:
             "text": fact,
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
@@ -155,6 +158,7 @@ class TestPostMemoryMinimal:
             "text": "test minimal memory",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         assert response.status_code == 200
         data = response.json()
@@ -167,6 +171,7 @@ class TestPostMemoryMinimal:
             "text": "test properties memory",
             "type": "insight",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         memory_id = response.json()["memory_id"]
         node = get_memory_node(test_driver, memory_id)
@@ -187,6 +192,7 @@ class TestPostMemoryAgentUpsert:
             "text": "agent upsert test",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         memory_id = response.json()["memory_id"]
         assert node_exists(test_driver, "Agent", _AGENT_ID)
@@ -197,11 +203,13 @@ class TestPostMemoryAgentUpsert:
             "text": "first memory for agent",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         r2 = client.post("/memory", json={
             "text": "second memory for agent",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         m1 = r1.json()["memory_id"]
         m2 = r2.json()["memory_id"]
@@ -222,6 +230,7 @@ class TestPostMemoryWithProject:
             "type": "decision",
             "agent_id": _AGENT_ID,
             "project_id": _PROJECT_ID,
+            "tags": ["test"],
         })
         memory_id = response.json()["memory_id"]
         assert node_exists(test_driver, "Project", _PROJECT_ID)
@@ -236,6 +245,7 @@ class TestPostMemoryWithPersons:
             "type": "observation",
             "agent_id": _AGENT_ID,
             "person_ids": [_PERSON_ID_1, _PERSON_ID_2],
+            "tags": ["test"],
         })
         memory_id = response.json()["memory_id"]
         assert node_exists(test_driver, "Person", _PERSON_ID_1)
@@ -254,6 +264,7 @@ class TestPostMemoryWithStrands:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "strand_ids": [seeded_strand_id],
+            "tags": ["test"],
         })
         memory_id = response.json()["memory_id"]
         assert node_exists(test_driver, "Strand", seeded_strand_id)
@@ -281,6 +292,7 @@ class TestPostMemoryStrandIdsInResponse:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "strand_ids": [seeded_strand_id],
+            "tags": ["test"],
         })
         assert resp.status_code == 200
         data = resp.json()
@@ -294,6 +306,7 @@ class TestPostMemoryStrandIdsInResponse:
             "fact": f"memory with no strands {suffix}",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         assert resp.status_code == 200
         data = resp.json()
@@ -307,6 +320,7 @@ class TestPostMemoryExplicitRelatedIds:
             "text": "seed memory for relation",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         seed_id = r1.json()["memory_id"]
 
@@ -315,6 +329,7 @@ class TestPostMemoryExplicitRelatedIds:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "related_ids": [seed_id],
+            "tags": ["test"],
         })
         new_id = r2.json()["memory_id"]
 
@@ -337,6 +352,7 @@ class TestPostMemoryAutoRelatedTo:
             "text": "auto related test — unique phrase xyzzy42",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         memory_id = response.json()["memory_id"]
         assert not edge_exists(test_driver, memory_id, "RELATED_TO", memory_id)
@@ -348,6 +364,7 @@ class TestPostMemoryAutoRelatedTo:
             "text": "the quick brown fox jumps over the lazy dog",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         seed_id = r1.json()["memory_id"]
 
@@ -355,6 +372,7 @@ class TestPostMemoryAutoRelatedTo:
             "text": "a fast brown fox leaps over a sleepy dog",
             "type": "fact",
             "agent_id": _AGENT_ID,
+            "tags": ["test"],
         })
         new_id = r2.json()["memory_id"]
 
@@ -392,7 +410,7 @@ class TestPostMemoryLeadsTo:
 
     def test_cause_ids_creates_leads_to_edge(self, client, test_driver):
         # Create cause memory first
-        r1 = client.post("/memory", json={"fact": "Cause memory", "type": "fact", "agent_id": _AGENT_ID})
+        r1 = client.post("/memory", json={"fact": "Cause memory", "type": "fact", "agent_id": _AGENT_ID, "tags": ["test"]})
         cause_id = r1.json()["memory_id"]
 
         # Create effect memory referencing cause
@@ -401,6 +419,7 @@ class TestPostMemoryLeadsTo:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "cause_ids": [cause_id],
+            "tags": ["test"],
         })
         effect_id = r2.json()["memory_id"]
 
@@ -410,7 +429,7 @@ class TestPostMemoryLeadsTo:
 
     def test_effect_ids_creates_leads_to_edge(self, client, test_driver):
         # Create effect memory first
-        r1 = client.post("/memory", json={"fact": "Effect memory", "type": "fact", "agent_id": _AGENT_ID})
+        r1 = client.post("/memory", json={"fact": "Effect memory", "type": "fact", "agent_id": _AGENT_ID, "tags": ["test"]})
         effect_id = r1.json()["memory_id"]
 
         # Create cause memory referencing effect
@@ -419,6 +438,7 @@ class TestPostMemoryLeadsTo:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "effect_ids": [effect_id],
+            "tags": ["test"],
         })
         cause_id = r2.json()["memory_id"]
 
@@ -432,6 +452,7 @@ class TestPostMemoryLeadsTo:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "cause_ids": ["00000000-0000-0000-0000-000000000000"],
+            "tags": ["test"],
         })
         assert r.status_code == 200
         memory_id = r.json()["memory_id"]
@@ -446,6 +467,7 @@ class TestPostMemoryLeadsTo:
             "type": "fact",
             "agent_id": _AGENT_ID,
             "effect_ids": ["00000000-0000-0000-0000-000000000000"],
+            "tags": ["test"],
         })
         assert r.status_code == 200
         memory_id = r.json()["memory_id"]
@@ -455,13 +477,14 @@ class TestPostMemoryLeadsTo:
 
     def test_leads_to_edge_is_idempotent(self, client, test_driver):
         """MERGE ensures the same directed edge is not duplicated."""
-        r1 = client.post("/memory", json={"fact": "Cause", "type": "fact", "agent_id": _AGENT_ID})
+        r1 = client.post("/memory", json={"fact": "Cause", "type": "fact", "agent_id": _AGENT_ID, "tags": ["test"]})
         cause_id = r1.json()["memory_id"]
         r2 = client.post("/memory", json={
             "fact": "Effect",
             "type": "fact",
             "agent_id": _AGENT_ID,
             "cause_ids": [cause_id],
+            "tags": ["test"],
         })
         effect_id = r2.json()["memory_id"]
 

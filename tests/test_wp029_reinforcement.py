@@ -21,6 +21,7 @@ class TestMemoryCreationSeeding:
                 "type": "fact",
                 "agent_id": "test-agent",
                 "importance": 4,
+                "tags": ["test"],
             })
             assert resp.status_code == 200
             memory_id = resp.json()["memory_id"]
@@ -49,7 +50,7 @@ class TestMemoryCreationSeeding:
         fact = f"wp029-seed-imp1-{uuid.uuid4()}"
         try:
             resp = client.post("/memory", json={
-                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 1,
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 1, "tags": ["test"],
             })
             assert resp.status_code == 200
             memory_id = resp.json()["memory_id"]
@@ -86,7 +87,7 @@ class TestRecallIncrement:
         fact = f"wp029-recall-test-{uuid.uuid4()}"
         try:
             resp = client.post("/memory", json={
-                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 3,
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 3, "tags": ["test"],
             })
             assert resp.status_code == 200
             memory_id = resp.json()["memory_id"]
@@ -116,7 +117,7 @@ class TestRecallIncrement:
                 memory_id = f"wp029-cap-{uuid.uuid4()}"
                 session.run(
                     "CREATE (m:Memory {id: $id, importance: 5, strength: 0.95, "
-                    "recall_count: 0, type: 'fact', tags: [], text: 'x', fact: 'x', "
+                    "recall_count: 0, type: 'fact', tags: ['test'], text: 'x', fact: 'x', "
                     "embedding: [], created_at: '2026-01-01', last_used_at: '2026-01-01'})",
                     id=memory_id,
                 )
@@ -136,7 +137,7 @@ class TestMaintenanceEndpoints:
     def test_decay_pass_returns_counts(self, client, test_driver):
         """Decay pass returns valid node/edge counts."""
         resp = client.post("/memory", json={
-            "fact": f"wp029-decay-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
+            "fact": f"wp029-decay-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent", "tags": ["test"],
         })
         memory_id = resp.json()["memory_id"]
         try:
@@ -173,7 +174,7 @@ class TestExplicitReinforcement:
         fact = f"wp029-reinforce-{uuid.uuid4()}"
         try:
             resp = client.post("/memory", json={
-                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 2,
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 2, "tags": ["test"],
             })
             memory_id = resp.json()["memory_id"]
             initial_strength = 0.4 * (2 / 5.0)  # 0.16 — WP-048
@@ -204,13 +205,13 @@ class TestExplicitReinforcement:
         m1 = m2 = None
         try:
             r1 = client.post("/memory", json={
-                "fact": f"wp029-hebbian-a-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
+                "fact": f"wp029-hebbian-a-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent", "tags": ["test"],
             })
             m1 = r1.json()["memory_id"]
             # Use related_ids to guarantee a RELATED_TO edge exists between m2 and m1
             r2 = client.post("/memory", json={
                 "fact": f"wp029-hebbian-b-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
-                "related_ids": [m1],
+                "related_ids": [m1], "tags": ["test"],
             })
             m2 = r2.json()["memory_id"]
 
@@ -343,7 +344,7 @@ class TestMigrateReinforcementScript:
             with test_driver.session() as session:
                 session.run(
                     "CREATE (m:Memory {id: $id, fact: 'test', text: 'test', "
-                    "type: 'fact', tags: [], importance: 3, "
+                    "type: 'fact', tags: ['test'], importance: 3, "
                     "created_at: '2026-01-01T00:00:00+00:00', "
                     "last_used_at: '2026-01-01T00:00:00+00:00', embedding: []})",
                     id=mem_id,

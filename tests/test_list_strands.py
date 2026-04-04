@@ -388,6 +388,7 @@ class TestGetStrandsIntegration:
             "type": "fact",
             "agent_id": "test-agent-bare-strand",
             "strand_ids": ["strand-does-not-exist-xyz"],
+            "tags": ["test"],
         })
         assert response.status_code == 200
         memory_id = response.json()["memory_id"]
