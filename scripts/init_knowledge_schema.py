@@ -19,7 +19,6 @@ from scripts.schema_utils import create_constraint, get_embedding_dimension
 KNOWLEDGE_CONSTRAINTS = [
     ("Framework", "id"),
     ("Norm", "id"),
-    ("Control", "id"),
     ("Document", "id"),
     ("Chunk", "id"),
     ("BusinessAttribute", "id"),
@@ -174,23 +173,23 @@ def main() -> int:
                     print(f"  [FAIL] Constraint {label}.{prop}: {exc}")
                     success = False
 
-            # --- ctrl_embedding_idx ---
-            print("\nCreating vector index: ctrl_embedding_idx ...")
+            # --- framework_embedding_idx ---
+            print("\nCreating vector index: framework_embedding_idx ...")
             try:
                 create_vector_index(
                     session,
-                    index_name="ctrl_embedding_idx",
-                    label="Control",
+                    index_name="framework_embedding_idx",
+                    label="Framework",
                     prop="embedding",
                     dim=dim,
-                    capacity=settings.ctrl_index_capacity,
+                    capacity=settings.framework_index_capacity,
                 )
             except Exception as exc:
-                print(f"  [FAIL] ctrl_embedding_idx: {exc}")
+                print(f"  [FAIL] framework_embedding_idx: {exc}")
                 success = False
 
-            print("Validating vector index: ctrl_embedding_idx ...")
-            if not validate_vector_index(session, "ctrl_embedding_idx", "Control", "embedding"):
+            print("Validating vector index: framework_embedding_idx ...")
+            if not validate_vector_index(session, "framework_embedding_idx", "Framework", "embedding"):
                 success = False
 
             # --- chunk_embedding_idx ---

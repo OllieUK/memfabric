@@ -186,3 +186,84 @@ def test_create_supports_edge_framework_uses_framework_label():
     cypher = mock_session.run.call_args[0][0]
     assert ":Framework" in cypher
     assert ":Control" not in cypher
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — init_knowledge_schema and config
+# ---------------------------------------------------------------------------
+
+def test_init_knowledge_schema_no_ctrl_embedding_idx():
+    import inspect
+    from scripts import init_knowledge_schema
+    source = inspect.getsource(init_knowledge_schema)
+    assert "ctrl_embedding_idx" not in source, "ctrl_embedding_idx must be removed from init_knowledge_schema"
+
+
+def test_init_knowledge_schema_has_framework_embedding_idx():
+    import inspect
+    from scripts import init_knowledge_schema
+    source = inspect.getsource(init_knowledge_schema)
+    assert "framework_embedding_idx" in source
+    assert "Framework" in source
+
+
+def test_config_has_framework_index_capacity():
+    from memory_service.config import Settings
+    s = Settings()
+    assert hasattr(s, "framework_index_capacity")
+    assert s.framework_index_capacity == 5000
+
+
+def test_config_no_ctrl_index_capacity():
+    from memory_service.config import Settings
+    s = Settings()
+    assert not hasattr(s, "ctrl_index_capacity"), "ctrl_index_capacity must be renamed to framework_index_capacity"
+
+
+def test_knowledge_constraints_no_control():
+    from scripts.init_knowledge_schema import KNOWLEDGE_CONSTRAINTS
+    labels = [label for label, _ in KNOWLEDGE_CONSTRAINTS]
+    assert "Control" not in labels, "Control must be removed from KNOWLEDGE_CONSTRAINTS"
+
+
+def test_migrate_embeddings_no_control_label():
+    from scripts.migrate_embeddings import EMBEDDABLE_LABELS
+    labels = [label for label, _ in EMBEDDABLE_LABELS]
+    assert "Control" not in labels
+
+
+def test_migrate_embeddings_has_framework_label():
+    from scripts.migrate_embeddings import EMBEDDABLE_LABELS
+    labels = [label for label, _ in EMBEDDABLE_LABELS]
+    assert "Framework" in labels
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — load_iso27001_chunks
+# ---------------------------------------------------------------------------
+
+def test_load_iso27001_chunks_no_controls_endpoint():
+    import inspect
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "load_iso27001_chunks",
+        "scripts/load_iso27001_chunks.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    source = inspect.getsource(mod)
+    assert "/knowledge/controls" not in source, "load_iso27001_chunks must not call /knowledge/controls"
+
+
+def test_load_iso27001_chunks_uses_framework_id_in_supports():
+    import inspect
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "load_iso27001_chunks",
+        "scripts/load_iso27001_chunks.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    source = inspect.getsource(mod)
+    assert '"framework_id"' in source, "load_iso27001_chunks must use framework_id in SUPPORTS payload"
+    assert '"control_id"' not in source, "load_iso27001_chunks must not use control_id"

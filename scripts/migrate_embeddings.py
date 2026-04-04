@@ -21,21 +21,18 @@ from memory_service.embeddings import get_embedding
 # Memory embeddings are managed independently via EMBEDDING_MODEL — not migrated here.
 EMBEDDABLE_LABELS = [
     # (label, text_property_or_None)
-    # For Control: text = code + " " + title + " " + body
-    # For Chunk:   text = heading + " " + body
-    ("Control", None),  # special: reconstruct from code + title + body
-    ("Chunk", None),    # special: reconstruct from heading + body
+    # For Framework: text = body (only nodes with body get embedded)
+    # For Chunk:     text = heading + " " + body
+    ("Framework", None),  # special: reconstruct from body
+    ("Chunk", None),      # special: reconstruct from heading + body
 ]
 
 
 def _reconstruct_text(label: str, node: dict) -> str | None:
     """Return the text that should be embedded for this node, or None to skip."""
-    if label == "Control":
-        code = (node.get("code") or "").strip()
-        title = (node.get("title") or "").strip()
+    if label == "Framework":
         body = (node.get("body") or "").strip()
-        text = " ".join(part for part in [code, title, body] if part)
-        return text.strip() or None
+        return body or None   # Framework nodes without body are not embedded
 
     if label == "Chunk":
         heading = (node.get("heading") or "").strip()
