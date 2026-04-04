@@ -55,10 +55,10 @@ def test_migrate_embeddings_does_not_include_memory_label():
 
 
 def test_migrate_embeddings_includes_knowledge_labels():
-    """Control and Chunk nodes must remain in EMBEDDABLE_LABELS."""
+    """Framework and Chunk nodes must be in EMBEDDABLE_LABELS."""
     from scripts.migrate_embeddings import EMBEDDABLE_LABELS
     labels = [label for label, _ in EMBEDDABLE_LABELS]
-    assert "Control" in labels
+    assert "Framework" in labels
     assert "Chunk" in labels
 
 
@@ -100,7 +100,7 @@ def test_organisation_types():
 
 def test_node_label_has_all_knowledge_labels():
     NodeLabel = service_main.NodeLabel
-    knowledge_labels = {"Standard", "Control", "Document", "Chunk", "BusinessAttribute", "Organisation", "Jurisdiction"}
+    knowledge_labels = {"Framework", "Control", "Document", "Chunk", "BusinessAttribute", "Organisation", "Jurisdiction"}
     existing = {e.value for e in NodeLabel}
     assert knowledge_labels.issubset(existing), f"Missing from NodeLabel: {knowledge_labels - existing}"
 
@@ -117,9 +117,10 @@ def test_node_label_preserves_original_labels():
 # ---------------------------------------------------------------------------
 
 _KNOWLEDGE_EDGE_TYPES = {
-    "HAS_CONTROL", "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
+    "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
     "IMPLEMENTS", "ADDRESSES", "OWNED_BY", "APPLIES_IN",
     "OPERATES_IN", "ABOUT_CONTROL", "CITES_DOC",
+    "CONTAINS",
 }
 
 def test_dump_db_query_includes_knowledge_edge_types():
@@ -146,7 +147,7 @@ def test_config_has_index_capacity_settings():
     from memory_service.config import Settings
     s = Settings()
     assert s.memory_index_capacity == 5000
-    assert s.ctrl_index_capacity == 5000
+    assert s.framework_index_capacity == 5000
     assert s.chunk_index_capacity == 10000
 
 
@@ -155,8 +156,8 @@ def test_config_has_index_capacity_settings():
 # ---------------------------------------------------------------------------
 
 _KNOWLEDGE_CONSTRAINTS = [
-    ("Standard", "id"),
-    ("Control", "id"),
+    ("Framework", "id"),
+    ("Norm", "id"),
     ("Document", "id"),
     ("Chunk", "id"),
     ("BusinessAttribute", "id"),
@@ -220,13 +221,13 @@ def test_knowledge_schema_constraints_created(test_driver):
 
 @pytest.mark.integration
 def test_knowledge_schema_vector_indexes_created(test_driver):
-    """ctrl_embedding_idx and chunk_embedding_idx must exist with correct label+property."""
+    """framework_embedding_idx and chunk_embedding_idx must exist with correct label+property."""
     from scripts.init_knowledge_schema import main as init_main
     init_main()
 
     indexes = _get_vector_indexes(test_driver)
-    assert "Control" in indexes, "ctrl_embedding_idx (Control) not found"
-    assert indexes["Control"][0] == "embedding"
+    assert "Framework" in indexes, "framework_embedding_idx (Framework) not found"
+    assert indexes["Framework"][0] == "embedding"
     assert "Chunk" in indexes, "chunk_embedding_idx (Chunk) not found"
     assert indexes["Chunk"][0] == "embedding"
 

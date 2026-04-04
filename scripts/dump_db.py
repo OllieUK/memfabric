@@ -4,9 +4,9 @@ dump_db.py — Dump all Memory nodes and graph edges to a JSON snapshot.
 
 Captured edge types:
   Memory layer:       RELATED_TO, LEADS_TO
-  Knowledge layer:    HAS_CONTROL, MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
+  Knowledge layer:    MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
                       ADDRESSES, OWNED_BY, APPLIES_IN, OPERATES_IN,
-                      ABOUT_CONTROL, CITES_DOC
+                      ABOUT_CONTROL, CITES_DOC, CONTAINS
 
 Usage:
     python scripts/dump_db.py [--output path/to/snapshot.json]
@@ -26,8 +26,8 @@ def dump_db(session, output_path: str) -> dict:
     """Dump Memory nodes and all known edge types to a JSON file.
 
     Covers both the memory layer (RELATED_TO, LEADS_TO) and the knowledge
-    layer (HAS_CONTROL, MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS, ADDRESSES,
-    OWNED_BY, APPLIES_IN, OPERATES_IN, ABOUT_CONTROL, CITES_DOC).
+    layer (MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS, ADDRESSES,
+    OWNED_BY, APPLIES_IN, OPERATES_IN, ABOUT_CONTROL, CITES_DOC, CONTAINS).
 
     Returns summary dict with node_count and edge_count.
     """
@@ -45,9 +45,9 @@ def dump_db(session, output_path: str) -> dict:
         MATCH (src)-[r]->(tgt)
         WHERE type(r) IN [
             'RELATED_TO', 'LEADS_TO',
-            'HAS_CONTROL', 'MAPPED_TO', 'SUPPORTS', 'HAS_CHUNK',
+            'MAPPED_TO', 'SUPPORTS', 'HAS_CHUNK',
             'IMPLEMENTS', 'ADDRESSES', 'OWNED_BY', 'APPLIES_IN',
-            'OPERATES_IN', 'ABOUT_CONTROL', 'CITES_DOC'
+            'OPERATES_IN', 'ABOUT_CONTROL', 'CITES_DOC', 'CONTAINS'
         ]
         RETURN src.id AS src, tgt.id AS tgt, type(r) AS type,
                properties(r) AS props

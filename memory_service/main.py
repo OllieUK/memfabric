@@ -47,6 +47,8 @@ async def lifespan(app: FastAPI):
     driver.verify_connectivity()
     if settings.embedding_preload_on_startup:
         get_embedding_dimension()
+        if settings.enable_knowledge_layer:
+            get_embedding_dimension(settings.knowledge_embedding_model)
     app.state.driver = driver
     try:
         yield
@@ -957,6 +959,7 @@ class NodeLabel(str, Enum):
     agent = "Agent"
     person = "Person"
     project = "Project"
+    framework = "Framework"
     standard = "Standard"
     control = "Control"
     document = "Document"

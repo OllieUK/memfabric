@@ -4,9 +4,9 @@ restore_db.py — Restore Memory nodes and edges from a JSON snapshot.
 
 Recognised edge types (allowlisted for replay):
   Memory layer:       RELATED_TO, LEADS_TO
-  Knowledge layer:    HAS_CONTROL, MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
+  Knowledge layer:    MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
                       ADDRESSES, OWNED_BY, APPLIES_IN, OPERATES_IN,
-                      ABOUT_CONTROL, CITES_DOC
+                      ABOUT_CONTROL, CITES_DOC, CONTAINS
 
 Note: knowledge-layer *node* restoration (Standard, Control, Document, etc.)
 is handled by the ETL scripts (WP-074), not by this script.  Knowledge-layer
@@ -30,9 +30,9 @@ from memory_service.config import Settings, get_driver
 
 ALLOWED_EDGE_TYPES = frozenset({
     "RELATED_TO", "LEADS_TO",
-    "HAS_CONTROL", "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
+    "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
     "IMPLEMENTS", "ADDRESSES", "OWNED_BY", "APPLIES_IN",
-    "OPERATES_IN", "ABOUT_CONTROL", "CITES_DOC",
+    "OPERATES_IN", "ABOUT_CONTROL", "CITES_DOC", "CONTAINS",
 })
 
 
