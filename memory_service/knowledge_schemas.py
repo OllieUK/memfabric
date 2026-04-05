@@ -59,3 +59,21 @@ DOCUMENT_POLICY_LEVELS: frozenset[str] = frozenset({
     "operational",
     "procedure",
 })
+
+STATEMENT_TYPES: frozenset[str] = frozenset({
+    "normative",      # creates obligations ("shall", "must")
+    "informative",    # guidance, notes, examples
+    "definitional",   # terms and definitions
+    "reference",      # cross-references to other standards
+    "structural",     # section headings without substantive text
+})
+
+NORMATIVE_MODALITIES: frozenset[str] = frozenset({
+    "must",
+    "shall",
+    "should",
+    "may",
+    "must_not",
+    "shall_not",
+    "should_not",
+})
