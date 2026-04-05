@@ -75,6 +75,60 @@ def get_framework(session, framework_id: str) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+# Control
+# ---------------------------------------------------------------------------
+
+
+def upsert_control(session, req, embedding: list[float], now: str) -> dict:
+    """MERGE Control; optionally create CONTAINS edge from parent Control."""
+    result = session.run(
+        """
+        MERGE (c:Control {id: $id})
+        ON CREATE SET
+            c.name = $name,
+            c.description = $description,
+            c.framework_id = $framework_id,
+            c.embedding = $embedding,
+            c.created_at = $created_at
+        RETURN c.id AS id, c.name AS name, c.description AS description,
+               c.framework_id AS framework_id, c.created_at AS created_at
+        """,
+        id=req.id,
+        name=req.name,
+        description=req.description,
+        framework_id=req.framework_id,
+        embedding=embedding,
+        created_at=now,
+    )
+    record = dict(result.single())
+
+    if req.parent_id:
+        session.run(
+            """
+            MATCH (parent:Control {id: $parent_id}), (child:Control {id: $child_id})
+            MERGE (parent)-[:CONTAINS]->(child)
+            """,
+            parent_id=req.parent_id,
+            child_id=req.id,
+        )
+
+    return record
+
+
+def get_control(session, control_id: str) -> dict | None:
+    result = session.run(
+        """
+        MATCH (c:Control {id: $id})
+        RETURN c.id AS id, c.name AS name, c.description AS description,
+               c.framework_id AS framework_id, c.created_at AS created_at
+        """,
+        id=control_id,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+# ---------------------------------------------------------------------------
 # Norm
 # ---------------------------------------------------------------------------
 
@@ -278,6 +332,35 @@ def get_chunk(session, chunk_id: str) -> dict | None:
 # ---------------------------------------------------------------------------
 
 
+def search_controls(
+    session,
+    query_embedding: list[float],
+    limit: int,
+    framework_id: str | None,
+) -> list[dict]:
+    """Vector search over ctrl_embedding_idx.
+    Returns list of dicts: {id, name, description, framework_id, created_at, distance}.
+    NOTE: vector_search returns up to $limit nodes before the WHERE filter is applied.
+    framework_id filter is applied post-index; when filters are tight, result may be empty.
+    """
+    result = session.run(
+        """
+        CALL vector_search.search("ctrl_embedding_idx", $limit, $query_vec)
+        YIELD node AS c, distance
+        WITH c, distance
+        WHERE ($framework_id IS NULL OR c.framework_id = $framework_id)
+        RETURN c.id AS id, c.name AS name, c.description AS description,
+               c.framework_id AS framework_id, c.created_at AS created_at,
+               distance
+        ORDER BY distance ASC
+        """,
+        limit=limit,
+        query_vec=query_embedding,
+        framework_id=framework_id,
+    )
+    return [dict(r) for r in result]
+
+
 def search_frameworks(
     session,
     query_embedding: list[float],
@@ -343,6 +426,14 @@ def search_chunks(
 # ---------------------------------------------------------------------------
 # List functions (enumerate all nodes)
 # ---------------------------------------------------------------------------
+
+
+def list_controls(session) -> list[dict]:
+    """Return all Control nodes as a list of {id, name} dicts."""
+    result = session.run(
+        "MATCH (c:Control) RETURN c.id AS id, c.name AS name ORDER BY c.name ASC"
+    )
+    return [dict(r) for r in result]
 
 
 def list_norms(session) -> list[dict]:
@@ -436,6 +527,27 @@ def get_chunks_for_framework(session, framework_id: str) -> list[dict]:
         ORDER BY s.confidence DESC
         """,
         framework_id=framework_id,
+    )
+    return [dict(r) for r in result]
+
+
+def get_chunks_for_control(session, control_id: str) -> list[dict]:
+    """Return all Chunk nodes with a SUPPORTS edge to this Control,
+    ordered by confidence DESC.
+
+    Returns list of dicts: {id, body, sequence, doc_id, heading, section_ref, status, created_at, confidence}.
+    """
+    result = session.run(
+        """
+        MATCH (ch:Chunk)-[s:SUPPORTS]->(c:Control {id: $control_id})
+        RETURN ch.id AS id, ch.body AS body, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.heading AS heading,
+               ch.section_ref AS section_ref, ch.status AS status,
+               ch.created_at AS created_at,
+               s.confidence AS confidence
+        ORDER BY s.confidence DESC
+        """,
+        control_id=control_id,
     )
     return [dict(r) for r in result]
 

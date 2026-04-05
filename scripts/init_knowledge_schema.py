@@ -18,6 +18,7 @@ from scripts.schema_utils import create_constraint, get_embedding_dimension
 # New uniqueness constraints: (label, property)
 KNOWLEDGE_CONSTRAINTS = [
     ("Framework", "id"),
+    ("Control", "id"),
     ("Norm", "id"),
     ("Document", "id"),
     ("Chunk", "id"),
@@ -172,6 +173,25 @@ def main() -> int:
                 except Exception as exc:
                     print(f"  [FAIL] Constraint {label}.{prop}: {exc}")
                     success = False
+
+            # --- ctrl_embedding_idx ---
+            print("\nCreating vector index: ctrl_embedding_idx ...")
+            try:
+                create_vector_index(
+                    session,
+                    index_name="ctrl_embedding_idx",
+                    label="Control",
+                    prop="embedding",
+                    dim=dim,
+                    capacity=settings.ctrl_index_capacity,
+                )
+            except Exception as exc:
+                print(f"  [FAIL] ctrl_embedding_idx: {exc}")
+                success = False
+
+            print("Validating vector index: ctrl_embedding_idx ...")
+            if not validate_vector_index(session, "ctrl_embedding_idx", "Control", "embedding"):
+                success = False
 
             # --- framework_embedding_idx ---
             print("\nCreating vector index: framework_embedding_idx ...")

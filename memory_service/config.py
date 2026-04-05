@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     search_neighbour_cap: int = 50
     memory_index_capacity: int = 5000
     framework_index_capacity: int = 5000
+    ctrl_index_capacity: int = 5000
     chunk_index_capacity: int = 10000
     memory_dedup_threshold: float = 0.05
     near_duplicate_threshold: float = 0.92

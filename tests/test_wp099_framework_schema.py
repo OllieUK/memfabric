@@ -194,11 +194,11 @@ def test_create_supports_edge_framework_uses_framework_label():
 # Unit tests — init_knowledge_schema and config
 # ---------------------------------------------------------------------------
 
-def test_init_knowledge_schema_no_ctrl_embedding_idx():
+def test_init_knowledge_schema_has_ctrl_embedding_idx():
     import inspect
     from scripts import init_knowledge_schema
     source = inspect.getsource(init_knowledge_schema)
-    assert "ctrl_embedding_idx" not in source, "ctrl_embedding_idx must be removed from init_knowledge_schema"
+    assert "ctrl_embedding_idx" in source, "ctrl_embedding_idx must be present in init_knowledge_schema (added by WP-101)"
 
 
 def test_init_knowledge_schema_has_framework_embedding_idx():
@@ -216,16 +216,17 @@ def test_config_has_framework_index_capacity():
     assert s.framework_index_capacity == 5000
 
 
-def test_config_no_ctrl_index_capacity():
+def test_config_has_ctrl_index_capacity():
     from memory_service.config import Settings
     s = Settings()
-    assert not hasattr(s, "ctrl_index_capacity"), "ctrl_index_capacity must be renamed to framework_index_capacity"
+    assert hasattr(s, "ctrl_index_capacity"), "ctrl_index_capacity must be present in Settings (added by WP-101)"
+    assert s.ctrl_index_capacity == 5000
 
 
-def test_knowledge_constraints_no_control():
+def test_knowledge_constraints_has_control():
     from scripts.init_knowledge_schema import KNOWLEDGE_CONSTRAINTS
     labels = [label for label, _ in KNOWLEDGE_CONSTRAINTS]
-    assert "Control" not in labels, "Control must be removed from KNOWLEDGE_CONSTRAINTS"
+    assert "Control" in labels, "Control must be in KNOWLEDGE_CONSTRAINTS (added by WP-101)"
 
 
 def test_migrate_embeddings_no_control_label():

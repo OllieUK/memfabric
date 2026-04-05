@@ -93,11 +93,11 @@ class TestTraceUpRepo:
         main_mock.single.return_value = {
             "control_id": "c-1",
             "business_attributes": [],
-            "norms": [{"id": "n-1", "name": "GDPR Art 5", "status": "active"}, None],
+            "norms": [{"id": "n-1", "title": "GDPR Art 5"}, None],
         }
         session.run.side_effect = [exists_mock, main_mock]
         result = knowledge_repo.trace_up(session, "c-1")
-        assert result["norms"] == [{"id": "n-1", "name": "GDPR Art 5", "status": "active"}]
+        assert result["norms"] == [{"id": "n-1", "title": "GDPR Art 5"}]
 
     def test_trace_up_returns_empty_lists_when_no_precepts(self):
         session = self._make_session()
@@ -140,11 +140,11 @@ class TestTraceDownRepo:
                 "doc_chunks": [
                     {
                         "doc_id": "doc-1", "doc_title": "Policy A", "chunk_id": "ch-1",
-                        "chunk_text": "text 1", "confidence": 0.9, "sup_status": "confirmed",
+                        "chunk_body": "text 1", "confidence": 0.9, "sup_status": "confirmed",
                     },
                     {
                         "doc_id": "doc-1", "doc_title": "Policy A", "chunk_id": "ch-2",
-                        "chunk_text": "text 2", "confidence": 0.8, "sup_status": "auto-inferred",
+                        "chunk_body": "text 2", "confidence": 0.8, "sup_status": "auto-inferred",
                     },
                 ],
                 "memory_refs": [],
@@ -384,7 +384,7 @@ class TestTraceabilityRoutes:
             mock_fn.return_value = {
                 "control_id": "c-1",
                 "business_attributes": [{"id": "ba-1", "name": "Confidentiality"}],
-                "norms": [{"id": "n-1", "name": "GDPR Art 5", "status": "active"}],
+                "norms": [{"id": "n-1", "title": "GDPR Art 5"}],
             }
             resp = client.get("/knowledge/controls/c-1/trace-up")
         assert resp.status_code == 200
