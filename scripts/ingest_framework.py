@@ -178,7 +178,6 @@ def main() -> None:
             body: dict = {
                 "id": item.id,
                 "name": item.name,
-                "framework_id": fw.framework_id,
             }
             if item.description is not None:
                 body["description"] = item.description

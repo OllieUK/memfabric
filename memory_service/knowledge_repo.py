@@ -13,7 +13,7 @@
 
 
 def upsert_framework(session, req, now: str) -> dict:
-    """MERGE Framework on id; SET all properties ON CREATE only.
+    """MERGE Framework on id; SET all properties ON CREATE, update classification ON MATCH.
     If parent_id is set, creates CONTAINS edge from parent Framework to this node.
     """
     result = session.run(
@@ -28,6 +28,9 @@ def upsert_framework(session, req, now: str) -> dict:
             f.statement_type = $statement_type,
             f.modality = $modality,
             f.created_at = $created_at
+        ON MATCH SET
+            f.statement_type = $statement_type,
+            f.modality = $modality
         RETURN f.id AS id, f.name AS name, f.version AS version,
                f.description AS description, f.level AS level,
                f.body AS body, f.statement_type AS statement_type,

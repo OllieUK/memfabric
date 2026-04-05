@@ -96,6 +96,8 @@ def test_upsert_framework_sets_level_and_body():
         level = "clause"
         body = "Planning requirements."
         parent_id = "iso-27001-2022"
+        statement_type = None
+        modality = None
 
     knowledge_repo.upsert_framework(mock_session, FakeReq(), "2026-04-04T00:00:00+00:00")
     assert mock_session.run.call_count == 2
@@ -129,6 +131,8 @@ def test_upsert_framework_no_parent_no_contains_edge():
         level = "framework"
         body = None
         parent_id = None
+        statement_type = None
+        modality = None
 
     knowledge_repo.upsert_framework(mock_session, FakeReq(), "2026-04-04T00:00:00+00:00")
     assert mock_session.run.call_count == 1
@@ -255,7 +259,20 @@ def test_load_iso27001_chunks_no_controls_endpoint():
     assert "/knowledge/controls" not in source, "load_iso27001_chunks must not call /knowledge/controls"
 
 
-def test_load_iso27001_chunks_uses_framework_id_in_supports():
+def test_load_iso27001_chunks_has_classify_statement_type():
+    """Loader must include the _classify_statement_type function."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "load_iso27001_chunks",
+        "scripts/load_iso27001_chunks.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert hasattr(mod, "_classify_statement_type"), "Loader must define _classify_statement_type"
+
+
+def test_load_iso27001_chunks_no_chunk_creation():
+    """Loader must not create Chunk or Document nodes for standard text."""
     import inspect
     import importlib.util
     spec = importlib.util.spec_from_file_location(
@@ -265,8 +282,65 @@ def test_load_iso27001_chunks_uses_framework_id_in_supports():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     source = inspect.getsource(mod)
-    assert '"framework_id"' in source, "load_iso27001_chunks must use framework_id in SUPPORTS payload"
-    assert '"control_id"' not in source, "load_iso27001_chunks must not use control_id"
+    assert "/knowledge/chunks" not in source, "Loader must not create Chunk nodes for standard text"
+    assert "/knowledge/documents" not in source, "Loader must not create Document nodes for standard text"
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — _classify_statement_type
+# ---------------------------------------------------------------------------
+
+def _get_classify_fn():
+    """Import _classify_statement_type from the loader script."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "load_iso27001_chunks",
+        "scripts/load_iso27001_chunks.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod._classify_statement_type
+
+
+def test_classify_structural_no_body():
+    classify = _get_classify_fn()
+    assert classify("iso-27001-2022.4", None) == "structural"
+    assert classify("iso-27001-2022.4", "") == "structural"
+
+
+def test_classify_reference_clauses():
+    classify = _get_classify_fn()
+    assert classify("iso-27001-2022.1", "This document specifies...") == "reference"
+    assert classify("iso-27001-2022.2", "Normative references...") == "reference"
+
+
+def test_classify_definitional_clause():
+    classify = _get_classify_fn()
+    assert classify("iso-27001-2022.3", "Terms and definitions...") == "definitional"
+    assert classify("iso-27001-2022.3.stmt-1", "For the purposes...") == "definitional"
+
+
+def test_classify_informative_note():
+    classify = _get_classify_fn()
+    assert classify("iso-27001-2022.4.1", "NOTE Determining these issues refers to...") == "informative"
+    assert classify("iso-27001-2022.6.2", "Note: this is additional guidance") == "informative"
+
+
+def test_classify_normative_shall():
+    classify = _get_classify_fn()
+    assert classify("iso-27001-2022.4.1", "The organization shall determine external and internal issues") == "normative"
+    assert classify("iso-27001-2022.5.1", "Top management shall demonstrate leadership") == "normative"
+
+
+def test_classify_normative_must():
+    classify = _get_classify_fn()
+    assert classify("iso-27001-2022.6.1", "The organization must assess risks") == "normative"
+
+
+def test_classify_unclassified_default():
+    classify = _get_classify_fn()
+    # Text without shall/must/NOTE and not in clauses 1-3
+    assert classify("iso-27001-2022.4.3", "Scope of the ISMS") is None
 
 
 # ---------------------------------------------------------------------------
