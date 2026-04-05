@@ -432,6 +432,168 @@ def test_controls_endpoint_removed(client):
 
 
 @pytest.mark.integration
+def test_framework_statement_type_persisted(client, test_driver):
+    """statement_type is accepted on create and returned on get."""
+    fw_id = "test-wp099-statement-type-persisted"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_id,
+            "name": "Test Framework statement_type",
+            "level": "clause",
+            "body": "This clause defines normative requirements.",
+            "statement_type": "normative",
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["statement_type"] == "normative"
+
+        r = client.get(f"/knowledge/frameworks/{fw_id}")
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["statement_type"] == "normative"
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_id)
+
+
+@pytest.mark.integration
+def test_framework_modality_with_normative(client, test_driver):
+    """modality is accepted when statement_type is normative."""
+    fw_id = "test-wp099-modality-normative"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_id,
+            "name": "Test Framework modality",
+            "level": "clause",
+            "body": "All systems shall implement access control.",
+            "statement_type": "normative",
+            "modality": "shall",
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["statement_type"] == "normative"
+        assert data["modality"] == "shall"
+
+        r = client.get(f"/knowledge/frameworks/{fw_id}")
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["statement_type"] == "normative"
+        assert data["modality"] == "shall"
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_id)
+
+
+@pytest.mark.integration
+def test_framework_invalid_statement_type_rejected(client):
+    """Invalid statement_type returns 400."""
+    r = client.post("/knowledge/frameworks", json={
+        "id": "test-wp099-invalid-st",
+        "name": "Test Invalid statement_type",
+        "level": "clause",
+        "body": "Some body text.",
+        "statement_type": "invalid_type",
+    })
+    assert r.status_code == 400, f"Expected 400 but got {r.status_code}: {r.text}"
+
+
+@pytest.mark.integration
+def test_framework_modality_without_normative_rejected(client):
+    """modality without statement_type='normative' returns 400."""
+    r = client.post("/knowledge/frameworks", json={
+        "id": "test-wp099-modality-no-normative",
+        "name": "Test modality without normative",
+        "level": "clause",
+        "body": "This is informative text.",
+        "statement_type": "informative",
+        "modality": "shall",
+    })
+    assert r.status_code == 400, f"Expected 400 but got {r.status_code}: {r.text}"
+
+
+@pytest.mark.integration
+def test_framework_invalid_modality_rejected(client):
+    """Invalid modality returns 400."""
+    r = client.post("/knowledge/frameworks", json={
+        "id": "test-wp099-invalid-modality",
+        "name": "Test Invalid modality",
+        "level": "clause",
+        "body": "All systems must comply.",
+        "statement_type": "normative",
+        "modality": "invalid",
+    })
+    assert r.status_code == 400, f"Expected 400 but got {r.status_code}: {r.text}"
+
+
+@pytest.mark.integration
+def test_search_frameworks_with_statement_type_filter(client, test_driver):
+    """Search with statement_type filter returns only matching results."""
+    fw_normative_id = "test-wp099-search-normative"
+    fw_informative_id = "test-wp099-search-informative"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_normative_id,
+            "name": "Normative Access Control Clause",
+            "level": "clause",
+            "body": "All systems shall implement role-based access control for user authentication.",
+            "statement_type": "normative",
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_informative_id,
+            "name": "Informative Access Control Note",
+            "level": "clause",
+            "body": "This section provides guidance on implementing role-based access control approaches.",
+            "statement_type": "informative",
+        })
+        assert r.status_code == 200, r.text
+
+        r = client.post("/knowledge/search/frameworks", json={
+            "query": "role-based access control user authentication",
+            "limit": 10,
+            "statement_type": "normative",
+        })
+        assert r.status_code == 200, r.text
+        hits = r.json()
+        ids = [h["id"] for h in hits]
+        assert fw_normative_id in ids, f"Expected normative framework in results, got {ids}"
+        assert fw_informative_id not in ids, f"Informative framework should not appear when filtering for normative"
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_normative_id)
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_informative_id)
+
+
+@pytest.mark.integration
+def test_framework_statement_type_defaults_none(client, test_driver):
+    """Frameworks created without statement_type have None."""
+    fw_id = "test-wp099-statement-type-default"
+    try:
+        r = client.post("/knowledge/frameworks", json={
+            "id": fw_id,
+            "name": "Test Framework no statement_type",
+            "level": "clause",
+            "body": "Some clause body without a statement type.",
+        })
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["statement_type"] is None
+
+        r = client.get(f"/knowledge/frameworks/{fw_id}")
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["statement_type"] is None
+
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (n:Framework {id: $id}) DETACH DELETE n", id=fw_id)
+
+
+@pytest.mark.integration
 def test_init_knowledge_schema_creates_framework_embedding_idx(test_driver):
     """After running init_knowledge_schema, framework_embedding_idx must exist on Framework."""
     from scripts.init_knowledge_schema import main as init_main
