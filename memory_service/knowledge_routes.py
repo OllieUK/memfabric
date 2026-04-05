@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from memory_service import knowledge_repo
 from memory_service.config import settings
 from memory_service.embeddings import get_embedding
+from memory_service.knowledge_schemas import STATEMENT_TYPES, NORMATIVE_MODALITIES
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -32,6 +33,8 @@ class FrameworkCreate(BaseModel):
     level: str = "framework"           # framework | category | section | clause | sub-clause
     body: Optional[str] = None         # requirement text; used for embedding when present
     parent_id: Optional[str] = None    # if set, creates CONTAINS edge parent→this
+    statement_type: Optional[str] = None
+    modality: Optional[str] = None
 
 
 class FrameworkResponse(BaseModel):
@@ -42,6 +45,8 @@ class FrameworkResponse(BaseModel):
     level: str
     body: Optional[str] = None
     created_at: str
+    statement_type: Optional[str] = None
+    modality: Optional[str] = None
 
 
 class NormCreate(BaseModel):
@@ -103,6 +108,7 @@ class FrameworkSearchRequest(BaseModel):
     query: str
     limit: int = 10
     framework_id: Optional[str] = None
+    statement_type: Optional[str] = None
 
 
 class ChunkSearchRequest(BaseModel):
@@ -161,6 +167,13 @@ class ChunkWithSupports(BaseModel):
 
 @router.post("/frameworks", response_model=FrameworkResponse)
 async def upsert_framework(req: FrameworkCreate, request: Request) -> FrameworkResponse:
+    if req.statement_type and req.statement_type not in STATEMENT_TYPES:
+        raise HTTPException(400, f"Invalid statement_type: {req.statement_type}. Must be one of: {sorted(STATEMENT_TYPES)}")
+    if req.modality:
+        if req.modality not in NORMATIVE_MODALITIES:
+            raise HTTPException(400, f"Invalid modality: {req.modality}. Must be one of: {sorted(NORMATIVE_MODALITIES)}")
+        if req.statement_type != "normative":
+            raise HTTPException(400, "modality can only be set when statement_type is 'normative'")
     now = datetime.now(tz=timezone.utc).isoformat()
     with request.app.state.driver.session() as session:
         record = knowledge_repo.upsert_framework(session, req, now)
@@ -269,7 +282,7 @@ async def search_chunks(req: ChunkSearchRequest, request: Request) -> List[Chunk
 async def search_frameworks(req: FrameworkSearchRequest, request: Request) -> List[FrameworkHit]:
     query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
     with request.app.state.driver.session() as session:
-        hits = knowledge_repo.search_frameworks(session, query_vec, req.limit, req.framework_id)
+        hits = knowledge_repo.search_frameworks(session, query_vec, req.limit, req.framework_id, req.statement_type)
     return [FrameworkHit(**h) for h in hits]
 
 

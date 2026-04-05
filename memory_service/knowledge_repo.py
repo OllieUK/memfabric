@@ -25,10 +25,13 @@ def upsert_framework(session, req, now: str) -> dict:
             f.description = $description,
             f.level = $level,
             f.body = $body,
+            f.statement_type = $statement_type,
+            f.modality = $modality,
             f.created_at = $created_at
         RETURN f.id AS id, f.name AS name, f.version AS version,
                f.description AS description, f.level AS level,
-               f.body AS body, f.created_at AS created_at
+               f.body AS body, f.statement_type AS statement_type,
+               f.modality AS modality, f.created_at AS created_at
         """,
         id=req.id,
         name=req.name,
@@ -36,6 +39,8 @@ def upsert_framework(session, req, now: str) -> dict:
         description=req.description,
         level=req.level,
         body=req.body,
+        statement_type=req.statement_type,
+        modality=req.modality,
         created_at=now,
     )
     record = dict(result.single())
@@ -59,7 +64,8 @@ def get_framework(session, framework_id: str) -> dict | None:
         MATCH (f:Framework {id: $id})
         RETURN f.id AS id, f.name AS name, f.version AS version,
                f.description AS description, f.level AS level,
-               f.body AS body, f.created_at AS created_at
+               f.body AS body, f.statement_type AS statement_type,
+               f.modality AS modality, f.created_at AS created_at
         """,
         id=framework_id,
     )
@@ -246,16 +252,20 @@ def search_frameworks(
     query_embedding: list[float],
     limit: int,
     framework_id: str | None,
+    statement_type: str | None = None,
 ) -> list[dict]:
     """Vector search over framework_embedding_idx (Framework nodes with body text).
     Returns list of dicts: {id, name, level, body, created_at, distance}.
     NOTE: vector_search returns up to $limit nodes before any filter is applied.
     framework_id filter is not supported in MVP — pass None.
+    statement_type filter is applied post-index as a WHERE clause.
     """
     result = session.run(
         """
         CALL vector_search.search("framework_embedding_idx", $limit, $query_vec)
         YIELD node AS f, distance
+        WITH f, distance
+        WHERE ($statement_type IS NULL OR f.statement_type = $statement_type)
         RETURN f.id AS id, f.name AS name, f.level AS level,
                f.body AS body, f.created_at AS created_at,
                distance
@@ -263,6 +273,7 @@ def search_frameworks(
         """,
         limit=limit,
         query_vec=query_embedding,
+        statement_type=statement_type,
     )
     return [dict(r) for r in result]
 
