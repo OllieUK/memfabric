@@ -76,7 +76,7 @@ def test_yaml_schema_valid_minimal():
     from ingest_framework import YamlFrameworkFile
     fw = YamlFrameworkFile(framework_id="test", framework_name="Test")
     assert fw.framework_id == "test"
-    assert fw.controls == []
+    assert fw.frameworks == []
 
 
 def test_yaml_schema_rejects_missing_framework_id():
@@ -98,7 +98,7 @@ def test_yaml_schema_rejects_invalid_norm_missing_text():
 MINIMAL_YAML = """\
 framework_id: test-fw
 framework_name: Test Framework
-controls:
+frameworks:
   - id: test-fw.C1
     name: Control One
 """
