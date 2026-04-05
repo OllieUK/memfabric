@@ -6,7 +6,7 @@ Usage:
 
 Reads config from .env (API_BASE_URL). Validates the YAML against the
 YamlFrameworkFile schema before making any HTTP calls. Upserts in dependency
-order: Framework → Controls → Norms → Documents → Chunks → Jurisdictions →
+order: Framework → FrameworkItems → Norms → Documents → Jurisdictions →
 BusinessAttributes. Idempotent: re-running the same file is safe.
 """
 from __future__ import annotations
@@ -35,11 +35,15 @@ class ETLSettings(BaseSettings):
 # YAML schema models
 # ---------------------------------------------------------------------------
 
-class YamlControl(BaseModel):
+class YamlFrameworkItem(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
     parent_id: Optional[str] = None
+    level: Optional[str] = None
+    body: Optional[str] = None
+    statement_type: Optional[str] = None
+    modality: Optional[str] = None
 
 
 class YamlNorm(BaseModel):
@@ -56,14 +60,6 @@ class YamlDocument(BaseModel):
     title: str
     doc_type: str
     source_url: Optional[str] = None
-
-
-class YamlChunk(BaseModel):
-    id: str
-    text: str
-    sequence: int
-    doc_id: str
-    prev_chunk_id: Optional[str] = None
 
 
 class YamlJurisdiction(BaseModel):
@@ -83,10 +79,9 @@ class YamlFrameworkFile(BaseModel):
     framework_name: str
     framework_version: Optional[str] = None
     framework_description: Optional[str] = None
-    controls: list[YamlControl] = []
+    frameworks: list[YamlFrameworkItem] = []
     norms: list[YamlNorm] = []
     documents: list[YamlDocument] = []
-    chunks: list[YamlChunk] = []
     jurisdictions: list[YamlJurisdiction] = []
     business_attributes: list[YamlBusinessAttribute] = []
 
@@ -147,17 +142,16 @@ def main() -> None:
 
     total = (
         1  # framework node itself
-        + len(fw.controls)
+        + len(fw.frameworks)
         + len(fw.norms)
         + len(fw.documents)
-        + len(fw.chunks)
         + len(fw.jurisdictions)
         + len(fw.business_attributes)
     )
     print(f"Validated: {yaml_path.name} — {total} items")
     print(f"  Framework: {fw.framework_id} ({fw.framework_name})")
-    print(f"  Controls: {len(fw.controls)}, Norms: {len(fw.norms)}, Documents: {len(fw.documents)}")
-    print(f"  Chunks: {len(fw.chunks)}, Jurisdictions: {len(fw.jurisdictions)}, BusinessAttributes: {len(fw.business_attributes)}")
+    print(f"  Frameworks: {len(fw.frameworks)}, Norms: {len(fw.norms)}, Documents: {len(fw.documents)}")
+    print(f"  Jurisdictions: {len(fw.jurisdictions)}, BusinessAttributes: {len(fw.business_attributes)}")
 
     if args.dry_run:
         print("\nDry run: no API calls made.")
@@ -178,22 +172,30 @@ def main() -> None:
         )
         print(f"  Framework {fw.framework_id}: {status}")
 
-        # 2. Controls (upsert in order — parent before child if parent_id used)
-        ctrl_ok = 0
-        for ctrl in fw.controls:
+        # 2. Framework items (upsert in order — parent before child if parent_id used)
+        fw_item_ok = 0
+        for item in fw.frameworks:
             body: dict = {
-                "id": ctrl.id,
-                "name": ctrl.name,
+                "id": item.id,
+                "name": item.name,
                 "framework_id": fw.framework_id,
             }
-            if ctrl.description is not None:
-                body["description"] = ctrl.description
-            if ctrl.parent_id is not None:
-                body["parent_id"] = ctrl.parent_id
-            s = _upsert(client, "/knowledge/controls", body, f"control/{ctrl.id}")
+            if item.description is not None:
+                body["description"] = item.description
+            if item.parent_id is not None:
+                body["parent_id"] = item.parent_id
+            if item.level is not None:
+                body["level"] = item.level
+            if item.body is not None:
+                body["body"] = item.body
+            if item.statement_type is not None:
+                body["statement_type"] = item.statement_type
+            if item.modality is not None:
+                body["modality"] = item.modality
+            s = _upsert(client, "/knowledge/frameworks", body, f"framework-item/{item.id}")
             if s != "error":
-                ctrl_ok += 1
-        print(f"  Controls: {ctrl_ok}/{len(fw.controls)} upserted")
+                fw_item_ok += 1
+        print(f"  Frameworks: {fw_item_ok}/{len(fw.frameworks)} upserted")
 
         # 3. Norms
         norm_ok = 0
@@ -224,23 +226,7 @@ def main() -> None:
                 doc_ok += 1
         print(f"  Documents: {doc_ok}/{len(fw.documents)} upserted")
 
-        # 5. Chunks
-        chunk_ok = 0
-        for chunk in fw.chunks:
-            body = {
-                "id": chunk.id,
-                "text": chunk.text,
-                "sequence": chunk.sequence,
-                "doc_id": chunk.doc_id,
-            }
-            if chunk.prev_chunk_id is not None:
-                body["prev_chunk_id"] = chunk.prev_chunk_id
-            s = _upsert(client, "/knowledge/chunks", body, f"chunk/{chunk.id}")
-            if s != "error":
-                chunk_ok += 1
-        print(f"  Chunks: {chunk_ok}/{len(fw.chunks)} upserted")
-
-        # 6. Jurisdictions (POST to /knowledge/jurisdictions if it exists; log skip if 404)
+        # 5. Jurisdictions (POST to /knowledge/jurisdictions if it exists; log skip if 404)
         jur_ok = 0
         for jur in fw.jurisdictions:
             body = {"id": jur.id, "name": jur.name}
@@ -252,7 +238,7 @@ def main() -> None:
         if fw.jurisdictions:
             print(f"  Jurisdictions: {jur_ok}/{len(fw.jurisdictions)} upserted")
 
-        # 7. BusinessAttributes
+        # 6. BusinessAttributes
         ba_ok = 0
         for ba in fw.business_attributes:
             body = {"id": ba.id, "name": ba.name}
