@@ -46,6 +46,9 @@ Run an **Explore agent** to read the relevant files first. Never propose changes
 1. Run `/simplify` to review the changed code for reuse, quality, and efficiency. Act on findings immediately if high-value / low-effort; otherwise add to BACKLOG.md with priority.
 2. Run `engineering:deploy-checklist` for the WP to confirm all verification gates are met before marking Done.
 
+### Bash commands
+Never chain shell commands with `&&`, `;`, or `|` unless the pipeline is the natural form of the command (e.g. `grep ... | sort`). Run each logical step as a separate `Bash` call. Chained commands (e.g. `cd ~/projects && git push`) trigger unnecessary safety prompts.
+
 ### Parallelism
 Where a work package has independent sub-tasks, launch **parallel agents** in a single message to reduce wall-clock time.
 
