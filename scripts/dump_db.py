@@ -6,7 +6,8 @@ Captured edge types:
   Memory layer:       RELATED_TO, LEADS_TO
   Knowledge layer:    MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
                       ADDRESSES, OWNED_BY, APPLIES_IN, OPERATES_IN,
-                      ABOUT_CONTROL, CITES_DOC, CONTAINS
+                      ABOUT_CONTROL, CITES_DOC, CONTAINS,
+                      MAPS_TO, REFERENCES
 
 Usage:
     python scripts/dump_db.py [--output path/to/snapshot.json]
@@ -27,7 +28,8 @@ def dump_db(session, output_path: str) -> dict:
 
     Covers both the memory layer (RELATED_TO, LEADS_TO) and the knowledge
     layer (MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS, ADDRESSES,
-    OWNED_BY, APPLIES_IN, OPERATES_IN, ABOUT_CONTROL, CITES_DOC, CONTAINS).
+    OWNED_BY, APPLIES_IN, OPERATES_IN, ABOUT_CONTROL, CITES_DOC, CONTAINS,
+    MAPS_TO, REFERENCES).
 
     Returns summary dict with node_count and edge_count.
     """
@@ -47,7 +49,8 @@ def dump_db(session, output_path: str) -> dict:
             'RELATED_TO', 'LEADS_TO',
             'MAPPED_TO', 'SUPPORTS', 'HAS_CHUNK',
             'IMPLEMENTS', 'ADDRESSES', 'OWNED_BY', 'APPLIES_IN',
-            'OPERATES_IN', 'ABOUT_CONTROL', 'CITES_DOC', 'CONTAINS'
+            'OPERATES_IN', 'ABOUT_CONTROL', 'CITES_DOC', 'CONTAINS',
+            'MAPS_TO', 'REFERENCES'
         ]
         RETURN src.id AS src, tgt.id AS tgt, type(r) AS type,
                properties(r) AS props

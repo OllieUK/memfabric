@@ -7,7 +7,7 @@ def test_framework_create_accepts_level_body_parent_id():
     from memory_service.knowledge_routes import FrameworkCreate
     fw = FrameworkCreate(
         id="iso-27001-2022.6",
-        name="Clause 6 — Planning",
+        title="Clause 6 — Planning",
         level="clause",
         body="Requirements for planning in the ISMS context.",
         parent_id="iso-27001-2022",
@@ -19,13 +19,13 @@ def test_framework_create_accepts_level_body_parent_id():
 
 def test_framework_create_level_defaults_to_framework():
     from memory_service.knowledge_routes import FrameworkCreate
-    fw = FrameworkCreate(id="iso-27001-2022", name="ISO/IEC 27001")
+    fw = FrameworkCreate(id="iso-27001-2022", title="ISO/IEC 27001")
     assert fw.level == "framework"
 
 
 def test_framework_create_body_optional():
     from memory_service.knowledge_routes import FrameworkCreate
-    fw = FrameworkCreate(id="iso-27001-2022", name="ISO/IEC 27001")
+    fw = FrameworkCreate(id="iso-27001-2022", title="ISO/IEC 27001")
     assert fw.body is None
 
 
@@ -33,7 +33,7 @@ def test_framework_response_includes_level_and_body():
     from memory_service.knowledge_routes import FrameworkResponse
     resp = FrameworkResponse(
         id="iso-27001-2022.6",
-        name="Clause 6",
+        title="Clause 6",
         level="clause",
         body="Some body text.",
         created_at="2026-04-04T00:00:00+00:00",
@@ -90,9 +90,8 @@ def test_upsert_framework_sets_level_and_body():
 
     class FakeReq:
         id = "iso-27001-2022.6"
-        name = "Clause 6"
+        title = "Clause 6"
         version = None
-        description = None
         level = "clause"
         body = "Planning requirements."
         parent_id = "iso-27001-2022"
@@ -125,9 +124,8 @@ def test_upsert_framework_no_parent_no_contains_edge():
 
     class FakeReq:
         id = "iso-27001-2022"
-        name = "ISO/IEC 27001"
+        title = "ISO/IEC 27001"
         version = "2022"
-        description = None
         level = "framework"
         body = None
         parent_id = None
@@ -185,7 +183,7 @@ def test_create_supports_edge_framework_uses_framework_label():
     }
 
     knowledge_repo.create_supports_edge_framework(
-        mock_session, "c1", "fw1", 0.9, "auto-inferred", "2026-04-04T00:00:00+00:00"
+        mock_session, "c1", "fw1", 0.9, None, "auto-inferred", "2026-04-04T00:00:00+00:00"
     )
     cypher = mock_session.run.call_args[0][0]
     assert ":Framework" in cypher

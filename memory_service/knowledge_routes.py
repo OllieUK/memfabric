@@ -15,7 +15,12 @@ from pydantic import BaseModel, Field
 from memory_service import knowledge_repo
 from memory_service.config import settings
 from memory_service.embeddings import get_embedding
-from memory_service.knowledge_schemas import STATEMENT_TYPES, NORMATIVE_MODALITIES
+from memory_service.knowledge_schemas import (
+    STATEMENT_TYPES,
+    NORMATIVE_MODALITIES,
+    CHUNK_STATUSES,
+    DOCUMENT_POLICY_LEVELS,
+)
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -27,10 +32,9 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
 class FrameworkCreate(BaseModel):
     id: str
-    name: str
+    title: str
     version: Optional[str] = None
-    description: Optional[str] = None
-    level: str = "framework"           # framework | category | section | clause | sub-clause
+    level: str = "framework"           # framework | category | technique | sub-technique
     body: Optional[str] = None         # requirement text; used for embedding when present
     parent_id: Optional[str] = None    # if set, creates CONTAINS edge parent→this
     statement_type: Optional[str] = None
@@ -39,9 +43,8 @@ class FrameworkCreate(BaseModel):
 
 class FrameworkResponse(BaseModel):
     id: str
-    name: str
+    title: str
     version: Optional[str] = None
-    description: Optional[str] = None
     level: str
     body: Optional[str] = None
     created_at: str
@@ -51,51 +54,70 @@ class FrameworkResponse(BaseModel):
 
 class NormCreate(BaseModel):
     id: str
-    name: str
-    text: str                           # requirement text; used for embedding
-    status: str = "draft"              # draft | active | deprecated
-    effective_date: Optional[str] = None
-    control_id: Optional[str] = None  # if set, creates IMPLEMENTS edge norm→control
-    doc_id: Optional[str] = None      # if set, creates SOURCED_FROM edge norm→doc
+    title: str
+    body: str                                       # requirement text; used for embedding
+    level: str = "article"                          # article | clause | sub-clause | annex
+    version: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    announced_at: Optional[str] = None
+    text_hash: Optional[str] = None
+    lang: Optional[str] = None
+    domain: Optional[str] = None
+    maps_to_control_id: Optional[str] = None       # creates MAPS_TO edge norm→control
+    references_framework_id: Optional[str] = None  # creates REFERENCES edge norm→framework
+    references_version_pinned: bool = False         # version_pinned property on REFERENCES edge
 
 
 class NormResponse(BaseModel):
     id: str
-    name: str
-    text: str
-    status: str
-    effective_date: Optional[str] = None
+    title: str
+    body: str
+    level: str
+    version: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    announced_at: Optional[str] = None
+    text_hash: Optional[str] = None
+    lang: Optional[str] = None
+    domain: Optional[str] = None
     created_at: str
 
 
 class DocumentCreate(BaseModel):
     id: str
     title: str
-    doc_type: str                       # policy | procedure | standard | guideline
+    policy_level: str                  # strategic | tactical | operational | procedure
     source_url: Optional[str] = None
 
 
 class DocumentResponse(BaseModel):
     id: str
     title: str
-    doc_type: str
+    policy_level: str
     source_url: Optional[str] = None
     created_at: str
 
 
 class ChunkCreate(BaseModel):
     id: str
-    text: str                           # chunk content; used for embedding
+    body: str                           # chunk content; used for embedding
     sequence: int
     doc_id: str                         # parent document; creates HAS_CHUNK edge
+    heading: Optional[str] = None
+    section_ref: Optional[str] = None
+    status: Optional[str] = "unmatched"
     prev_chunk_id: Optional[str] = None  # if set, creates HAS_NEXT edge prev→this
 
 
 class ChunkResponse(BaseModel):
     id: str
-    text: str
+    body: str
     sequence: int
     doc_id: str
+    heading: Optional[str] = None
+    section_ref: Optional[str] = None
+    status: Optional[str] = None
     created_at: str
 
 
@@ -119,7 +141,7 @@ class ChunkSearchRequest(BaseModel):
 
 class FrameworkHit(BaseModel):
     id: str
-    name: str
+    title: str
     level: str
     body: Optional[str] = None
     created_at: str
@@ -128,9 +150,12 @@ class FrameworkHit(BaseModel):
 
 class ChunkHit(BaseModel):
     id: str
-    text: str
+    body: str
     sequence: int
     doc_id: str
+    heading: Optional[str] = None
+    section_ref: Optional[str] = None
+    status: Optional[str] = None
     created_at: str
     distance: float
 
@@ -139,6 +164,7 @@ class SupportsCreate(BaseModel):
     chunk_id: str
     framework_id: str
     confidence: float = Field(ge=0.0, le=1.0)
+    raw_score: Optional[float] = None
     status: str = "auto-inferred"
 
 
@@ -146,18 +172,21 @@ class SupportsResponse(BaseModel):
     chunk_id: str
     framework_id: str
     confidence: float
+    raw_score: Optional[float] = None
     status: str
     created_at: str
 
 
 class ChunkWithSupports(BaseModel):
     id: str
-    text: str
+    body: str
     sequence: int
     doc_id: str
+    heading: Optional[str] = None
+    section_ref: Optional[str] = None
+    status: Optional[str] = None
     created_at: str
     confidence: float
-    status: str
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +233,7 @@ async def get_framework(framework_id: str, request: Request) -> FrameworkRespons
 
 @router.post("/norms", response_model=NormResponse)
 async def upsert_norm(req: NormCreate, request: Request) -> NormResponse:
-    embedding = get_embedding(req.text, model_name=settings.knowledge_embedding_model)
+    embedding = get_embedding(req.body, model_name=settings.knowledge_embedding_model)
     now = datetime.now(tz=timezone.utc).isoformat()
     with request.app.state.driver.session() as session:
         record = knowledge_repo.upsert_norm(session, req, embedding, now)
@@ -227,6 +256,8 @@ async def get_norm(norm_id: str, request: Request) -> NormResponse:
 
 @router.post("/documents", response_model=DocumentResponse)
 async def upsert_document(req: DocumentCreate, request: Request) -> DocumentResponse:
+    if req.policy_level not in DOCUMENT_POLICY_LEVELS:
+        raise HTTPException(400, f"Invalid policy_level: {req.policy_level}. Must be one of: {sorted(DOCUMENT_POLICY_LEVELS)}")
     now = datetime.now(tz=timezone.utc).isoformat()
     with request.app.state.driver.session() as session:
         record = knowledge_repo.upsert_document(session, req, now)
@@ -249,7 +280,9 @@ async def get_document(doc_id: str, request: Request) -> DocumentResponse:
 
 @router.post("/chunks", response_model=ChunkResponse)
 async def upsert_chunk(req: ChunkCreate, request: Request) -> ChunkResponse:
-    embedding = get_embedding(req.text, model_name=settings.knowledge_embedding_model)
+    if req.status and req.status not in CHUNK_STATUSES:
+        raise HTTPException(400, f"Invalid status: {req.status}. Must be one of: {sorted(CHUNK_STATUSES)}")
+    embedding = get_embedding(req.body, model_name=settings.knowledge_embedding_model)
     now = datetime.now(tz=timezone.utc).isoformat()
     with request.app.state.driver.session() as session:
         record = knowledge_repo.upsert_chunk(session, req, embedding, now)
@@ -331,7 +364,7 @@ async def create_supports(req: SupportsCreate, request: Request) -> SupportsResp
         if knowledge_repo.get_framework(session, req.framework_id) is None:
             raise HTTPException(status_code=404, detail=f"Framework not found: {req.framework_id}")
         record = knowledge_repo.create_supports_edge_framework(
-            session, req.chunk_id, req.framework_id, req.confidence, req.status, now
+            session, req.chunk_id, req.framework_id, req.confidence, req.raw_score, req.status, now
         )
     if record is None:
         raise HTTPException(status_code=404, detail="Chunk or Framework not found")

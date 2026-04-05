@@ -77,3 +77,10 @@ NORMATIVE_MODALITIES: frozenset[str] = frozenset({
     "shall_not",
     "should_not",
 })
+
+CHUNK_STATUSES: frozenset[str] = frozenset({
+    "unmatched",    # ingested, not yet linked to any tree node
+    "matched",      # candidate match found, pending confirmation
+    "confirmed",    # human or automated confirmation of SUPPORTS edge
+    "superseded",   # content replaced by a newer chunk
+})

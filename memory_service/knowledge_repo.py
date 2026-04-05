@@ -20,9 +20,8 @@ def upsert_framework(session, req, now: str) -> dict:
         """
         MERGE (f:Framework {id: $id})
         ON CREATE SET
-            f.name = $name,
+            f.title = $title,
             f.version = $version,
-            f.description = $description,
             f.level = $level,
             f.body = $body,
             f.statement_type = $statement_type,
@@ -31,15 +30,14 @@ def upsert_framework(session, req, now: str) -> dict:
         ON MATCH SET
             f.statement_type = $statement_type,
             f.modality = $modality
-        RETURN f.id AS id, f.name AS name, f.version AS version,
-               f.description AS description, f.level AS level,
-               f.body AS body, f.statement_type AS statement_type,
+        RETURN f.id AS id, f.title AS title, f.version AS version,
+               f.level AS level, f.body AS body,
+               f.statement_type AS statement_type,
                f.modality AS modality, f.created_at AS created_at
         """,
         id=req.id,
-        name=req.name,
+        title=req.title,
         version=req.version,
-        description=req.description,
         level=req.level,
         body=req.body,
         statement_type=req.statement_type,
@@ -65,9 +63,9 @@ def get_framework(session, framework_id: str) -> dict | None:
     result = session.run(
         """
         MATCH (f:Framework {id: $id})
-        RETURN f.id AS id, f.name AS name, f.version AS version,
-               f.description AS description, f.level AS level,
-               f.body AS body, f.statement_type AS statement_type,
+        RETURN f.id AS id, f.title AS title, f.version AS version,
+               f.level AS level, f.body AS body,
+               f.statement_type AS statement_type,
                f.modality AS modality, f.created_at AS created_at
         """,
         id=framework_id,
@@ -82,48 +80,65 @@ def get_framework(session, framework_id: str) -> dict | None:
 
 
 def upsert_norm(session, req, embedding: list[float], now: str) -> dict:
-    """MERGE Norm; optionally create IMPLEMENTS (→Control) and SOURCED_FROM (→Document)."""
+    """MERGE Norm; optionally create MAPS_TO (→Control) and REFERENCES (→Framework)."""
     result = session.run(
         """
         MERGE (n:Norm {id: $id})
         ON CREATE SET
-            n.name = $name,
-            n.text = $text,
-            n.status = $status,
-            n.effective_date = $effective_date,
+            n.title = $title,
+            n.body = $body,
+            n.level = $level,
+            n.version = $version,
+            n.valid_from = $valid_from,
+            n.valid_until = $valid_until,
+            n.announced_at = $announced_at,
+            n.text_hash = $text_hash,
+            n.lang = $lang,
+            n.domain = $domain,
             n.embedding = $embedding,
             n.created_at = $created_at
-        RETURN n.id AS id, n.name AS name, n.text AS text, n.status AS status,
-               n.effective_date AS effective_date, n.created_at AS created_at
+        RETURN n.id AS id, n.title AS title, n.body AS body, n.level AS level,
+               n.version AS version, n.valid_from AS valid_from,
+               n.valid_until AS valid_until, n.announced_at AS announced_at,
+               n.text_hash AS text_hash, n.lang AS lang, n.domain AS domain,
+               n.created_at AS created_at
         """,
         id=req.id,
-        name=req.name,
-        text=req.text,
-        status=req.status,
-        effective_date=req.effective_date,
+        title=req.title,
+        body=req.body,
+        level=req.level,
+        version=req.version,
+        valid_from=req.valid_from,
+        valid_until=req.valid_until,
+        announced_at=req.announced_at,
+        text_hash=req.text_hash,
+        lang=req.lang,
+        domain=req.domain,
         embedding=embedding,
         created_at=now,
     )
     record = dict(result.single())
 
-    if req.control_id:
+    if req.maps_to_control_id:
         session.run(
             """
             MATCH (n:Norm {id: $norm_id}), (c:Control {id: $control_id})
-            MERGE (n)-[:IMPLEMENTS]->(c)
+            MERGE (n)-[:MAPS_TO]->(c)
             """,
             norm_id=req.id,
-            control_id=req.control_id,
+            control_id=req.maps_to_control_id,
         )
 
-    if req.doc_id:
+    if req.references_framework_id:
         session.run(
             """
-            MATCH (n:Norm {id: $norm_id}), (d:Document {id: $doc_id})
-            MERGE (n)-[:SOURCED_FROM]->(d)
+            MATCH (n:Norm {id: $norm_id}), (f:Framework {id: $framework_id})
+            MERGE (n)-[r:REFERENCES]->(f)
+            ON CREATE SET r.version_pinned = $version_pinned
             """,
             norm_id=req.id,
-            doc_id=req.doc_id,
+            framework_id=req.references_framework_id,
+            version_pinned=req.references_version_pinned,
         )
 
     return record
@@ -133,8 +148,11 @@ def get_norm(session, norm_id: str) -> dict | None:
     result = session.run(
         """
         MATCH (n:Norm {id: $id})
-        RETURN n.id AS id, n.name AS name, n.text AS text, n.status AS status,
-               n.effective_date AS effective_date, n.created_at AS created_at
+        RETURN n.id AS id, n.title AS title, n.body AS body, n.level AS level,
+               n.version AS version, n.valid_from AS valid_from,
+               n.valid_until AS valid_until, n.announced_at AS announced_at,
+               n.text_hash AS text_hash, n.lang AS lang, n.domain AS domain,
+               n.created_at AS created_at
         """,
         id=norm_id,
     )
@@ -154,15 +172,15 @@ def upsert_document(session, req, now: str) -> dict:
         MERGE (d:Document {id: $id})
         ON CREATE SET
             d.title = $title,
-            d.doc_type = $doc_type,
+            d.policy_level = $policy_level,
             d.source_url = $source_url,
             d.created_at = $created_at
-        RETURN d.id AS id, d.title AS title, d.doc_type AS doc_type,
+        RETURN d.id AS id, d.title AS title, d.policy_level AS policy_level,
                d.source_url AS source_url, d.created_at AS created_at
         """,
         id=req.id,
         title=req.title,
-        doc_type=req.doc_type,
+        policy_level=req.policy_level,
         source_url=req.source_url,
         created_at=now,
     )
@@ -173,7 +191,7 @@ def get_document(session, doc_id: str) -> dict | None:
     result = session.run(
         """
         MATCH (d:Document {id: $id})
-        RETURN d.id AS id, d.title AS title, d.doc_type AS doc_type,
+        RETURN d.id AS id, d.title AS title, d.policy_level AS policy_level,
                d.source_url AS source_url, d.created_at AS created_at
         """,
         id=doc_id,
@@ -193,18 +211,26 @@ def upsert_chunk(session, req, embedding: list[float], now: str) -> dict:
         """
         MERGE (ch:Chunk {id: $id})
         ON CREATE SET
-            ch.text = $text,
+            ch.body = $body,
             ch.sequence = $sequence,
             ch.doc_id = $doc_id,
+            ch.heading = $heading,
+            ch.section_ref = $section_ref,
+            ch.status = $status,
             ch.embedding = $embedding,
             ch.created_at = $created_at
-        RETURN ch.id AS id, ch.text AS text, ch.sequence AS sequence,
-               ch.doc_id AS doc_id, ch.created_at AS created_at
+        RETURN ch.id AS id, ch.body AS body, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.heading AS heading,
+               ch.section_ref AS section_ref, ch.status AS status,
+               ch.created_at AS created_at
         """,
         id=req.id,
-        text=req.text,
+        body=req.body,
         sequence=req.sequence,
         doc_id=req.doc_id,
+        heading=req.heading,
+        section_ref=req.section_ref,
+        status=req.status,
         embedding=embedding,
         created_at=now,
     )
@@ -236,8 +262,10 @@ def get_chunk(session, chunk_id: str) -> dict | None:
     result = session.run(
         """
         MATCH (ch:Chunk {id: $id})
-        RETURN ch.id AS id, ch.text AS text, ch.sequence AS sequence,
-               ch.doc_id AS doc_id, ch.created_at AS created_at
+        RETURN ch.id AS id, ch.body AS body, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.heading AS heading,
+               ch.section_ref AS section_ref, ch.status AS status,
+               ch.created_at AS created_at
         """,
         id=chunk_id,
     )
@@ -258,7 +286,7 @@ def search_frameworks(
     statement_type: str | None = None,
 ) -> list[dict]:
     """Vector search over framework_embedding_idx (Framework nodes with body text).
-    Returns list of dicts: {id, name, level, body, created_at, distance}.
+    Returns list of dicts: {id, title, level, body, created_at, distance}.
     NOTE: vector_search returns up to $limit nodes before any filter is applied.
     framework_id filter is not supported in MVP — pass None.
     statement_type filter is applied post-index as a WHERE clause.
@@ -269,7 +297,7 @@ def search_frameworks(
         YIELD node AS f, distance
         WITH f, distance
         WHERE ($statement_type IS NULL OR f.statement_type = $statement_type)
-        RETURN f.id AS id, f.name AS name, f.level AS level,
+        RETURN f.id AS id, f.title AS title, f.level AS level,
                f.body AS body, f.created_at AS created_at,
                distance
         ORDER BY distance ASC
@@ -288,9 +316,9 @@ def search_chunks(
     doc_id: str | None,
 ) -> list[dict]:
     """Vector search over chunk_embedding_idx.
-    Returns list of dicts: {id, text, sequence, doc_id, created_at, distance}.
+    Returns list of dicts: {id, body, sequence, doc_id, heading, section_ref, status, created_at, distance}.
     No recall_count increment.
-    NOTE: Same post-index filter caveat as search_controls.
+    NOTE: Same post-index filter caveat as search_frameworks.
     """
     result = session.run(
         """
@@ -298,8 +326,10 @@ def search_chunks(
         YIELD node AS ch, distance
         WITH ch, distance
         WHERE ($doc_id IS NULL OR ch.doc_id = $doc_id)
-        RETURN ch.id AS id, ch.text AS text, ch.sequence AS sequence,
-               ch.doc_id AS doc_id, ch.created_at AS created_at,
+        RETURN ch.id AS id, ch.body AS body, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.heading AS heading,
+               ch.section_ref AS section_ref, ch.status AS status,
+               ch.created_at AS created_at,
                distance
         ORDER BY distance ASC
         """,
@@ -316,15 +346,18 @@ def search_chunks(
 
 
 def list_norms(session) -> list[dict]:
-    """Return all Norm nodes, ordered by name.
-    Returns list of dicts: {id, name, text, status, effective_date, created_at}.
+    """Return all Norm nodes, ordered by title.
+    Returns list of dicts matching NormResponse fields.
     """
     result = session.run(
         """
         MATCH (n:Norm)
-        RETURN n.id AS id, n.name AS name, n.text AS text, n.status AS status,
-               n.effective_date AS effective_date, n.created_at AS created_at
-        ORDER BY n.name ASC
+        RETURN n.id AS id, n.title AS title, n.body AS body, n.level AS level,
+               n.version AS version, n.valid_from AS valid_from,
+               n.valid_until AS valid_until, n.announced_at AS announced_at,
+               n.text_hash AS text_hash, n.lang AS lang, n.domain AS domain,
+               n.created_at AS created_at
+        ORDER BY n.title ASC
         """
     )
     return [dict(r) for r in result]
@@ -332,12 +365,12 @@ def list_norms(session) -> list[dict]:
 
 def list_documents(session) -> list[dict]:
     """Return all Document nodes, ordered by title.
-    Returns list of dicts: {id, title, doc_type, source_url, created_at}.
+    Returns list of dicts: {id, title, policy_level, source_url, created_at}.
     """
     result = session.run(
         """
         MATCH (d:Document)
-        RETURN d.id AS id, d.title AS title, d.doc_type AS doc_type,
+        RETURN d.id AS id, d.title AS title, d.policy_level AS policy_level,
                d.source_url AS source_url, d.created_at AS created_at
         ORDER BY d.title ASC
         """
@@ -350,12 +383,13 @@ def create_supports_edge_framework(
     chunk_id: str,
     framework_id: str,
     confidence: float,
+    raw_score: float | None,
     status: str,
     now: str,
 ) -> dict | None:
     """MERGE SUPPORTS edge Chunk→Framework; SET all properties ON CREATE only.
 
-    Returns {chunk_id, framework_id, confidence, status, created_at}.
+    Returns {chunk_id, framework_id, confidence, raw_score, status, created_at}.
     Returns None if either Chunk or Framework node does not exist.
     Callers must check for None and raise HTTP 404.
     """
@@ -365,15 +399,17 @@ def create_supports_edge_framework(
         MERGE (ch)-[s:SUPPORTS]->(f)
         ON CREATE SET
             s.confidence  = $confidence,
+            s.raw_score   = $raw_score,
             s.status      = $status,
             s.created_at  = $created_at
         RETURN ch.id AS chunk_id, f.id AS framework_id,
-               s.confidence AS confidence, s.status AS status,
-               s.created_at AS created_at
+               s.confidence AS confidence, s.raw_score AS raw_score,
+               s.status AS status, s.created_at AS created_at
         """,
         chunk_id=chunk_id,
         framework_id=framework_id,
         confidence=confidence,
+        raw_score=raw_score,
         status=status,
         created_at=now,
     )
@@ -387,14 +423,16 @@ def get_chunks_for_framework(session, framework_id: str) -> list[dict]:
     """Return all Chunk nodes with a SUPPORTS edge to this Framework,
     ordered by confidence DESC.
 
-    Returns list of dicts: {id, text, sequence, doc_id, created_at, confidence, status}.
+    Returns list of dicts: {id, body, sequence, doc_id, heading, section_ref, status, created_at, confidence}.
     """
     result = session.run(
         """
         MATCH (ch:Chunk)-[s:SUPPORTS]->(f:Framework {id: $framework_id})
-        RETURN ch.id AS id, ch.text AS text, ch.sequence AS sequence,
-               ch.doc_id AS doc_id, ch.created_at AS created_at,
-               s.confidence AS confidence, s.status AS status
+        RETURN ch.id AS id, ch.body AS body, ch.sequence AS sequence,
+               ch.doc_id AS doc_id, ch.heading AS heading,
+               ch.section_ref AS section_ref, ch.status AS status,
+               ch.created_at AS created_at,
+               s.confidence AS confidence
         ORDER BY s.confidence DESC
         """,
         framework_id=framework_id,
@@ -406,15 +444,15 @@ def list_incomplete_jurisdictions(session) -> dict:
     """Return Norms with no APPLIES_IN edges.
     Returns:
       {
-        "norms_without_jurisdiction": [{"id": ..., "name": ...}, ...],
+        "norms_without_jurisdiction": [{"id": ..., "title": ...}, ...],
       }
     """
     norms_result = session.run(
         """
         MATCH (n:Norm)
         WHERE NOT (n)-[:APPLIES_IN]->(:Jurisdiction)
-        RETURN n.id AS id, n.name AS name
-        ORDER BY n.name ASC
+        RETURN n.id AS id, n.title AS title
+        ORDER BY n.title ASC
         """
     )
     return {
@@ -454,7 +492,7 @@ def trace_up(session, control_id: str) -> dict | None:
         RETURN
           $control_id AS control_id,
           collect(DISTINCT CASE WHEN ba IS NOT NULL THEN {id: ba.id, name: ba.name} END) AS business_attributes,
-          collect(DISTINCT CASE WHEN n IS NOT NULL THEN {id: n.id, name: n.name, status: n.status} END) AS norms
+          collect(DISTINCT CASE WHEN n IS NOT NULL THEN {id: n.id, title: n.title} END) AS norms
         """,
         control_id=control_id,
     ).single()
@@ -492,7 +530,7 @@ def trace_down(session, control_id: str, org_id: str | None) -> dict | None:
             doc_id: d.id,
             doc_title: d.title,
             chunk_id: ch.id,
-            chunk_text: ch.text,
+            chunk_body: ch.body,
             confidence: sup.confidence,
             sup_status: sup.status
           } END) AS doc_chunks,
@@ -518,7 +556,7 @@ def trace_down(session, control_id: str, org_id: str | None) -> dict | None:
             doc_map[did] = {"id": did, "title": row["doc_title"], "chunks": []}
         doc_map[did]["chunks"].append({
             "id": row["chunk_id"],
-            "text": row["chunk_text"],
+            "body": row["chunk_body"],
             "confidence": row["confidence"],
             "status": row["sup_status"],
         })

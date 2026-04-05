@@ -6,7 +6,8 @@ Recognised edge types (allowlisted for replay):
   Memory layer:       RELATED_TO, LEADS_TO
   Knowledge layer:    MAPPED_TO, SUPPORTS, HAS_CHUNK, IMPLEMENTS,
                       ADDRESSES, OWNED_BY, APPLIES_IN, OPERATES_IN,
-                      ABOUT_CONTROL, CITES_DOC, CONTAINS
+                      ABOUT_CONTROL, CITES_DOC, CONTAINS,
+                      MAPS_TO, REFERENCES
 
 Note: knowledge-layer *node* restoration (Standard, Control, Document, etc.)
 is handled by the ETL scripts (WP-074), not by this script.  Knowledge-layer
@@ -33,6 +34,7 @@ ALLOWED_EDGE_TYPES = frozenset({
     "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
     "IMPLEMENTS", "ADDRESSES", "OWNED_BY", "APPLIES_IN",
     "OPERATES_IN", "ABOUT_CONTROL", "CITES_DOC", "CONTAINS",
+    "MAPS_TO", "REFERENCES",
 })
 
 

@@ -10,6 +10,7 @@ import pytest
 
 from memory_service import main as service_main
 from memory_service.knowledge_schemas import (
+    CHUNK_STATUSES,
     CONTROL_DOMAINS,
     CONTROL_RELATIONSHIP_TYPES,
     DOCUMENT_POLICY_LEVELS,
@@ -94,6 +95,10 @@ def test_organisation_types():
     assert ORGANISATION_TYPES == {"employer", "client", "regulatory-body", "standards-body"}
 
 
+def test_chunk_statuses():
+    assert CHUNK_STATUSES == {"unmatched", "matched", "confirmed", "superseded"}
+
+
 # ---------------------------------------------------------------------------
 # Unit tests — NodeLabel enum
 # ---------------------------------------------------------------------------
@@ -120,7 +125,7 @@ _KNOWLEDGE_EDGE_TYPES = {
     "MAPPED_TO", "SUPPORTS", "HAS_CHUNK",
     "IMPLEMENTS", "ADDRESSES", "OWNED_BY", "APPLIES_IN",
     "OPERATES_IN", "ABOUT_CONTROL", "CITES_DOC",
-    "CONTAINS",
+    "CONTAINS", "MAPS_TO", "REFERENCES",
 }
 
 def test_dump_db_query_includes_knowledge_edge_types():
