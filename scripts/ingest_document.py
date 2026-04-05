@@ -97,7 +97,7 @@ def _post_supports(
     confidence: float,
 ) -> dict:
     resp = client.post(
-        "/knowledge/chunk/supports",
+        "/knowledge/chunks/supports",
         json={
             "chunk_id": chunk_id,
             "control_id": control_id,

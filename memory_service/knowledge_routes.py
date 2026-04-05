@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Literal
 
 from fastapi import APIRouter, HTTPException, Request
+from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, Field
 
 from memory_service import knowledge_repo
@@ -313,23 +314,29 @@ async def upsert_framework(req: FrameworkCreate, request: Request) -> FrameworkR
         if req.statement_type != "normative":
             raise HTTPException(400, "modality can only be set when statement_type is 'normative'")
     now = datetime.now(tz=timezone.utc).isoformat()
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.upsert_framework(session, req, now)
-    if req.body:
-        embedding = get_embedding(req.body, model_name=settings.knowledge_embedding_model)
+    try:
         with request.app.state.driver.session() as session:
-            session.run(
-                "MATCH (f:Framework {id: $id}) SET f.embedding = $emb",
-                id=req.id,
-                emb=embedding,
-            )
+            record = knowledge_repo.upsert_framework(session, req, now)
+        if req.body:
+            embedding = get_embedding(req.body, model_name=settings.knowledge_embedding_model)
+            with request.app.state.driver.session() as session:
+                session.run(
+                    "MATCH (f:Framework {id: $id}) SET f.embedding = $emb",
+                    id=req.id,
+                    emb=embedding,
+                )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return FrameworkResponse(**record)
 
 
 @router.get("/frameworks/{framework_id}", response_model=FrameworkResponse)
 async def get_framework(framework_id: str, request: Request) -> FrameworkResponse:
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.get_framework(session, framework_id)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_framework(session, framework_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if record is None:
         raise HTTPException(status_code=404, detail=f"Framework '{framework_id}' not found")
     return FrameworkResponse(**record)
@@ -344,15 +351,21 @@ async def get_framework(framework_id: str, request: Request) -> FrameworkRespons
 async def upsert_norm(req: NormCreate, request: Request) -> NormResponse:
     embedding = get_embedding(req.body, model_name=settings.knowledge_embedding_model)
     now = datetime.now(tz=timezone.utc).isoformat()
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.upsert_norm(session, req, embedding, now)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_norm(session, req, embedding, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return NormResponse(**record)
 
 
 @router.get("/norms/{norm_id}", response_model=NormResponse)
 async def get_norm(norm_id: str, request: Request) -> NormResponse:
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.get_norm(session, norm_id)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_norm(session, norm_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if record is None:
         raise HTTPException(status_code=404, detail=f"Norm '{norm_id}' not found")
     return NormResponse(**record)
@@ -368,15 +381,21 @@ async def upsert_document(req: DocumentCreate, request: Request) -> DocumentResp
     if req.policy_level not in DOCUMENT_POLICY_LEVELS:
         raise HTTPException(400, f"Invalid policy_level: {req.policy_level}. Must be one of: {sorted(DOCUMENT_POLICY_LEVELS)}")
     now = datetime.now(tz=timezone.utc).isoformat()
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.upsert_document(session, req, now)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_document(session, req, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return DocumentResponse(**record)
 
 
 @router.get("/documents/{doc_id}", response_model=DocumentResponse)
 async def get_document(doc_id: str, request: Request) -> DocumentResponse:
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.get_document(session, doc_id)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_document(session, doc_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if record is None:
         raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found")
     return DocumentResponse(**record)
@@ -393,15 +412,21 @@ async def upsert_chunk(req: ChunkCreate, request: Request) -> ChunkResponse:
         raise HTTPException(400, f"Invalid status: {req.status}. Must be one of: {sorted(CHUNK_STATUSES)}")
     embedding = get_embedding(req.body, model_name=settings.knowledge_embedding_model)
     now = datetime.now(tz=timezone.utc).isoformat()
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.upsert_chunk(session, req, embedding, now)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_chunk(session, req, embedding, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return ChunkResponse(**record)
 
 
 @router.get("/chunks/{chunk_id}", response_model=ChunkResponse)
 async def get_chunk(chunk_id: str, request: Request) -> ChunkResponse:
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.get_chunk(session, chunk_id)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_chunk(session, chunk_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if record is None:
         raise HTTPException(status_code=404, detail=f"Chunk '{chunk_id}' not found")
     return ChunkResponse(**record)
@@ -415,16 +440,22 @@ async def get_chunk(chunk_id: str, request: Request) -> ChunkResponse:
 @router.post("/search/chunks", response_model=List[ChunkHit])
 async def search_chunks(req: ChunkSearchRequest, request: Request) -> List[ChunkHit]:
     query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
-    with request.app.state.driver.session() as session:
-        hits = knowledge_repo.search_chunks(session, query_vec, req.limit, req.doc_id)
+    try:
+        with request.app.state.driver.session() as session:
+            hits = knowledge_repo.search_chunks(session, query_vec, req.limit, req.doc_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [ChunkHit(**h) for h in hits]
 
 
 @router.post("/search/frameworks", response_model=List[FrameworkHit])
 async def search_frameworks(req: FrameworkSearchRequest, request: Request) -> List[FrameworkHit]:
     query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
-    with request.app.state.driver.session() as session:
-        hits = knowledge_repo.search_frameworks(session, query_vec, req.limit, req.framework_id, req.statement_type)
+    try:
+        with request.app.state.driver.session() as session:
+            hits = knowledge_repo.search_frameworks(session, query_vec, req.limit, req.framework_id, req.statement_type)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [FrameworkHit(**h) for h in hits]
 
 
@@ -435,15 +466,21 @@ async def search_frameworks(req: FrameworkSearchRequest, request: Request) -> Li
 
 @router.get("/norms", response_model=List[NormResponse])
 async def list_norms(request: Request) -> List[NormResponse]:
-    with request.app.state.driver.session() as session:
-        norms = knowledge_repo.list_norms(session)
+    try:
+        with request.app.state.driver.session() as session:
+            norms = knowledge_repo.list_norms(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [NormResponse(**n) for n in norms]
 
 
 @router.get("/documents", response_model=List[DocumentResponse])
 async def list_documents(request: Request) -> List[DocumentResponse]:
-    with request.app.state.driver.session() as session:
-        docs = knowledge_repo.list_documents(session)
+    try:
+        with request.app.state.driver.session() as session:
+            docs = knowledge_repo.list_documents(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [DocumentResponse(**d) for d in docs]
 
 
@@ -454,8 +491,11 @@ async def list_documents(request: Request) -> List[DocumentResponse]:
 
 @router.get("/incomplete-jurisdictions")
 async def list_incomplete_jurisdictions(request: Request) -> dict:
-    with request.app.state.driver.session() as session:
-        result = knowledge_repo.list_incomplete_jurisdictions(session)
+    try:
+        with request.app.state.driver.session() as session:
+            result = knowledge_repo.list_incomplete_jurisdictions(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return result
 
 
@@ -464,17 +504,20 @@ async def list_incomplete_jurisdictions(request: Request) -> dict:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/chunk/supports", response_model=SupportsResponse)
+@router.post("/chunks/supports", response_model=SupportsResponse)
 async def create_supports(req: SupportsCreate, request: Request) -> SupportsResponse:
     now = datetime.now(tz=timezone.utc).isoformat()
-    with request.app.state.driver.session() as session:
-        if knowledge_repo.get_chunk(session, req.chunk_id) is None:
-            raise HTTPException(status_code=404, detail=f"Chunk not found: {req.chunk_id}")
-        if knowledge_repo.get_framework(session, req.framework_id) is None:
-            raise HTTPException(status_code=404, detail=f"Framework not found: {req.framework_id}")
-        record = knowledge_repo.create_supports_edge_framework(
-            session, req.chunk_id, req.framework_id, req.confidence, req.raw_score, req.status, now
-        )
+    try:
+        with request.app.state.driver.session() as session:
+            if knowledge_repo.get_chunk(session, req.chunk_id) is None:
+                raise HTTPException(status_code=404, detail=f"Chunk not found: {req.chunk_id}")
+            if knowledge_repo.get_framework(session, req.framework_id) is None:
+                raise HTTPException(status_code=404, detail=f"Framework not found: {req.framework_id}")
+            record = knowledge_repo.create_supports_edge_framework(
+                session, req.chunk_id, req.framework_id, req.confidence, req.raw_score, req.status, now
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if record is None:
         raise HTTPException(status_code=404, detail="Chunk or Framework not found")
     return SupportsResponse(**record)
@@ -482,10 +525,13 @@ async def create_supports(req: SupportsCreate, request: Request) -> SupportsResp
 
 @router.get("/frameworks/{framework_id}/chunks", response_model=List[ChunkWithSupports])
 async def get_chunks_for_framework(framework_id: str, request: Request) -> List[ChunkWithSupports]:
-    with request.app.state.driver.session() as session:
-        if knowledge_repo.get_framework(session, framework_id) is None:
-            raise HTTPException(status_code=404, detail=f"Framework not found: {framework_id}")
-        chunks = knowledge_repo.get_chunks_for_framework(session, framework_id)
+    try:
+        with request.app.state.driver.session() as session:
+            if knowledge_repo.get_framework(session, framework_id) is None:
+                raise HTTPException(status_code=404, detail=f"Framework not found: {framework_id}")
+            chunks = knowledge_repo.get_chunks_for_framework(session, framework_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [ChunkWithSupports(**c) for c in chunks]
 
 
@@ -498,15 +544,21 @@ async def get_chunks_for_framework(framework_id: str, request: Request) -> List[
 async def upsert_control(req: ControlCreate, request: Request) -> ControlResponse:
     embedding = get_embedding(req.name, model_name=settings.knowledge_embedding_model)
     now = datetime.now(tz=timezone.utc).isoformat()
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.upsert_control(session, req, embedding, now)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_control(session, req, embedding, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return ControlResponse(**record)
 
 
 @router.get("/controls/{control_id}", response_model=ControlResponse)
 async def get_control(control_id: str, request: Request) -> ControlResponse:
-    with request.app.state.driver.session() as session:
-        record = knowledge_repo.get_control(session, control_id)
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_control(session, control_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if record is None:
         raise HTTPException(status_code=404, detail=f"Control '{control_id}' not found")
     return ControlResponse(**record)
@@ -515,17 +567,23 @@ async def get_control(control_id: str, request: Request) -> ControlResponse:
 @router.post("/search/controls", response_model=List[ControlHit])
 async def search_controls(req: ControlSearchRequest, request: Request) -> List[ControlHit]:
     query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
-    with request.app.state.driver.session() as session:
-        hits = knowledge_repo.search_controls(session, query_vec, req.limit, req.framework_id)
+    try:
+        with request.app.state.driver.session() as session:
+            hits = knowledge_repo.search_controls(session, query_vec, req.limit, req.framework_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [ControlHit(**h) for h in hits]
 
 
 @router.get("/controls/{control_id}/chunks", response_model=List[ChunkWithSupports])
 async def get_chunks_for_control(control_id: str, request: Request) -> List[ChunkWithSupports]:
-    with request.app.state.driver.session() as session:
-        if knowledge_repo.get_control(session, control_id) is None:
-            raise HTTPException(status_code=404, detail=f"Control not found: {control_id}")
-        chunks = knowledge_repo.get_chunks_for_control(session, control_id)
+    try:
+        with request.app.state.driver.session() as session:
+            if knowledge_repo.get_control(session, control_id) is None:
+                raise HTTPException(status_code=404, detail=f"Control not found: {control_id}")
+            chunks = knowledge_repo.get_chunks_for_control(session, control_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [ChunkWithSupports(**c) for c in chunks]
 
 
@@ -536,8 +594,11 @@ async def get_chunks_for_control(control_id: str, request: Request) -> List[Chun
 
 @router.get("/controls/{control_id}/trace-up", response_model=TraceUpResponse)
 async def trace_up(control_id: str, request: Request) -> TraceUpResponse:
-    with request.app.state.driver.session() as session:
-        result = knowledge_repo.trace_up(session, control_id)
+    try:
+        with request.app.state.driver.session() as session:
+            result = knowledge_repo.trace_up(session, control_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if result is None:
         raise HTTPException(status_code=404, detail=f"Control '{control_id}' not found")
     return TraceUpResponse(
@@ -553,8 +614,11 @@ async def trace_down(
     request: Request,
     org_id: Optional[str] = None,
 ) -> TraceDownResponse:
-    with request.app.state.driver.session() as session:
-        result = knowledge_repo.trace_down(session, control_id, org_id)
+    try:
+        with request.app.state.driver.session() as session:
+            result = knowledge_repo.trace_down(session, control_id, org_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if result is None:
         raise HTTPException(status_code=404, detail=f"Control '{control_id}' not found")
     return TraceDownResponse(
@@ -574,8 +638,11 @@ async def trace_down(
 
 @router.get("/attributes/{attribute_id}/coverage", response_model=AttributeCoverageResponse)
 async def attribute_coverage(attribute_id: str, request: Request) -> AttributeCoverageResponse:
-    with request.app.state.driver.session() as session:
-        result = knowledge_repo.attribute_coverage(session, attribute_id)
+    try:
+        with request.app.state.driver.session() as session:
+            result = knowledge_repo.attribute_coverage(session, attribute_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     if result is None:
         raise HTTPException(status_code=404, detail=f"BusinessAttribute '{attribute_id}' not found")
     return AttributeCoverageResponse(**result)
@@ -583,8 +650,11 @@ async def attribute_coverage(attribute_id: str, request: Request) -> AttributeCo
 
 @router.post("/gap-analysis", response_model=GapAnalysisResponse)
 async def gap_analysis(req: GapAnalysisRequest, request: Request) -> GapAnalysisResponse:
-    with request.app.state.driver.session() as session:
-        result = knowledge_repo.gap_analysis(session, req.control_ids, req.org_id)
+    try:
+        with request.app.state.driver.session() as session:
+            result = knowledge_repo.gap_analysis(session, req.control_ids, req.org_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return GapAnalysisResponse(
         covered=[ControlGapEntry(**e) for e in result["covered"]],
         partial=[ControlGapEntry(**e) for e in result["partial"]],

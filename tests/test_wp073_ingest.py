@@ -31,7 +31,7 @@ def client():
 
 
 # ---------------------------------------------------------------------------
-# Route-level tests: POST /knowledge/chunk/supports
+# Route-level tests: POST /knowledge/chunks/supports
 # ---------------------------------------------------------------------------
 
 
@@ -39,24 +39,25 @@ def test_create_supports_returns_200(client):
     test_client, mock_session = client
     record = {
         "chunk_id": "chunk-1",
-        "control_id": "ctrl-1",
+        "framework_id": "fw-1",
         "confidence": 0.85,
+        "raw_score": None,
         "status": "auto-inferred",
         "created_at": "2026-01-01T00:00:00+00:00",
     }
     with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "chunk-1"}), \
-         patch("memory_service.knowledge_repo.get_control", return_value={"id": "ctrl-1"}), \
-         patch("memory_service.knowledge_repo.create_supports_edge", return_value=record):
-        resp = test_client.post("/knowledge/chunk/supports", json={
+         patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw-1"}), \
+         patch("memory_service.knowledge_repo.create_supports_edge_framework", return_value=record):
+        resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "chunk-1",
-            "control_id": "ctrl-1",
+            "framework_id": "fw-1",
             "confidence": 0.85,
             "status": "auto-inferred",
         })
     assert resp.status_code == 200
     data = resp.json()
     assert data["chunk_id"] == "chunk-1"
-    assert data["control_id"] == "ctrl-1"
+    assert data["framework_id"] == "fw-1"
     assert data["confidence"] == 0.85
     assert data["status"] == "auto-inferred"
 
@@ -64,27 +65,27 @@ def test_create_supports_returns_200(client):
 def test_create_supports_missing_chunk_404(client):
     test_client, mock_session = client
     with patch("memory_service.knowledge_repo.get_chunk", return_value=None), \
-         patch("memory_service.knowledge_repo.get_control", return_value={"id": "ctrl-1"}):
-        resp = test_client.post("/knowledge/chunk/supports", json={
+         patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw-1"}):
+        resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "nonexistent-chunk",
-            "control_id": "ctrl-1",
+            "framework_id": "fw-1",
             "confidence": 0.5,
         })
     assert resp.status_code == 404
     assert "nonexistent-chunk" in resp.json()["detail"]
 
 
-def test_create_supports_missing_control_404(client):
+def test_create_supports_missing_framework_404(client):
     test_client, mock_session = client
     with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "chunk-1"}), \
-         patch("memory_service.knowledge_repo.get_control", return_value=None):
-        resp = test_client.post("/knowledge/chunk/supports", json={
+         patch("memory_service.knowledge_repo.get_framework", return_value=None):
+        resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "chunk-1",
-            "control_id": "nonexistent-ctrl",
+            "framework_id": "nonexistent-fw",
             "confidence": 0.5,
         })
     assert resp.status_code == 404
-    assert "nonexistent-ctrl" in resp.json()["detail"]
+    assert "nonexistent-fw" in resp.json()["detail"]
 
 
 # ---------------------------------------------------------------------------
@@ -96,12 +97,12 @@ def test_get_chunks_for_control_returns_list(client):
     test_client, mock_session = client
     chunks = [
         {
-            "id": "chunk-1", "text": "text one", "sequence": 0,
+            "id": "chunk-1", "body": "text one", "sequence": 0,
             "doc_id": "doc-1", "created_at": "2026-01-01T00:00:00+00:00",
             "confidence": 0.9, "status": "auto-inferred",
         },
         {
-            "id": "chunk-2", "text": "text two", "sequence": 1,
+            "id": "chunk-2", "body": "text two", "sequence": 1,
             "doc_id": "doc-1", "created_at": "2026-01-01T00:00:00+00:00",
             "confidence": 0.7, "status": "auto-inferred",
         },
@@ -138,14 +139,15 @@ def test_get_chunks_for_control_empty(client):
 # ---------------------------------------------------------------------------
 
 
-def test_create_supports_edge_calls_session_run():
+def test_create_supports_edge_framework_calls_session_run():
     from memory_service import knowledge_repo
 
     mock_session = MagicMock()
     record_data = {
         "chunk_id": "chunk-1",
-        "control_id": "ctrl-1",
+        "framework_id": "fw-1",
         "confidence": 0.85,
+        "raw_score": None,
         "status": "auto-inferred",
         "created_at": "2026-01-01T00:00:00+00:00",
     }
@@ -155,26 +157,26 @@ def test_create_supports_edge_calls_session_run():
     mock_record.__getitem__ = lambda self, k: record_data[k]
     mock_session.run.return_value.single.return_value = mock_record
 
-    result = knowledge_repo.create_supports_edge(
-        mock_session, "chunk-1", "ctrl-1", 0.85, "auto-inferred", "2026-01-01T00:00:00+00:00"
+    result = knowledge_repo.create_supports_edge_framework(
+        mock_session, "chunk-1", "fw-1", 0.85, None, "auto-inferred", "2026-01-01T00:00:00+00:00"
     )
 
     mock_session.run.assert_called_once()
     call_kwargs = mock_session.run.call_args
     assert call_kwargs[1]["chunk_id"] == "chunk-1"
-    assert call_kwargs[1]["control_id"] == "ctrl-1"
+    assert call_kwargs[1]["framework_id"] == "fw-1"
     assert call_kwargs[1]["confidence"] == 0.85
     assert result is not None
 
 
-def test_create_supports_edge_returns_none_when_no_match():
+def test_create_supports_edge_framework_returns_none_when_no_match():
     from memory_service import knowledge_repo
 
     mock_session = MagicMock()
     mock_session.run.return_value.single.return_value = None
 
-    result = knowledge_repo.create_supports_edge(
-        mock_session, "bad-chunk", "bad-ctrl", 0.5, "auto-inferred", "2026-01-01T00:00:00+00:00"
+    result = knowledge_repo.create_supports_edge_framework(
+        mock_session, "bad-chunk", "bad-fw", 0.5, None, "auto-inferred", "2026-01-01T00:00:00+00:00"
     )
 
     assert result is None
@@ -293,7 +295,7 @@ def test_review_mode_prevents_edge_creation(tmp_path, capsys):
     # Verify: POST was called for document and chunk but NOT for supports
     calls = [str(c) for c in mock_client.post.call_args_list]
     assert any("/knowledge/documents" in c for c in calls)
-    assert not any("/knowledge/chunk/supports" in c for c in calls)
+    assert not any("/knowledge/chunks/supports" in c for c in calls)
 
     captured = capsys.readouterr()
     assert "Review mode" in captured.out
@@ -379,8 +381,8 @@ def test_auto_supports_below_threshold_creates_edge(tmp_path):
         main()
 
     calls = [str(c) for c in mock_client.post.call_args_list]
-    assert any("/knowledge/chunk/supports" in c for c in calls), \
-        "Expected POST to /knowledge/chunk/supports but got: " + str(calls)
+    assert any("/knowledge/chunks/supports" in c for c in calls), \
+        "Expected POST to /knowledge/chunks/supports but got: " + str(calls)
 
 
 def test_auto_supports_above_threshold_skipped(tmp_path):
@@ -419,5 +421,5 @@ def test_auto_supports_above_threshold_skipped(tmp_path):
         main()
 
     calls = [str(c) for c in mock_client.post.call_args_list]
-    assert not any("/knowledge/chunk/supports" in c for c in calls), \
-        "Expected NO POST to /knowledge/chunk/supports but got: " + str(calls)
+    assert not any("/knowledge/chunks/supports" in c for c in calls), \
+        "Expected NO POST to /knowledge/chunks/supports but got: " + str(calls)

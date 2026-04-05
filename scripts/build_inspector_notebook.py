@@ -413,7 +413,7 @@ else:
     created = 0
     with httpx.Client(base_url=cfg.api_base_url, timeout=30) as client:
         for c in _candidates:
-            resp = client.post("/knowledge/chunk/supports", json={
+            resp = client.post("/knowledge/chunks/supports", json={
                 "chunk_id": c["chunk_id"],
                 "control_id": c["control_id"],
                 "confidence": c["confidence"],
