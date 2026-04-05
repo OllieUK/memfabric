@@ -40,7 +40,7 @@ ADR-001 established that the knowledge layer lives inside graph-memory-fabric as
 | `BusinessAttribute` | `id` | — | `name` (e.g. customer trust, regulatory standing, operational continuity, competitive advantage, brand reputation) |
 | `Organisation` | `id` | — | `name`, `type` (employer/client/regulatory-body/standards-body) |
 | `Jurisdiction` | `code` | — | `name`, `type` (geographic/sectoral) |
-| `Framework` | `id` | — | `level` (framework/category/technique/sub-technique — varies by framework), `title`, `body`, `domain` (enterprise/ics/mobile — for ATT&CK), `version`, `external_id` (e.g. T1566.001) |
+| `Framework` | `id` | `framework_embedding_idx` | `level` (framework/category/technique/sub-technique — varies by framework), `title`, `body`, `domain` (enterprise/ics/mobile — for ATT&CK), `version`, `external_id` (e.g. T1566.001), `statement_type`, `modality` |
 | `Threat` | `id` | `threat_embedding_idx` | `text` (normalised threat statement), `tags` |
 | `ThreatReport` | `id` | — | `title`, `publisher`, `published_at`, `valid_from`, `valid_until`, `scope` (geographic/sectoral/vendor), `perspective_notes` (known biases/focus) |
 | `Asset` | `id` | — | `title`, `asset_type` (IT/OT/IoT/IT-OT-integration), `exposure` (internet-facing/internal/air-gapped), `data_classification` (public/internal/confidential/restricted) |
@@ -333,6 +333,127 @@ The resolved Precept is org-scoped. The decision Memory carries rationale, autho
 ## Discovery Mechanism
 
 Knowledge-layer discovery is handled by MCP tool registration (conditional on `ENABLE_KNOWLEDGE_LAYER=true`), not by anchor Memory nodes. This preserves the bridge-as-sole-coupling-surface invariant.
+
+## Four-Layer Knowledge Architecture
+
+The knowledge layer has four distinct layers. Every node type belongs to exactly one.
+
+### Layers 1–3: Structured knowledge trees
+
+| Layer | Node type | Represents | Owns text? | Embedding index |
+|-------|-----------|-----------|-----------|-----------------|
+| Requirements | `Framework` | What the standard says (ISO 27001 clauses, ATT&CK techniques) | Yes — `body` | `framework_embedding_idx` |
+| Obligations | `Norm` | What the regulator demands (GDPR articles, NIS2 requirements) | Yes — `body` | Future |
+| Architecture | `Control` | What the org does (the org's security controls) | Yes — `body` | `ctrl_embedding_idx` |
+
+Each tree uses `CONTAINS` edges for hierarchy. Text at leaf levels is canonical and normalised.
+
+### Layer 4: Evidence provenance
+
+| Node type | Represents | Owns text? | Embedding index |
+|-----------|-----------|-----------|-----------------|
+| `Document` | An organisational artefact (policy, procedure, audit report) | No — delegates to Chunks | None |
+| `Chunk` | A fragment of a Document — raw text with provenance | Yes — `text` | `chunk_embedding_idx` |
+
+Chunks serve two roles:
+- **Ingestion staging** — raw document text before it's mapped to structured trees
+- **Evidence provenance** — traceable link from exact document wording to the requirement it supports
+
+### Chunk anti-patterns
+
+| Anti-pattern | Why it's wrong |
+|-------------|---------------|
+| Duplicating Framework/Norm body text as Chunks | Circular evidence; wastes storage and embeddings |
+| Using Chunks as the primary store for standard text | Standards belong in structured trees, not the evidence layer |
+| Promoting all Chunk text into Control nodes | Loses document fidelity, breaks many-to-many evidence mapping, blocks fast ingestion |
+
+### Anti-duplication invariant
+
+A Chunk's text must not duplicate the `body` of any Framework, Norm, or Control node it links to via SUPPORTS. If the text is identical, the Chunk is redundant — the structured node already holds the canonical version.
+
+### Chunk lifecycle
+
+| Status | Meaning |
+|--------|---------|
+| `unmatched` | Ingested, no SUPPORTS edges yet |
+| `matched` | Has auto-inferred SUPPORTS edges, awaiting review |
+| `confirmed` | Human-reviewed, evidence relationship validated |
+| `superseded` | Document revised; Chunk belongs to older version |
+
+### Three search indices, three questions
+
+| Question | Index | Returns |
+|----------|-------|---------|
+| "What requirements exist about X?" | `framework_embedding_idx` | Framework nodes |
+| "What have we written about X?" | `chunk_embedding_idx` | Chunk nodes (org evidence only) |
+| "What controls do we have for X?" | `ctrl_embedding_idx` | Control nodes |
+
+## Statement Classification
+
+Framework and Norm leaf nodes carry two classification properties.
+
+### `statement_type` — intrinsic to node content
+
+| Value | Meaning | Example |
+|-------|---------|---------|
+| `normative` | Creates obligations | "The organisation shall determine..." |
+| `informative` | Guidance, notes, examples | "NOTE: Determining these issues refers to..." |
+| `definitional` | Terms and definitions | Clause 3 of ISO 27001 |
+| `reference` | Cross-references to other standards | "As defined in ISO/IEC 27000" |
+| `structural` | Section headings, no substantive text | Clause 4 heading "Context of the organization" |
+
+### `modality` — RFC 2119 obligation level on normative statements
+
+Only set when `statement_type = "normative"`. Values: `must`, `shall`, `should`, `may`, `must_not`, `shall_not`, `should_not`.
+
+**Node `modality` vs Edge `normative`** — complementary, not redundant:
+- **Node `modality`**: What the standard says. Intrinsic to source text.
+- **Edge `normative`** (on MAPS_TO, REQUIRES): How the requirement docks into the control tree. A regulator mandate can elevate a `should` to `must` via `MAPS_TO.normative=must`.
+
+## Implementer's Quick Reference
+
+Concise rules for developers implementing knowledge layer WPs. Include in WP instructions.
+
+```
+KNOWLEDGE LAYER — IMPLEMENTER'S RULES
+
+WHO OWNS TEXT
+  Framework nodes own standard/framework text    → body + framework_embedding_idx
+  Norm nodes own regulatory text                 → body + (future index)
+  Control nodes own org security architecture    → body + ctrl_embedding_idx
+  Chunk nodes own org document fragments         → text + chunk_embedding_idx
+  Document nodes own nothing — they delegate to Chunks
+
+NEVER duplicate text across layers. If a Framework node has body text,
+do NOT create a Chunk with the same text.
+
+STATEMENT CLASSIFICATION (Framework + Norm leaf nodes)
+  statement_type:  normative | informative | definitional | reference | structural
+  modality:        must | shall | should | may | must_not | shall_not | should_not
+                   (only when statement_type = normative)
+
+  Node modality  = what the source text says      (intrinsic)
+  Edge normative = how it docks into control tree  (contextual, can differ)
+
+CHUNK RULES
+  Chunks are ONLY for organisational documents (policies, procedures, audit reports)
+  Chunks are NOT for standards, frameworks, or regulatory text
+  SUPPORTS edge = "this org text evidences this requirement" (never self-referential)
+  Chunk lifecycle: unmatched → matched → confirmed → superseded
+
+EDGE CHEAT-SHEET
+  Framework -[CONTAINS]-> Framework     hierarchy (same for Norm, Control)
+  Norm -[MAPS_TO]-> Control             prescriptive (carries normative weight)
+  Framework -[INFORMS]-> Control        structural (non-prescriptive)
+  Document -[IMPLEMENTS]-> Control      formal fulfilment claim (carries metrics)
+  Chunk -[SUPPORTS]-> Control/Framework machine-inferred evidence
+  Norm -[REFERENCES]-> Framework        regulatory mandate pins framework version
+
+SEARCH INDICES
+  framework_embedding_idx  → "what requirements exist about X?"
+  chunk_embedding_idx      → "what have we written about X?"
+  ctrl_embedding_idx       → "what controls do we have for X?"
+```
 
 ## Alternatives Considered
 
