@@ -3,10 +3,7 @@
 
 Reads the reviewed YAML produced by inspect_iso27001.py and:
   1. Creates/upserts the root Framework node
-  2. Creates/upserts all Framework hierarchy nodes (clauses + Annex A controls)
-     with level, body, and parent_id
-  3. Creates a Document node for the PDF source
-  4. Creates one Chunk per entry, linked to its Framework node via SUPPORTS
+  2. Creates/upserts all Framework hierarchy nodes with statement_type classification
 
 Usage:
     python3 -m scripts.load_iso27001_chunks [--yaml scripts/iso27001_inspection.yaml]
@@ -39,6 +36,33 @@ def _post(client: httpx.Client, endpoint: str, body: dict, label: str) -> str:
         return "error"
 
 
+def _classify_statement_type(fw_id: str, body: str | None) -> str | None:
+    """Rule-based statement type classification for ISO 27001 clauses."""
+    if not body:
+        return "structural"
+
+    parts = fw_id.split(".")
+    # Clauses 1-3 are reference/definitional
+    if len(parts) >= 2:
+        clause_num = parts[1] if parts[1] != "a" else None
+        if clause_num in ("1", "2"):
+            return "reference"
+        if clause_num == "3":
+            return "definitional"
+
+    text_lower = body.lower().strip()
+
+    # NOTEs are informative
+    if text_lower.startswith("note"):
+        return "informative"
+
+    # Text containing "shall" or "must" is normative
+    if " shall " in text_lower or text_lower.startswith("shall ") or " must " in text_lower or text_lower.startswith("must "):
+        return "normative"
+
+    return None  # unclassified — for human review
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--yaml", default="scripts/iso27001_inspection.yaml")
@@ -59,7 +83,6 @@ def main() -> None:
         return
 
     framework_id = "iso-27001-2022"
-    doc_id       = "iso-27001-2022-pdf"
 
     with httpx.Client(base_url=cfg.api_base_url, timeout=30) as client:
 
@@ -113,11 +136,14 @@ def main() -> None:
             else:
                 level = "sub-clause"   # Deep sub-clause / statement node
 
+            st = _classify_statement_type(fw_id, body)
             payload: dict = {"id": fw_id, "name": name, "level": level}
             if body:
                 payload["body"] = body
             if parent_id:
                 payload["parent_id"] = parent_id
+            if st:
+                payload["statement_type"] = st
 
             s = _post(client, "/knowledge/frameworks", payload, fw_id)
             if s == "error":
@@ -153,44 +179,6 @@ def main() -> None:
                 _load_statements(stmts, fw_id)
 
         print(f"   {ok} upserted, {err} errors")
-
-        # 3. Document
-        print("\n3. Document")
-        s = _post(client, "/knowledge/documents", {
-            "id": doc_id,
-            "title": "ISO/IEC 27001:2022",
-            "doc_type": "standard",
-        }, doc_id)
-        print(f"   {doc_id}: {s}")
-
-        # 4. Chunks — one per entry that has text
-        print("\n4. Chunks")
-        ok = err = skipped = 0
-        seq = 0
-        for e in entries:
-            if not e.get("text"):
-                skipped += 1
-                continue
-            fw_id    = e["suggested_control_id"]
-            chunk_id = f"{doc_id}.{e['id']}"
-            s = _post(client, "/knowledge/chunks", {
-                "id": chunk_id,
-                "doc_id": doc_id,
-                "text": e["text"],
-                "sequence": seq,
-            }, chunk_id)
-            if s == "error":
-                err += 1
-            else:
-                ok += 1
-                seq += 1
-                _post(client, "/knowledge/chunk/supports", {
-                    "chunk_id": chunk_id,
-                    "framework_id": fw_id,
-                    "confidence": 1.0,
-                    "status": "human-reviewed",
-                }, f"supports:{chunk_id}→{fw_id}")
-        print(f"   {ok} created, {err} errors, {skipped} skipped (no text)")
 
     print("\nDone.")
 
