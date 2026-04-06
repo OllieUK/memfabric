@@ -1,0 +1,3623 @@
+- id: nist-csf-2.0.gv
+  type: function
+  abbrev: GV
+  heading: GOVERN
+  text: The organization’s cybersecurity risk management strategy, expectations, and policy are established, communicated,
+    and monitored. The GOVERN Function provides outcomes to inform what an organization may do to achieve and prioritize the
+    outcomes of the other five Functions in the context of its mission and stakeholder expectations. Governance activities
+    are critical for incorporating cybersecurity into an organization’s broader enterprise risk management (ERM) strategy.
+    GOVERN addresses an understanding of organizational context; the establishment of cybersecurity strategy and cybersecurity
+    supply chain risk management; roles, responsibilities, and authorities; policy; and the oversight of cybersecurity strategy.
+  notes: ''
+- id: nist-csf-2.0.id
+  type: function
+  abbrev: ID
+  heading: IDENTIFY
+  text: The organization’s current cybersecurity risks are understood. Understanding the organization’s assets (e.g., data,
+    hardware, software, systems, facilities, services, people), suppliers, and related cybersecurity risks enables an organization
+    to prioritize its efforts consistent with its risk management strategy and the mission needs identified under GOVERN.
+    This Function also includes the identification of improvement opportunities for the organization’s policies, plans, processes,
+    procedures, and practices that support cybersecurity risk management to inform efforts under all six Functions.
+  notes: ''
+- id: nist-csf-2.0.pr
+  type: function
+  abbrev: PR
+  heading: PROTECT
+  text: Safeguards to manage the organization’s cybersecurity risks are used. Once assets and risks are identified and prioritized,
+    PROTECT supports the ability to secure those assets to prevent or lower the likelihood and impact of adverse cybersecurity
+    events, as well as to increase the likelihood and impact of taking advantage of opportunities. Outcomes covered by this
+    Function include identity management, authentication, and access control; awareness and training; data security; platform
+    security (i.e., securing the hardware, software, and services of physical and virtual platforms); and the resilience of
+    technology infrastructure.
+  notes: ''
+- id: nist-csf-2.0.de
+  type: function
+  abbrev: DE
+  heading: DETECT
+  text: Possible cybersecurity attacks and compromises are found and analyzed. DETECT enables the timely discovery and analysis
+    of anomalies, indicators of compromise, and other potentially adverse events that may indicate that cybersecurity attacks
+    and incidents are occurring. This Function supports successful incident response and recovery activities.
+  notes: ''
+- id: nist-csf-2.0.rs
+  type: function
+  abbrev: RS
+  heading: RESPOND
+  text: Actions regarding a detected cybersecurity incident are taken. RESPOND supports the ability to contain the effects
+    of cybersecurity incidents. Outcomes within this Function cover incident management, analysis, mitigation, reporting,
+    and communication.
+  notes: ''
+- id: nist-csf-2.0.rc
+  type: function
+  abbrev: RC
+  heading: RECOVER
+  text: Assets and operations affected by a cybersecurity incident are restored. RECOVER supports the timely restoration of
+    normal operations to reduce the effects of cybersecurity incidents and enable appropriate communication during recovery
+    efforts.
+  notes: ''
+- id: nist-csf-2.0.gv.oc
+  type: category
+  abbrev: GV.OC
+  heading: Organizational Context
+  text: The circumstances - mission, stakeholder expectations, dependencies, and legal, regulatory, and contractual requirements
+    - surrounding the organization's cybersecurity risk management decisions are understood
+  notes: ''
+  parent_id: nist-csf-2.0.gv
+- id: nist-csf-2.0.gv.rm
+  type: category
+  abbrev: GV.RM
+  heading: Risk Management Strategy
+  text: The organization's priorities, constraints, risk tolerance and appetite statements, and assumptions are established,
+    communicated, and used to support operational risk decisions
+  notes: ''
+  parent_id: nist-csf-2.0.gv
+- id: nist-csf-2.0.gv.rr
+  type: category
+  abbrev: GV.RR
+  heading: Roles, Responsibilities, and Authorities
+  text: Cybersecurity roles, responsibilities, and authorities to foster accountability, performance assessment, and continuous
+    improvement are established and communicated
+  notes: ''
+  parent_id: nist-csf-2.0.gv
+- id: nist-csf-2.0.gv.po
+  type: category
+  abbrev: GV.PO
+  heading: Policy
+  text: Organizational cybersecurity policy is established, communicated, and enforced
+  notes: ''
+  parent_id: nist-csf-2.0.gv
+- id: nist-csf-2.0.gv.ov
+  type: category
+  abbrev: GV.OV
+  heading: Oversight
+  text: Results of organization-wide cybersecurity risk management activities and performance are used to inform, improve,
+    and adjust the risk management strategy
+  notes: ''
+  parent_id: nist-csf-2.0.gv
+- id: nist-csf-2.0.gv.sc
+  type: category
+  abbrev: GV.SC
+  heading: Cybersecurity Supply Chain Risk Management
+  text: Cyber supply chain risk management processes are identified, established, managed, monitored, and improved by organizational
+    stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.gv
+- id: nist-csf-2.0.id.am
+  type: category
+  abbrev: ID.AM
+  heading: Asset Management
+  text: Assets (e.g., data, hardware, software, systems, facilities, services, people) that enable the organization to achieve
+    business purposes are identified and managed consistent with their relative importance to organizational objectives and
+    the organization's risk strategy
+  notes: ''
+  parent_id: nist-csf-2.0.id
+- id: nist-csf-2.0.id.ra
+  type: category
+  abbrev: ID.RA
+  heading: Risk Assessment
+  text: The cybersecurity risk to the organization, assets, and individuals is understood by the organization
+  notes: ''
+  parent_id: nist-csf-2.0.id
+- id: nist-csf-2.0.id.im
+  type: category
+  abbrev: ID.IM
+  heading: Improvement
+  text: Improvements to organizational cybersecurity risk management processes, procedures and activities are identified across
+    all CSF Functions
+  notes: ''
+  parent_id: nist-csf-2.0.id
+- id: nist-csf-2.0.pr.aa
+  type: category
+  abbrev: PR.AA
+  heading: Identity Management, Authentication, and Access Control
+  text: Access to physical and logical assets is limited to authorized users, services, and hardware and  managed commensurate
+    with the assessed risk of unauthorized access
+  notes: ''
+  parent_id: nist-csf-2.0.pr
+- id: nist-csf-2.0.pr.at
+  type: category
+  abbrev: PR.AT
+  heading: Awareness and Training
+  text: The organization's personnel are provided with cybersecurity awareness and training so that they can perform their
+    cybersecurity-related tasks
+  notes: ''
+  parent_id: nist-csf-2.0.pr
+- id: nist-csf-2.0.pr.ds
+  type: category
+  abbrev: PR.DS
+  heading: Data Security
+  text: Data are managed consistent with the organization's risk strategy to protect the confidentiality, integrity, and availability
+    of information
+  notes: ''
+  parent_id: nist-csf-2.0.pr
+- id: nist-csf-2.0.pr.ps
+  type: category
+  abbrev: PR.PS
+  heading: Platform Security
+  text: The hardware, software (e.g., firmware, operating systems, applications), and services of physical and virtual platforms
+    are managed consistent with the organization's risk strategy to protect their confidentiality, integrity, and availability
+  notes: ''
+  parent_id: nist-csf-2.0.pr
+- id: nist-csf-2.0.pr.ir
+  type: category
+  abbrev: PR.IR
+  heading: Technology Infrastructure Resilience
+  text: Security architectures are managed with the organization's risk strategy to protect asset confidentiality, integrity,
+    and availability, and organizational resilience
+  notes: ''
+  parent_id: nist-csf-2.0.pr
+- id: nist-csf-2.0.de.cm
+  type: category
+  abbrev: DE.CM
+  heading: Continuous Monitoring
+  text: Assets are monitored to find anomalies, indicators of compromise, and other potentially adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de
+- id: nist-csf-2.0.de.ae
+  type: category
+  abbrev: DE.AE
+  heading: Adverse Event Analysis
+  text: Anomalies, indicators of compromise, and other potentially adverse events are analyzed to characterize the events
+    and detect cybersecurity incidents
+  notes: ''
+  parent_id: nist-csf-2.0.de
+- id: nist-csf-2.0.rs.ma
+  type: category
+  abbrev: RS.MA
+  heading: Incident Management
+  text: Responses to detected cybersecurity incidents are managed
+  notes: ''
+  parent_id: nist-csf-2.0.rs
+- id: nist-csf-2.0.rs.an
+  type: category
+  abbrev: RS.AN
+  heading: Incident Analysis
+  text: Investigations are conducted to ensure effective response and support forensics and recovery activities
+  notes: ''
+  parent_id: nist-csf-2.0.rs
+- id: nist-csf-2.0.rs.co
+  type: category
+  abbrev: RS.CO
+  heading: Incident Response Reporting and Communication
+  text: Response activities are coordinated with internal and external stakeholders as required by laws, regulations, or policies
+  notes: ''
+  parent_id: nist-csf-2.0.rs
+- id: nist-csf-2.0.rs.mi
+  type: category
+  abbrev: RS.MI
+  heading: Incident Mitigation
+  text: Activities are performed to prevent expansion of an event and mitigate its effects
+  notes: ''
+  parent_id: nist-csf-2.0.rs
+- id: nist-csf-2.0.rc.rp
+  type: category
+  abbrev: RC.RP
+  heading: Incident Recovery Plan Execution
+  text: Restoration activities are performed to ensure operational availability of systems and services affected by cybersecurity
+    incidents
+  notes: ''
+  parent_id: nist-csf-2.0.rc
+- id: nist-csf-2.0.rc.co
+  type: category
+  abbrev: RC.CO
+  heading: Incident Recovery Communication
+  text: Restoration activities are coordinated with internal and external parties
+  notes: ''
+  parent_id: nist-csf-2.0.rc
+- id: nist-csf-2.0.gv.oc-01
+  type: subcategory
+  abbrev: GV.OC-01
+  heading: GV.OC-01
+  text: The organizational mission is understood and informs cybersecurity risk management
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc
+- id: nist-csf-2.0.gv.oc-02
+  type: subcategory
+  abbrev: GV.OC-02
+  heading: GV.OC-02
+  text: Internal and external stakeholders are understood, and their needs and expectations regarding cybersecurity risk management
+    are understood and considered
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc
+- id: nist-csf-2.0.gv.oc-03
+  type: subcategory
+  abbrev: GV.OC-03
+  heading: GV.OC-03
+  text: Legal, regulatory, and contractual requirements regarding cybersecurity - including privacy and civil liberties obligations
+    - are understood and managed
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc
+- id: nist-csf-2.0.gv.oc-04
+  type: subcategory
+  abbrev: GV.OC-04
+  heading: GV.OC-04
+  text: Critical objectives, capabilities, and services that external stakeholders depend on or expect from the organization
+    are understood and communicated
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc
+- id: nist-csf-2.0.gv.oc-05
+  type: subcategory
+  abbrev: GV.OC-05
+  heading: GV.OC-05
+  text: Outcomes, capabilities, and services that the organization depends on are understood and communicated
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc
+- id: nist-csf-2.0.gv.rm-01
+  type: subcategory
+  abbrev: GV.RM-01
+  heading: GV.RM-01
+  text: Risk management objectives are established and agreed to by organizational stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rm-02
+  type: subcategory
+  abbrev: GV.RM-02
+  heading: GV.RM-02
+  text: Risk appetite and risk tolerance statements are established, communicated, and maintained
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rm-03
+  type: subcategory
+  abbrev: GV.RM-03
+  heading: GV.RM-03
+  text: Cybersecurity risk management activities and outcomes are included in enterprise risk management processes
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rm-04
+  type: subcategory
+  abbrev: GV.RM-04
+  heading: GV.RM-04
+  text: Strategic direction that describes appropriate risk response options is established and communicated
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rm-05
+  type: subcategory
+  abbrev: GV.RM-05
+  heading: GV.RM-05
+  text: Lines of communication across the organization are established for cybersecurity risks, including risks from suppliers
+    and other third parties
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rm-06
+  type: subcategory
+  abbrev: GV.RM-06
+  heading: GV.RM-06
+  text: A standardized method for calculating, documenting, categorizing, and prioritizing cybersecurity risks is established
+    and communicated
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rm-07
+  type: subcategory
+  abbrev: GV.RM-07
+  heading: GV.RM-07
+  text: Strategic opportunities (i.e., positive risks) are characterized and are included in organizational cybersecurity
+    risk discussions
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm
+- id: nist-csf-2.0.gv.rr-01
+  type: subcategory
+  abbrev: GV.RR-01
+  heading: GV.RR-01
+  text: Organizational leadership is responsible and accountable for cybersecurity risk and fosters a culture that is risk-aware,
+    ethical, and continually improving
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr
+- id: nist-csf-2.0.gv.rr-02
+  type: subcategory
+  abbrev: GV.RR-02
+  heading: GV.RR-02
+  text: Roles, responsibilities, and authorities related to cybersecurity risk management are established, communicated, understood,
+    and enforced
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr
+- id: nist-csf-2.0.gv.rr-03
+  type: subcategory
+  abbrev: GV.RR-03
+  heading: GV.RR-03
+  text: Adequate resources are allocated commensurate with the cybersecurity risk strategy, roles, responsibilities, and policies
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr
+- id: nist-csf-2.0.gv.rr-04
+  type: subcategory
+  abbrev: GV.RR-04
+  heading: GV.RR-04
+  text: Cybersecurity is included in human resources practices
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr
+- id: nist-csf-2.0.gv.po-01
+  type: subcategory
+  abbrev: GV.PO-01
+  heading: GV.PO-01
+  text: Policy for managing cybersecurity risks is established based on organizational context, cybersecurity strategy, and
+    priorities and is communicated and enforced
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po
+- id: nist-csf-2.0.gv.po-02
+  type: subcategory
+  abbrev: GV.PO-02
+  heading: GV.PO-02
+  text: Policy for managing cybersecurity risks is reviewed, updated, communicated, and enforced to reflect changes in requirements,
+    threats, technology, and organizational mission
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po
+- id: nist-csf-2.0.gv.ov-01
+  type: subcategory
+  abbrev: GV.OV-01
+  heading: GV.OV-01
+  text: Cybersecurity risk management strategy outcomes are reviewed to inform and adjust strategy and direction
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov
+- id: nist-csf-2.0.gv.ov-02
+  type: subcategory
+  abbrev: GV.OV-02
+  heading: GV.OV-02
+  text: The cybersecurity risk management strategy is reviewed and adjusted to ensure coverage of organizational requirements
+    and risks
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov
+- id: nist-csf-2.0.gv.ov-03
+  type: subcategory
+  abbrev: GV.OV-03
+  heading: GV.OV-03
+  text: Organizational cybersecurity risk management performance is evaluated and reviewed for adjustments needed
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov
+- id: nist-csf-2.0.gv.sc-01
+  type: subcategory
+  abbrev: GV.SC-01
+  heading: GV.SC-01
+  text: A cybersecurity supply chain risk management program, strategy, objectives, policies, and processes are established
+    and agreed to by organizational stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-02
+  type: subcategory
+  abbrev: GV.SC-02
+  heading: GV.SC-02
+  text: Cybersecurity roles and responsibilities for suppliers, customers, and partners are established, communicated, and
+    coordinated internally and externally
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-03
+  type: subcategory
+  abbrev: GV.SC-03
+  heading: GV.SC-03
+  text: Cybersecurity supply chain risk management is integrated into cybersecurity and enterprise risk management, risk assessment,
+    and improvement processes
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-04
+  type: subcategory
+  abbrev: GV.SC-04
+  heading: GV.SC-04
+  text: Suppliers are known and prioritized by criticality
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-05
+  type: subcategory
+  abbrev: GV.SC-05
+  heading: GV.SC-05
+  text: Requirements to address cybersecurity risks in supply chains are established, prioritized, and integrated into contracts
+    and other types of agreements with suppliers and other relevant third parties
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-06
+  type: subcategory
+  abbrev: GV.SC-06
+  heading: GV.SC-06
+  text: Planning and due diligence are performed to reduce risks before entering into formal supplier or other third-party
+    relationships
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-07
+  type: subcategory
+  abbrev: GV.SC-07
+  heading: GV.SC-07
+  text: The risks posed by a supplier, their products and services, and other third parties are understood, recorded, prioritized,
+    assessed, responded to, and monitored over the course of the relationship
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-08
+  type: subcategory
+  abbrev: GV.SC-08
+  heading: GV.SC-08
+  text: Relevant suppliers and other third parties are included in incident planning, response, and recovery activities
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-09
+  type: subcategory
+  abbrev: GV.SC-09
+  heading: GV.SC-09
+  text: Supply chain security practices are integrated into cybersecurity and enterprise risk management programs, and their
+    performance is monitored throughout the technology product and service life cycle
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.gv.sc-10
+  type: subcategory
+  abbrev: GV.SC-10
+  heading: GV.SC-10
+  text: Cybersecurity supply chain risk management plans include provisions for activities that occur after the conclusion
+    of a partnership or service agreement
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc
+- id: nist-csf-2.0.id.am-01
+  type: subcategory
+  abbrev: ID.AM-01
+  heading: ID.AM-01
+  text: Inventories of hardware managed by the organization are maintained
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.am-02
+  type: subcategory
+  abbrev: ID.AM-02
+  heading: ID.AM-02
+  text: Inventories of software, services, and systems managed by the organization are maintained
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.am-03
+  type: subcategory
+  abbrev: ID.AM-03
+  heading: ID.AM-03
+  text: Representations of the organization's authorized network communication and internal and external network data flows
+    are maintained
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.am-04
+  type: subcategory
+  abbrev: ID.AM-04
+  heading: ID.AM-04
+  text: Inventories of services provided by suppliers are maintained
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.am-05
+  type: subcategory
+  abbrev: ID.AM-05
+  heading: ID.AM-05
+  text: Assets are prioritized based on classification, criticality, resources, and impact on the mission
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.am-07
+  type: subcategory
+  abbrev: ID.AM-07
+  heading: ID.AM-07
+  text: Inventories of data and corresponding metadata for designated data types are maintained
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.am-08
+  type: subcategory
+  abbrev: ID.AM-08
+  heading: ID.AM-08
+  text: Systems, hardware, software, services, and data are managed throughout their life cycles
+  notes: ''
+  parent_id: nist-csf-2.0.id.am
+- id: nist-csf-2.0.id.ra-01
+  type: subcategory
+  abbrev: ID.RA-01
+  heading: ID.RA-01
+  text: Vulnerabilities in assets are identified, validated, and recorded
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-02
+  type: subcategory
+  abbrev: ID.RA-02
+  heading: ID.RA-02
+  text: Cyber threat intelligence is received from information sharing forums and sources
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-03
+  type: subcategory
+  abbrev: ID.RA-03
+  heading: ID.RA-03
+  text: Internal and external threats to the organization are identified and recorded
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-04
+  type: subcategory
+  abbrev: ID.RA-04
+  heading: ID.RA-04
+  text: Potential impacts and likelihoods of threats exploiting vulnerabilities are identified and recorded
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-05
+  type: subcategory
+  abbrev: ID.RA-05
+  heading: ID.RA-05
+  text: Threats, vulnerabilities, likelihoods, and impacts are used to understand inherent risk and inform risk response prioritization
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-06
+  type: subcategory
+  abbrev: ID.RA-06
+  heading: ID.RA-06
+  text: Risk responses are chosen, prioritized, planned, tracked, and communicated
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-08
+  type: subcategory
+  abbrev: ID.RA-08
+  heading: ID.RA-08
+  text: Processes for receiving, analyzing, and responding to vulnerability disclosures are established
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.ra-09
+  type: subcategory
+  abbrev: ID.RA-09
+  heading: ID.RA-09
+  text: The authenticity and integrity of hardware and software are assessed prior to acquisition and use
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra
+- id: nist-csf-2.0.id.im-01
+  type: subcategory
+  abbrev: ID.IM-01
+  heading: ID.IM-01
+  text: Improvements are identified from evaluations
+  notes: ''
+  parent_id: nist-csf-2.0.id.im
+- id: nist-csf-2.0.id.im-02
+  type: subcategory
+  abbrev: ID.IM-02
+  heading: ID.IM-02
+  text: Improvements are identified from security tests and exercises, including those done in coordination with suppliers
+    and relevant third parties
+  notes: ''
+  parent_id: nist-csf-2.0.id.im
+- id: nist-csf-2.0.id.im-03
+  type: subcategory
+  abbrev: ID.IM-03
+  heading: ID.IM-03
+  text: Improvements are identified from execution of operational processes, procedures, and activities
+  notes: ''
+  parent_id: nist-csf-2.0.id.im
+- id: nist-csf-2.0.id.im-04
+  type: subcategory
+  abbrev: ID.IM-04
+  heading: ID.IM-04
+  text: Incident response plans and other cybersecurity plans that affect operations are established, communicated, maintained,
+    and improved
+  notes: ''
+  parent_id: nist-csf-2.0.id.im
+- id: nist-csf-2.0.pr.aa-01
+  type: subcategory
+  abbrev: PR.AA-01
+  heading: PR.AA-01
+  text: Identities and credentials for authorized users, services, and hardware are managed by the organization
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa
+- id: nist-csf-2.0.pr.aa-02
+  type: subcategory
+  abbrev: PR.AA-02
+  heading: PR.AA-02
+  text: Identities are proofed and bound to credentials based on the context of interactions
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa
+- id: nist-csf-2.0.pr.aa-03
+  type: subcategory
+  abbrev: PR.AA-03
+  heading: PR.AA-03
+  text: Users, services, and hardware are authenticated
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa
+- id: nist-csf-2.0.pr.aa-04
+  type: subcategory
+  abbrev: PR.AA-04
+  heading: PR.AA-04
+  text: Identity assertions are protected, conveyed, and verified
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa
+- id: nist-csf-2.0.pr.aa-05
+  type: subcategory
+  abbrev: PR.AA-05
+  heading: PR.AA-05
+  text: Access permissions, entitlements, and authorizations are defined in a policy, managed, enforced, and reviewed, and
+    incorporate the principles of least privilege and separation of duties
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa
+- id: nist-csf-2.0.pr.aa-06
+  type: subcategory
+  abbrev: PR.AA-06
+  heading: PR.AA-06
+  text: Physical access to assets is managed, monitored, and enforced commensurate with risk
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa
+- id: nist-csf-2.0.pr.at-01
+  type: subcategory
+  abbrev: PR.AT-01
+  heading: PR.AT-01
+  text: Personnel are provided with awareness and training so that they possess the knowledge and skills to perform general
+    tasks with cybersecurity risks in mind
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at
+- id: nist-csf-2.0.pr.at-02
+  type: subcategory
+  abbrev: PR.AT-02
+  heading: PR.AT-02
+  text: Individuals in specialized roles are provided with awareness and training so that they possess the knowledge and skills
+    to perform relevant tasks with cybersecurity risks in mind
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at
+- id: nist-csf-2.0.pr.ds-01
+  type: subcategory
+  abbrev: PR.DS-01
+  heading: PR.DS-01
+  text: The confidentiality, integrity, and availability of data-at-rest are protected
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds
+- id: nist-csf-2.0.pr.ds-02
+  type: subcategory
+  abbrev: PR.DS-02
+  heading: PR.DS-02
+  text: The confidentiality, integrity, and availability of data-in-transit are protected
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds
+- id: nist-csf-2.0.pr.ds-10
+  type: subcategory
+  abbrev: PR.DS-10
+  heading: PR.DS-10
+  text: The confidentiality, integrity, and availability of data-in-use are protected
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds
+- id: nist-csf-2.0.pr.ds-11
+  type: subcategory
+  abbrev: PR.DS-11
+  heading: PR.DS-11
+  text: Backups of data are created, protected, maintained, and tested
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds
+- id: nist-csf-2.0.pr.ps-01
+  type: subcategory
+  abbrev: PR.PS-01
+  heading: PR.PS-01
+  text: Configuration management practices are established and applied
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps
+- id: nist-csf-2.0.pr.ps-02
+  type: subcategory
+  abbrev: PR.PS-02
+  heading: PR.PS-02
+  text: Software is maintained, replaced, and removed commensurate with risk
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps
+- id: nist-csf-2.0.pr.ps-03
+  type: subcategory
+  abbrev: PR.PS-03
+  heading: PR.PS-03
+  text: Hardware is maintained, replaced, and removed commensurate with risk
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps
+- id: nist-csf-2.0.pr.ps-04
+  type: subcategory
+  abbrev: PR.PS-04
+  heading: PR.PS-04
+  text: Log records are generated and made available for continuous monitoring
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps
+- id: nist-csf-2.0.pr.ps-05
+  type: subcategory
+  abbrev: PR.PS-05
+  heading: PR.PS-05
+  text: Installation and execution of unauthorized software are prevented
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps
+- id: nist-csf-2.0.pr.ps-06
+  type: subcategory
+  abbrev: PR.PS-06
+  heading: PR.PS-06
+  text: Secure software development practices are integrated, and their performance is monitored throughout the software development
+    life cycle
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps
+- id: nist-csf-2.0.pr.ir-01
+  type: subcategory
+  abbrev: PR.IR-01
+  heading: PR.IR-01
+  text: Networks and environments are protected from unauthorized logical access and usage
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir
+- id: nist-csf-2.0.pr.ir-02
+  type: subcategory
+  abbrev: PR.IR-02
+  heading: PR.IR-02
+  text: The organization's technology assets are protected from environmental threats
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir
+- id: nist-csf-2.0.pr.ir-03
+  type: subcategory
+  abbrev: PR.IR-03
+  heading: PR.IR-03
+  text: Mechanisms are implemented to achieve resilience requirements in normal and adverse situations
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir
+- id: nist-csf-2.0.de.cm-01
+  type: subcategory
+  abbrev: DE.CM-01
+  heading: DE.CM-01
+  text: Networks and network services are monitored to find potentially adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm
+- id: nist-csf-2.0.de.cm-02
+  type: subcategory
+  abbrev: DE.CM-02
+  heading: DE.CM-02
+  text: The physical environment is monitored to find potentially adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm
+- id: nist-csf-2.0.de.cm-03
+  type: subcategory
+  abbrev: DE.CM-03
+  heading: DE.CM-03
+  text: Personnel activity and technology usage are monitored to find potentially adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm
+- id: nist-csf-2.0.de.cm-06
+  type: subcategory
+  abbrev: DE.CM-06
+  heading: DE.CM-06
+  text: External service provider activities and services are monitored to find potentially adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm
+- id: nist-csf-2.0.de.cm-09
+  type: subcategory
+  abbrev: DE.CM-09
+  heading: DE.CM-09
+  text: Computing hardware and software, runtime environments, and their data are monitored to find potentially adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm
+- id: nist-csf-2.0.de.ae-02
+  type: subcategory
+  abbrev: DE.AE-02
+  heading: DE.AE-02
+  text: Potentially adverse events are analyzed to better understand associated activities
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae
+- id: nist-csf-2.0.de.ae-03
+  type: subcategory
+  abbrev: DE.AE-03
+  heading: DE.AE-03
+  text: Information is correlated from multiple sources
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae
+- id: nist-csf-2.0.de.ae-04
+  type: subcategory
+  abbrev: DE.AE-04
+  heading: DE.AE-04
+  text: The estimated impact and scope of adverse events are understood
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae
+- id: nist-csf-2.0.de.ae-06
+  type: subcategory
+  abbrev: DE.AE-06
+  heading: DE.AE-06
+  text: Information on adverse events is provided to authorized staff and tools
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae
+- id: nist-csf-2.0.de.ae-07
+  type: subcategory
+  abbrev: DE.AE-07
+  heading: DE.AE-07
+  text: Cyber threat intelligence and other contextual information are integrated into the analysis
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae
+- id: nist-csf-2.0.de.ae-08
+  type: subcategory
+  abbrev: DE.AE-08
+  heading: DE.AE-08
+  text: Incidents are declared when adverse events meet the defined incident criteria
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae
+- id: nist-csf-2.0.rs.ma-01
+  type: subcategory
+  abbrev: RS.MA-01
+  heading: RS.MA-01
+  text: The incident response plan is executed in coordination with relevant third parties once an incident is declared
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma
+- id: nist-csf-2.0.rs.ma-02
+  type: subcategory
+  abbrev: RS.MA-02
+  heading: RS.MA-02
+  text: Incident reports are triaged and validated
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma
+- id: nist-csf-2.0.rs.ma-03
+  type: subcategory
+  abbrev: RS.MA-03
+  heading: RS.MA-03
+  text: Incidents are categorized and prioritized
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma
+- id: nist-csf-2.0.rs.ma-04
+  type: subcategory
+  abbrev: RS.MA-04
+  heading: RS.MA-04
+  text: Incidents are escalated or elevated as needed
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma
+- id: nist-csf-2.0.rs.ma-05
+  type: subcategory
+  abbrev: RS.MA-05
+  heading: RS.MA-05
+  text: The criteria for initiating incident recovery are applied
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma
+- id: nist-csf-2.0.rs.an-03
+  type: subcategory
+  abbrev: RS.AN-03
+  heading: RS.AN-03
+  text: Analysis is performed to establish what has taken place during an incident and the root cause of the incident
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an
+- id: nist-csf-2.0.rs.an-06
+  type: subcategory
+  abbrev: RS.AN-06
+  heading: RS.AN-06
+  text: Actions performed during an investigation are recorded, and the records' integrity and provenance are preserved
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an
+- id: nist-csf-2.0.rs.an-07
+  type: subcategory
+  abbrev: RS.AN-07
+  heading: RS.AN-07
+  text: Incident data and metadata are collected, and their integrity and provenance are preserved
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an
+- id: nist-csf-2.0.rs.an-08
+  type: subcategory
+  abbrev: RS.AN-08
+  heading: RS.AN-08
+  text: An incident's magnitude is estimated and validated
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an
+- id: nist-csf-2.0.rs.co-02
+  type: subcategory
+  abbrev: RS.CO-02
+  heading: RS.CO-02
+  text: Internal and external stakeholders are notified of incidents
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co
+- id: nist-csf-2.0.rs.co-03
+  type: subcategory
+  abbrev: RS.CO-03
+  heading: RS.CO-03
+  text: Information is shared with designated internal and external stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co
+- id: nist-csf-2.0.rs.mi-01
+  type: subcategory
+  abbrev: RS.MI-01
+  heading: RS.MI-01
+  text: Incidents are contained
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi
+- id: nist-csf-2.0.rs.mi-02
+  type: subcategory
+  abbrev: RS.MI-02
+  heading: RS.MI-02
+  text: Incidents are eradicated
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi
+- id: nist-csf-2.0.rc.rp-01
+  type: subcategory
+  abbrev: RC.RP-01
+  heading: RC.RP-01
+  text: The recovery portion of the incident response plan is executed once initiated from the incident response process
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp
+- id: nist-csf-2.0.rc.rp-02
+  type: subcategory
+  abbrev: RC.RP-02
+  heading: RC.RP-02
+  text: Recovery actions are selected, scoped, prioritized, and performed
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp
+- id: nist-csf-2.0.rc.rp-03
+  type: subcategory
+  abbrev: RC.RP-03
+  heading: RC.RP-03
+  text: The integrity of backups and other restoration assets is verified before using them for restoration
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp
+- id: nist-csf-2.0.rc.rp-04
+  type: subcategory
+  abbrev: RC.RP-04
+  heading: RC.RP-04
+  text: Critical mission functions and cybersecurity risk management are considered to establish post-incident operational
+    norms
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp
+- id: nist-csf-2.0.rc.rp-05
+  type: subcategory
+  abbrev: RC.RP-05
+  heading: RC.RP-05
+  text: The integrity of restored assets is verified, systems and services are restored, and normal operating status is confirmed
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp
+- id: nist-csf-2.0.rc.rp-06
+  type: subcategory
+  abbrev: RC.RP-06
+  heading: RC.RP-06
+  text: The end of incident recovery is declared based on criteria, and incident-related documentation is completed
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp
+- id: nist-csf-2.0.rc.co-03
+  type: subcategory
+  abbrev: RC.CO-03
+  heading: RC.CO-03
+  text: Recovery activities and progress in restoring operational capabilities are communicated to designated internal and
+    external stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co
+- id: nist-csf-2.0.rc.co-04
+  type: subcategory
+  abbrev: RC.CO-04
+  heading: RC.CO-04
+  text: Public updates on incident recovery are shared using approved methods and messaging
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co
+- id: nist-csf-2.0.gv.oc-01.001
+  type: implementation_example
+  abbrev: GV.OC-01.001
+  heading: Ex1
+  text: Share the organization's mission (e.g., through vision and mission statements, marketing, and service strategies)
+    to provide a basis for identifying risks that may impede that mission
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-01
+- id: nist-csf-2.0.gv.oc-02.002
+  type: implementation_example
+  abbrev: GV.OC-02.002
+  heading: Ex1
+  text: Identify relevant internal stakeholders and their cybersecurity-related expectations (e.g., performance and risk expectations
+    of officers, directors, and advisors; cultural expectations of employees)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-02
+- id: nist-csf-2.0.gv.oc-02.003
+  type: implementation_example
+  abbrev: GV.OC-02.003
+  heading: Ex2
+  text: Identify relevant external stakeholders and their cybersecurity-related expectations (e.g., privacy expectations of
+    customers, business expectations of partnerships, compliance expectations of regulators, ethics expectations of society)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-02
+- id: nist-csf-2.0.gv.oc-03.004
+  type: implementation_example
+  abbrev: GV.OC-03.004
+  heading: Ex1
+  text: Determine a process to track and manage legal and regulatory requirements regarding protection of individuals' information
+    (e.g., Health Insurance Portability and Accountability Act, California Consumer Privacy Act, General Data Protection Regulation)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-03
+- id: nist-csf-2.0.gv.oc-03.005
+  type: implementation_example
+  abbrev: GV.OC-03.005
+  heading: Ex2
+  text: Determine a process to track and manage contractual requirements for cybersecurity management of supplier, customer,
+    and partner information
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-03
+- id: nist-csf-2.0.gv.oc-03.006
+  type: implementation_example
+  abbrev: GV.OC-03.006
+  heading: Ex3
+  text: Align the organization's cybersecurity strategy with legal, regulatory, and contractual requirements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-03
+- id: nist-csf-2.0.gv.oc-04.007
+  type: implementation_example
+  abbrev: GV.OC-04.007
+  heading: Ex1
+  text: Establish criteria for determining the criticality of capabilities and services as viewed by internal and external
+    stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-04
+- id: nist-csf-2.0.gv.oc-04.008
+  type: implementation_example
+  abbrev: GV.OC-04.008
+  heading: Ex2
+  text: Determine (e.g., from a business impact analysis) assets and business operations that are vital to achieving mission
+    objectives and the potential impact of a loss (or partial loss) of such operations
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-04
+- id: nist-csf-2.0.gv.oc-04.009
+  type: implementation_example
+  abbrev: GV.OC-04.009
+  heading: Ex3
+  text: Establish and communicate resilience objectives (e.g., recovery time objectives) for delivering critical capabilities
+    and services in various operating states (e.g., under attack, during recovery, normal operation)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-04
+- id: nist-csf-2.0.gv.oc-05.010
+  type: implementation_example
+  abbrev: GV.OC-05.010
+  heading: Ex1
+  text: Create an inventory of the organization's dependencies on external resources (e.g., facilities, cloud-based hosting
+    providers) and their relationships to organizational assets and business functions
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-05
+- id: nist-csf-2.0.gv.oc-05.011
+  type: implementation_example
+  abbrev: GV.OC-05.011
+  heading: Ex2
+  text: Identify and document external dependencies that are potential points of failure for the organization's critical capabilities
+    and services, and share that information with appropriate personnel
+  notes: ''
+  parent_id: nist-csf-2.0.gv.oc-05
+- id: nist-csf-2.0.gv.rm-01.012
+  type: implementation_example
+  abbrev: GV.RM-01.012
+  heading: Ex1
+  text: Update near-term and long-term cybersecurity risk management objectives as part of annual strategic planning and when
+    major changes occur
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-01
+- id: nist-csf-2.0.gv.rm-01.013
+  type: implementation_example
+  abbrev: GV.RM-01.013
+  heading: Ex2
+  text: Establish measurable objectives for cybersecurity risk management (e.g., manage the quality of user training, ensure
+    adequate risk protection for industrial control systems)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-01
+- id: nist-csf-2.0.gv.rm-01.014
+  type: implementation_example
+  abbrev: GV.RM-01.014
+  heading: Ex3
+  text: Senior leaders agree about cybersecurity objectives and use them for measuring and managing risk and performance
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-01
+- id: nist-csf-2.0.gv.rm-02.015
+  type: implementation_example
+  abbrev: GV.RM-02.015
+  heading: Ex1
+  text: Determine and communicate risk appetite statements that convey expectations about the appropriate level of risk for
+    the organization
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-02
+- id: nist-csf-2.0.gv.rm-02.016
+  type: implementation_example
+  abbrev: GV.RM-02.016
+  heading: Ex2
+  text: Translate risk appetite statements into specific, measurable, and broadly understandable risk tolerance statements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-02
+- id: nist-csf-2.0.gv.rm-02.017
+  type: implementation_example
+  abbrev: GV.RM-02.017
+  heading: Ex3
+  text: Refine organizational objectives and risk appetite periodically based on known risk exposure and residual risk
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-02
+- id: nist-csf-2.0.gv.rm-03.018
+  type: implementation_example
+  abbrev: GV.RM-03.018
+  heading: Ex1
+  text: Aggregate and manage cybersecurity risks alongside other enterprise risks (e.g., compliance, financial, operational,
+    regulatory, reputational, safety)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-03
+- id: nist-csf-2.0.gv.rm-03.019
+  type: implementation_example
+  abbrev: GV.RM-03.019
+  heading: Ex2
+  text: Include cybersecurity risk managers in enterprise risk management planning
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-03
+- id: nist-csf-2.0.gv.rm-03.020
+  type: implementation_example
+  abbrev: GV.RM-03.020
+  heading: Ex3
+  text: Establish criteria for escalating cybersecurity risks within enterprise risk management
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-03
+- id: nist-csf-2.0.gv.rm-04.021
+  type: implementation_example
+  abbrev: GV.RM-04.021
+  heading: Ex1
+  text: Specify criteria for accepting and avoiding cybersecurity risk for various classifications of data
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-04
+- id: nist-csf-2.0.gv.rm-04.022
+  type: implementation_example
+  abbrev: GV.RM-04.022
+  heading: Ex2
+  text: Determine whether to purchase cybersecurity insurance
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-04
+- id: nist-csf-2.0.gv.rm-04.023
+  type: implementation_example
+  abbrev: GV.RM-04.023
+  heading: Ex3
+  text: Document conditions under which shared responsibility models are acceptable (e.g., outsourcing certain cybersecurity
+    functions, having a third party perform financial transactions on behalf of the organization, using public cloud-based
+    services)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-04
+- id: nist-csf-2.0.gv.rm-05.024
+  type: implementation_example
+  abbrev: GV.RM-05.024
+  heading: Ex1
+  text: Determine how to update senior executives, directors, and management on the organization's cybersecurity posture at
+    agreed-upon intervals
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-05
+- id: nist-csf-2.0.gv.rm-05.025
+  type: implementation_example
+  abbrev: GV.RM-05.025
+  heading: Ex2
+  text: Identify how all departments across the organization - such as management, operations, internal auditors, legal, acquisition,
+    physical security, and HR - will communicate with each other about cybersecurity risks
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-05
+- id: nist-csf-2.0.gv.rm-06.026
+  type: implementation_example
+  abbrev: GV.RM-06.026
+  heading: Ex1
+  text: Establish criteria for using a quantitative approach to cybersecurity risk analysis, and specify probability and exposure
+    formulas
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-06
+- id: nist-csf-2.0.gv.rm-06.027
+  type: implementation_example
+  abbrev: GV.RM-06.027
+  heading: Ex2
+  text: Create and use templates (e.g., a risk register) to document cybersecurity risk information (e.g., risk description,
+    exposure, treatment, and ownership)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-06
+- id: nist-csf-2.0.gv.rm-06.028
+  type: implementation_example
+  abbrev: GV.RM-06.028
+  heading: Ex3
+  text: Establish criteria for risk prioritization at the appropriate levels within the enterprise
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-06
+- id: nist-csf-2.0.gv.rm-06.029
+  type: implementation_example
+  abbrev: GV.RM-06.029
+  heading: Ex4
+  text: Use a consistent list of risk categories to support integrating, aggregating, and comparing cybersecurity risks
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-06
+- id: nist-csf-2.0.gv.rm-07.030
+  type: implementation_example
+  abbrev: GV.RM-07.030
+  heading: Ex1
+  text: Define and communicate guidance and methods for identifying opportunities and including them in risk discussions (e.g.,
+    strengths, weaknesses, opportunities, and threats [SWOT] analysis)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-07
+- id: nist-csf-2.0.gv.rm-07.031
+  type: implementation_example
+  abbrev: GV.RM-07.031
+  heading: Ex2
+  text: Identify stretch goals and document them
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-07
+- id: nist-csf-2.0.gv.rm-07.032
+  type: implementation_example
+  abbrev: GV.RM-07.032
+  heading: Ex3
+  text: Calculate, document, and prioritize positive risks alongside negative risks
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rm-07
+- id: nist-csf-2.0.gv.rr-01.033
+  type: implementation_example
+  abbrev: GV.RR-01.033
+  heading: Ex1
+  text: Leaders (e.g., directors) agree on their roles and responsibilities in developing, implementing, and assessing the
+    organization's cybersecurity strategy
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-01
+- id: nist-csf-2.0.gv.rr-01.034
+  type: implementation_example
+  abbrev: GV.RR-01.034
+  heading: Ex2
+  text: Share leaders' expectations regarding a secure and ethical culture, especially when current events present the opportunity
+    to highlight positive or negative examples of cybersecurity risk management
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-01
+- id: nist-csf-2.0.gv.rr-01.035
+  type: implementation_example
+  abbrev: GV.RR-01.035
+  heading: Ex3
+  text: Leaders direct the CISO to maintain a comprehensive cybersecurity risk strategy and review and update it at least
+    annually and after major events
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-01
+- id: nist-csf-2.0.gv.rr-01.036
+  type: implementation_example
+  abbrev: GV.RR-01.036
+  heading: Ex4
+  text: Conduct reviews to ensure adequate authority and coordination among those responsible for managing cybersecurity risk
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-01
+- id: nist-csf-2.0.gv.rr-02.037
+  type: implementation_example
+  abbrev: GV.RR-02.037
+  heading: Ex1
+  text: Document risk management roles and responsibilities in policy
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-02
+- id: nist-csf-2.0.gv.rr-02.038
+  type: implementation_example
+  abbrev: GV.RR-02.038
+  heading: Ex2
+  text: Document who is responsible and accountable for cybersecurity risk management activities and how those teams and individuals
+    are to be consulted and informed
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-02
+- id: nist-csf-2.0.gv.rr-02.039
+  type: implementation_example
+  abbrev: GV.RR-02.039
+  heading: Ex3
+  text: Include cybersecurity responsibilities and performance requirements in personnel descriptions
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-02
+- id: nist-csf-2.0.gv.rr-02.040
+  type: implementation_example
+  abbrev: GV.RR-02.040
+  heading: Ex4
+  text: Document performance goals for personnel with cybersecurity risk management responsibilities, and periodically measure
+    performance to identify areas for improvement
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-02
+- id: nist-csf-2.0.gv.rr-02.041
+  type: implementation_example
+  abbrev: GV.RR-02.041
+  heading: Ex5
+  text: Clearly articulate cybersecurity responsibilities within operations, risk functions, and internal audit functions
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-02
+- id: nist-csf-2.0.gv.rr-03.042
+  type: implementation_example
+  abbrev: GV.RR-03.042
+  heading: Ex1
+  text: Conduct periodic management reviews to ensure that those given cybersecurity risk management responsibilities have
+    the necessary authority
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-03
+- id: nist-csf-2.0.gv.rr-03.043
+  type: implementation_example
+  abbrev: GV.RR-03.043
+  heading: Ex2
+  text: Identify resource allocation and investment in line with risk tolerance and response
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-03
+- id: nist-csf-2.0.gv.rr-03.044
+  type: implementation_example
+  abbrev: GV.RR-03.044
+  heading: Ex3
+  text: Provide adequate and sufficient people, process, and technical resources to support the cybersecurity strategy
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-03
+- id: nist-csf-2.0.gv.rr-04.045
+  type: implementation_example
+  abbrev: GV.RR-04.045
+  heading: Ex1
+  text: Integrate cybersecurity risk management considerations into human resources processes (e.g., personnel screening,
+    onboarding, change notification, offboarding)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-04
+- id: nist-csf-2.0.gv.rr-04.046
+  type: implementation_example
+  abbrev: GV.RR-04.046
+  heading: Ex2
+  text: Consider cybersecurity knowledge to be a positive factor in hiring, training, and retention decisions
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-04
+- id: nist-csf-2.0.gv.rr-04.047
+  type: implementation_example
+  abbrev: GV.RR-04.047
+  heading: Ex3
+  text: Conduct background checks prior to onboarding new personnel for sensitive roles, and periodically repeat background
+    checks for personnel with such roles
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-04
+- id: nist-csf-2.0.gv.rr-04.048
+  type: implementation_example
+  abbrev: GV.RR-04.048
+  heading: Ex4
+  text: Define and enforce obligations for personnel to be aware of, adhere to, and uphold security policies as they relate
+    to their roles
+  notes: ''
+  parent_id: nist-csf-2.0.gv.rr-04
+- id: nist-csf-2.0.gv.po-01.049
+  type: implementation_example
+  abbrev: GV.PO-01.049
+  heading: Ex1
+  text: Create, disseminate, and maintain an understandable, usable risk management policy with statements of management intent,
+    expectations, and direction
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-01
+- id: nist-csf-2.0.gv.po-01.050
+  type: implementation_example
+  abbrev: GV.PO-01.050
+  heading: Ex2
+  text: Periodically review policy and supporting processes and procedures to ensure that they align with risk management
+    strategy objectives and priorities, as well as the high-level direction of the cybersecurity policy
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-01
+- id: nist-csf-2.0.gv.po-01.051
+  type: implementation_example
+  abbrev: GV.PO-01.051
+  heading: Ex3
+  text: Require approval from senior management on policy
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-01
+- id: nist-csf-2.0.gv.po-01.052
+  type: implementation_example
+  abbrev: GV.PO-01.052
+  heading: Ex4
+  text: Communicate cybersecurity risk management policy and supporting processes and procedures across the organization
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-01
+- id: nist-csf-2.0.gv.po-01.053
+  type: implementation_example
+  abbrev: GV.PO-01.053
+  heading: Ex5
+  text: Require personnel to acknowledge receipt of policy when first hired, annually, and whenever policy is updated
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-01
+- id: nist-csf-2.0.gv.po-02.054
+  type: implementation_example
+  abbrev: GV.PO-02.054
+  heading: Ex1
+  text: Update policy based on periodic reviews of cybersecurity risk management results to ensure that policy and supporting
+    processes and procedures adequately maintain risk at an acceptable level
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-02
+- id: nist-csf-2.0.gv.po-02.055
+  type: implementation_example
+  abbrev: GV.PO-02.055
+  heading: Ex2
+  text: Provide a timeline for reviewing changes to the organization's risk environment (e.g., changes in risk or in the organization's
+    mission objectives), and communicate recommended policy updates
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-02
+- id: nist-csf-2.0.gv.po-02.056
+  type: implementation_example
+  abbrev: GV.PO-02.056
+  heading: Ex3
+  text: Update policy to reflect changes in legal and regulatory requirements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-02
+- id: nist-csf-2.0.gv.po-02.057
+  type: implementation_example
+  abbrev: GV.PO-02.057
+  heading: Ex4
+  text: Update policy to reflect changes in technology (e.g., adoption of artificial intelligence) and changes to the business
+    (e.g., acquisition of a new business, new contract requirements)
+  notes: ''
+  parent_id: nist-csf-2.0.gv.po-02
+- id: nist-csf-2.0.gv.ov-01.058
+  type: implementation_example
+  abbrev: GV.OV-01.058
+  heading: Ex1
+  text: Measure how well the risk management strategy and risk results have helped leaders make decisions and achieve organizational
+    objectives
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-01
+- id: nist-csf-2.0.gv.ov-01.059
+  type: implementation_example
+  abbrev: GV.OV-01.059
+  heading: Ex2
+  text: Examine whether cybersecurity risk strategies that impede operations or innovation should be adjusted
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-01
+- id: nist-csf-2.0.gv.ov-02.060
+  type: implementation_example
+  abbrev: GV.OV-02.060
+  heading: Ex1
+  text: Review audit findings to confirm whether the existing cybersecurity strategy has ensured compliance with internal
+    and external requirements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-02
+- id: nist-csf-2.0.gv.ov-02.061
+  type: implementation_example
+  abbrev: GV.OV-02.061
+  heading: Ex2
+  text: Review the performance oversight of those in cybersecurity-related roles to determine whether policy changes are necessary
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-02
+- id: nist-csf-2.0.gv.ov-02.062
+  type: implementation_example
+  abbrev: GV.OV-02.062
+  heading: Ex3
+  text: Review strategy in light of cybersecurity incidents
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-02
+- id: nist-csf-2.0.gv.ov-03.063
+  type: implementation_example
+  abbrev: GV.OV-03.063
+  heading: Ex1
+  text: Review key performance indicators (KPIs) to ensure that organization-wide policies and procedures achieve objectives
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-03
+- id: nist-csf-2.0.gv.ov-03.064
+  type: implementation_example
+  abbrev: GV.OV-03.064
+  heading: Ex2
+  text: Review key risk indicators (KRIs) to identify risks the organization faces, including likelihood and potential impact
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-03
+- id: nist-csf-2.0.gv.ov-03.065
+  type: implementation_example
+  abbrev: GV.OV-03.065
+  heading: Ex3
+  text: Collect and communicate metrics on cybersecurity risk management with senior leadership
+  notes: ''
+  parent_id: nist-csf-2.0.gv.ov-03
+- id: nist-csf-2.0.gv.sc-01.066
+  type: implementation_example
+  abbrev: GV.SC-01.066
+  heading: Ex1
+  text: Establish a strategy that expresses the objectives of the cybersecurity supply chain risk management program
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-01
+- id: nist-csf-2.0.gv.sc-01.067
+  type: implementation_example
+  abbrev: GV.SC-01.067
+  heading: Ex2
+  text: Develop the cybersecurity supply chain risk management program, including a plan (with milestones), policies, and
+    procedures that guide implementation and improvement of the program, and share the policies and procedures with the organizational
+    stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-01
+- id: nist-csf-2.0.gv.sc-01.068
+  type: implementation_example
+  abbrev: GV.SC-01.068
+  heading: Ex3
+  text: Develop and implement program processes based on the strategy, objectives, policies, and procedures that are agreed
+    upon and performed by the organizational stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-01
+- id: nist-csf-2.0.gv.sc-01.069
+  type: implementation_example
+  abbrev: GV.SC-01.069
+  heading: Ex4
+  text: Establish a cross-organizational mechanism that ensures alignment between functions that contribute to cybersecurity
+    supply chain risk management, such as cybersecurity, IT, operations, legal, human resources, and engineering
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-01
+- id: nist-csf-2.0.gv.sc-02.070
+  type: implementation_example
+  abbrev: GV.SC-02.070
+  heading: Ex1
+  text: Identify one or more specific roles or positions that will be responsible and accountable for planning, resourcing,
+    and executing cybersecurity supply chain risk management activities
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.071
+  type: implementation_example
+  abbrev: GV.SC-02.071
+  heading: Ex2
+  text: Document cybersecurity supply chain risk management roles and responsibilities in policy
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.072
+  type: implementation_example
+  abbrev: GV.SC-02.072
+  heading: Ex3
+  text: Create responsibility matrixes to document who will be responsible and accountable for cybersecurity supply chain
+    risk management activities and how those teams and individuals will be consulted and informed
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.073
+  type: implementation_example
+  abbrev: GV.SC-02.073
+  heading: Ex4
+  text: Include cybersecurity supply chain risk management responsibilities and performance requirements in personnel descriptions
+    to ensure clarity and improve accountability
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.074
+  type: implementation_example
+  abbrev: GV.SC-02.074
+  heading: Ex5
+  text: Document performance goals for personnel with cybersecurity risk management-specific responsibilities, and periodically
+    measure them to demonstrate and improve performance
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.075
+  type: implementation_example
+  abbrev: GV.SC-02.075
+  heading: Ex6
+  text: Develop roles and responsibilities for suppliers, customers, and business partners to address shared responsibilities
+    for applicable cybersecurity risks, and integrate them into organizational policies and applicable third-party agreements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.076
+  type: implementation_example
+  abbrev: GV.SC-02.076
+  heading: Ex7
+  text: Internally communicate cybersecurity supply chain risk management roles and responsibilities for third parties
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-02.077
+  type: implementation_example
+  abbrev: GV.SC-02.077
+  heading: Ex8
+  text: Establish rules and protocols for information sharing and reporting processes between the organization and its suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-02
+- id: nist-csf-2.0.gv.sc-03.078
+  type: implementation_example
+  abbrev: GV.SC-03.078
+  heading: Ex1
+  text: Identify areas of alignment and overlap with cybersecurity and enterprise risk management
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-03
+- id: nist-csf-2.0.gv.sc-03.079
+  type: implementation_example
+  abbrev: GV.SC-03.079
+  heading: Ex2
+  text: Establish integrated control sets for cybersecurity risk management and cybersecurity supply chain risk management
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-03
+- id: nist-csf-2.0.gv.sc-03.080
+  type: implementation_example
+  abbrev: GV.SC-03.080
+  heading: Ex3
+  text: Integrate cybersecurity supply chain risk management into improvement processes
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-03
+- id: nist-csf-2.0.gv.sc-03.081
+  type: implementation_example
+  abbrev: GV.SC-03.081
+  heading: Ex4
+  text: Escalate material cybersecurity risks in supply chains to senior management, and address them at the enterprise risk
+    management level
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-03
+- id: nist-csf-2.0.gv.sc-04.082
+  type: implementation_example
+  abbrev: GV.SC-04.082
+  heading: Ex1
+  text: Develop criteria for supplier criticality based on, for example, the sensitivity of data processed or possessed by
+    suppliers, the degree of access to the organization's systems, and the importance of the products or services to the organization's
+    mission
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-04
+- id: nist-csf-2.0.gv.sc-04.083
+  type: implementation_example
+  abbrev: GV.SC-04.083
+  heading: Ex2
+  text: Keep a record of all suppliers, and prioritize suppliers based on the criticality criteria
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-04
+- id: nist-csf-2.0.gv.sc-05.084
+  type: implementation_example
+  abbrev: GV.SC-05.084
+  heading: Ex1
+  text: Establish security requirements for suppliers, products, and services commensurate with their criticality level and
+    potential impact if compromised
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.085
+  type: implementation_example
+  abbrev: GV.SC-05.085
+  heading: Ex2
+  text: Include all cybersecurity and supply chain requirements that third parties must follow and how compliance with the
+    requirements may be verified in default contractual language
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.086
+  type: implementation_example
+  abbrev: GV.SC-05.086
+  heading: Ex3
+  text: Define the rules and protocols for information sharing between the organization and its suppliers and sub-tier suppliers
+    in agreements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.087
+  type: implementation_example
+  abbrev: GV.SC-05.087
+  heading: Ex4
+  text: Manage risk by including security requirements in agreements based on their criticality and potential impact if compromised
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.088
+  type: implementation_example
+  abbrev: GV.SC-05.088
+  heading: Ex5
+  text: Define security requirements in service-level agreements (SLAs) for monitoring suppliers for acceptable security performance
+    throughout the supplier relationship lifecycle
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.089
+  type: implementation_example
+  abbrev: GV.SC-05.089
+  heading: Ex6
+  text: Contractually require suppliers to disclose cybersecurity features, functions, and vulnerabilities of their products
+    and services for the life of the product or the term of service
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.090
+  type: implementation_example
+  abbrev: GV.SC-05.090
+  heading: Ex7
+  text: Contractually require suppliers to provide and maintain a current component inventory (e.g., software or hardware
+    bill of materials) for critical products
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.091
+  type: implementation_example
+  abbrev: GV.SC-05.091
+  heading: Ex8
+  text: Contractually require suppliers to vet their employees and guard against insider threats
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.092
+  type: implementation_example
+  abbrev: GV.SC-05.092
+  heading: Ex9
+  text: Contractually require suppliers to provide evidence of performing acceptable security practices through, for example,
+    self-attestation, conformance to known standards, certifications, or inspections
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-05.093
+  type: implementation_example
+  abbrev: GV.SC-05.093
+  heading: Ex10
+  text: Specify in contracts and other agreements the rights and responsibilities of the organization, its suppliers, and
+    their supply chains, with respect to potential cybersecurity risks
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-05
+- id: nist-csf-2.0.gv.sc-06.094
+  type: implementation_example
+  abbrev: GV.SC-06.094
+  heading: Ex1
+  text: Perform thorough due diligence on prospective suppliers that is consistent with procurement planning and commensurate
+    with the level of risk, criticality, and complexity of each supplier relationship
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-06
+- id: nist-csf-2.0.gv.sc-06.095
+  type: implementation_example
+  abbrev: GV.SC-06.095
+  heading: Ex2
+  text: Assess the suitability of the technology and cybersecurity capabilities and the risk management practices of prospective
+    suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-06
+- id: nist-csf-2.0.gv.sc-06.096
+  type: implementation_example
+  abbrev: GV.SC-06.096
+  heading: Ex3
+  text: Conduct supplier risk assessments against business and applicable cybersecurity requirements
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-06
+- id: nist-csf-2.0.gv.sc-06.097
+  type: implementation_example
+  abbrev: GV.SC-06.097
+  heading: Ex4
+  text: Assess the authenticity, integrity, and security of critical products prior to acquisition and use
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-06
+- id: nist-csf-2.0.gv.sc-07.098
+  type: implementation_example
+  abbrev: GV.SC-07.098
+  heading: Ex1
+  text: Adjust assessment formats and frequencies based on the third party's reputation and the criticality of the products
+    or services they provide
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-07
+- id: nist-csf-2.0.gv.sc-07.099
+  type: implementation_example
+  abbrev: GV.SC-07.099
+  heading: Ex2
+  text: Evaluate third parties' evidence of compliance with contractual cybersecurity requirements, such as self-attestations,
+    warranties, certifications, and other artifacts
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-07
+- id: nist-csf-2.0.gv.sc-07.100
+  type: implementation_example
+  abbrev: GV.SC-07.100
+  heading: Ex3
+  text: Monitor critical suppliers to ensure that they are fulfilling their security obligations throughout the supplier relationship
+    lifecycle using a variety of methods and techniques, such as inspections, audits, tests, or other forms of evaluation
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-07
+- id: nist-csf-2.0.gv.sc-07.101
+  type: implementation_example
+  abbrev: GV.SC-07.101
+  heading: Ex4
+  text: Monitor critical suppliers, services, and products for changes to their risk profiles, and reevaluate supplier criticality
+    and risk impact accordingly
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-07
+- id: nist-csf-2.0.gv.sc-07.102
+  type: implementation_example
+  abbrev: GV.SC-07.102
+  heading: Ex5
+  text: Plan for unexpected supplier and supply chain-related interruptions to ensure business continuity
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-07
+- id: nist-csf-2.0.gv.sc-08.103
+  type: implementation_example
+  abbrev: GV.SC-08.103
+  heading: Ex1
+  text: Define and use rules and protocols for reporting incident response and recovery activities and the status between
+    the organization and its suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-08
+- id: nist-csf-2.0.gv.sc-08.104
+  type: implementation_example
+  abbrev: GV.SC-08.104
+  heading: Ex2
+  text: Identify and document the roles and responsibilities of the organization and its suppliers for incident response
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-08
+- id: nist-csf-2.0.gv.sc-08.105
+  type: implementation_example
+  abbrev: GV.SC-08.105
+  heading: Ex3
+  text: Include critical suppliers in incident response exercises and simulations
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-08
+- id: nist-csf-2.0.gv.sc-08.106
+  type: implementation_example
+  abbrev: GV.SC-08.106
+  heading: Ex4
+  text: Define and coordinate crisis communication methods and protocols between the organization and its critical suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-08
+- id: nist-csf-2.0.gv.sc-08.107
+  type: implementation_example
+  abbrev: GV.SC-08.107
+  heading: Ex5
+  text: Conduct collaborative lessons learned sessions with critical suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-08
+- id: nist-csf-2.0.gv.sc-09.108
+  type: implementation_example
+  abbrev: GV.SC-09.108
+  heading: Ex1
+  text: Policies and procedures require provenance records for all acquired technology products and services
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-09
+- id: nist-csf-2.0.gv.sc-09.109
+  type: implementation_example
+  abbrev: GV.SC-09.109
+  heading: Ex2
+  text: Periodically provide risk reporting to leaders about how acquired components are proven to be untampered and authentic
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-09
+- id: nist-csf-2.0.gv.sc-09.110
+  type: implementation_example
+  abbrev: GV.SC-09.110
+  heading: Ex3
+  text: Communicate regularly among cybersecurity risk managers and operations personnel about the need to acquire software
+    patches, updates, and upgrades only from authenticated and trustworthy software providers
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-09
+- id: nist-csf-2.0.gv.sc-09.111
+  type: implementation_example
+  abbrev: GV.SC-09.111
+  heading: Ex4
+  text: Review policies to ensure that they require approved supplier personnel to perform maintenance on supplier products
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-09
+- id: nist-csf-2.0.gv.sc-09.112
+  type: implementation_example
+  abbrev: GV.SC-09.112
+  heading: Ex5
+  text: Policies and procedure require checking upgrades to critical hardware for unauthorized changes
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-09
+- id: nist-csf-2.0.gv.sc-10.113
+  type: implementation_example
+  abbrev: GV.SC-10.113
+  heading: Ex1
+  text: Establish processes for terminating critical relationships under both normal and adverse circumstances
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.gv.sc-10.114
+  type: implementation_example
+  abbrev: GV.SC-10.114
+  heading: Ex2
+  text: Define and implement plans for component end-of-life maintenance support and obsolescence
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.gv.sc-10.115
+  type: implementation_example
+  abbrev: GV.SC-10.115
+  heading: Ex3
+  text: Verify that supplier access to organization resources is deactivated promptly when it is no longer needed
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.gv.sc-10.116
+  type: implementation_example
+  abbrev: GV.SC-10.116
+  heading: Ex4
+  text: Verify that assets containing the organization's data are returned or properly disposed of in a timely, controlled,
+    and safe manner
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.gv.sc-10.117
+  type: implementation_example
+  abbrev: GV.SC-10.117
+  heading: Ex5
+  text: Develop and execute a plan for terminating or transitioning supplier relationships that takes supply chain security
+    risk and resiliency into account
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.gv.sc-10.118
+  type: implementation_example
+  abbrev: GV.SC-10.118
+  heading: Ex6
+  text: Mitigate risks to data and systems created by supplier termination
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.gv.sc-10.119
+  type: implementation_example
+  abbrev: GV.SC-10.119
+  heading: Ex7
+  text: Manage data leakage risks associated with supplier termination
+  notes: ''
+  parent_id: nist-csf-2.0.gv.sc-10
+- id: nist-csf-2.0.id.am-01.120
+  type: implementation_example
+  abbrev: ID.AM-01.120
+  heading: Ex1
+  text: Maintain inventories for all types of hardware, including IT, IoT, OT, and mobile devices
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-01
+- id: nist-csf-2.0.id.am-01.121
+  type: implementation_example
+  abbrev: ID.AM-01.121
+  heading: Ex2
+  text: Constantly monitor networks to detect new hardware and automatically update inventories
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-01
+- id: nist-csf-2.0.id.am-02.122
+  type: implementation_example
+  abbrev: ID.AM-02.122
+  heading: Ex1
+  text: Maintain inventories for all types of software and services, including commercial-off-the-shelf, open-source, custom
+    applications, API services, and cloud-based applications and services
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-02
+- id: nist-csf-2.0.id.am-02.123
+  type: implementation_example
+  abbrev: ID.AM-02.123
+  heading: Ex2
+  text: Constantly monitor all platforms, including containers and virtual machines, for software and service inventory changes
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-02
+- id: nist-csf-2.0.id.am-02.124
+  type: implementation_example
+  abbrev: ID.AM-02.124
+  heading: Ex3
+  text: Maintain an inventory of the organization's systems
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-02
+- id: nist-csf-2.0.id.am-03.125
+  type: implementation_example
+  abbrev: ID.AM-03.125
+  heading: Ex1
+  text: Maintain baselines of communication and data flows within the organization's wired and wireless networks
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-03
+- id: nist-csf-2.0.id.am-03.126
+  type: implementation_example
+  abbrev: ID.AM-03.126
+  heading: Ex2
+  text: Maintain baselines of communication and data flows between the organization and third parties
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-03
+- id: nist-csf-2.0.id.am-03.127
+  type: implementation_example
+  abbrev: ID.AM-03.127
+  heading: Ex3
+  text: Maintain baselines of communication and data flows for the organization's infrastructure-as-a-service (IaaS) usage
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-03
+- id: nist-csf-2.0.id.am-03.128
+  type: implementation_example
+  abbrev: ID.AM-03.128
+  heading: Ex4
+  text: Maintain documentation of expected network ports, protocols, and services that are typically used among authorized
+    systems
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-03
+- id: nist-csf-2.0.id.am-04.129
+  type: implementation_example
+  abbrev: ID.AM-04.129
+  heading: Ex1
+  text: Inventory all external services used by the organization, including third-party infrastructure-as-a-service (IaaS),
+    platform-as-a-service (PaaS), and software-as-a-service (SaaS) offerings; APIs; and other externally hosted application
+    services
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-04
+- id: nist-csf-2.0.id.am-04.130
+  type: implementation_example
+  abbrev: ID.AM-04.130
+  heading: Ex2
+  text: Update the inventory when a new external service is going to be utilized to ensure adequate cybersecurity risk management
+    monitoring of the organization's use of that service
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-04
+- id: nist-csf-2.0.id.am-05.131
+  type: implementation_example
+  abbrev: ID.AM-05.131
+  heading: Ex1
+  text: Define criteria for prioritizing each class of assets
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-05
+- id: nist-csf-2.0.id.am-05.132
+  type: implementation_example
+  abbrev: ID.AM-05.132
+  heading: Ex2
+  text: Apply the prioritization criteria to assets
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-05
+- id: nist-csf-2.0.id.am-05.133
+  type: implementation_example
+  abbrev: ID.AM-05.133
+  heading: Ex3
+  text: Track the asset priorities and update them periodically or when significant changes to the organization occur
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-05
+- id: nist-csf-2.0.id.am-07.134
+  type: implementation_example
+  abbrev: ID.AM-07.134
+  heading: Ex1
+  text: Maintain a list of the designated data types of interest (e.g., personally identifiable information, protected health
+    information, financial account numbers, organization intellectual property, operational technology data)
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-07
+- id: nist-csf-2.0.id.am-07.135
+  type: implementation_example
+  abbrev: ID.AM-07.135
+  heading: Ex2
+  text: Continuously discover and analyze ad hoc data to identify new instances of designated data types
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-07
+- id: nist-csf-2.0.id.am-07.136
+  type: implementation_example
+  abbrev: ID.AM-07.136
+  heading: Ex3
+  text: Assign data classifications to designated data types through tags or labels
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-07
+- id: nist-csf-2.0.id.am-07.137
+  type: implementation_example
+  abbrev: ID.AM-07.137
+  heading: Ex4
+  text: Track the provenance, data owner, and geolocation of each instance of designated data types
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-07
+- id: nist-csf-2.0.id.am-08.138
+  type: implementation_example
+  abbrev: ID.AM-08.138
+  heading: Ex1
+  text: Integrate cybersecurity considerations throughout the life cycles of systems, hardware, software, and services
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.139
+  type: implementation_example
+  abbrev: ID.AM-08.139
+  heading: Ex2
+  text: Integrate cybersecurity considerations into product life cycles
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.140
+  type: implementation_example
+  abbrev: ID.AM-08.140
+  heading: Ex3
+  text: Identify unofficial uses of technology to meet mission objectives (i.e., shadow IT)
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.141
+  type: implementation_example
+  abbrev: ID.AM-08.141
+  heading: Ex4
+  text: Periodically identify redundant systems, hardware, software, and services that unnecessarily increase the organization's
+    attack surface
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.142
+  type: implementation_example
+  abbrev: ID.AM-08.142
+  heading: Ex5
+  text: Properly configure and secure systems, hardware, software, and services prior to their deployment in production
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.143
+  type: implementation_example
+  abbrev: ID.AM-08.143
+  heading: Ex6
+  text: Update inventories when systems, hardware, software, and services are moved or transferred within the organization
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.144
+  type: implementation_example
+  abbrev: ID.AM-08.144
+  heading: Ex7
+  text: Securely destroy stored data based on the organization's data retention policy using the prescribed destruction method,
+    and keep and manage a record of the destructions
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.145
+  type: implementation_example
+  abbrev: ID.AM-08.145
+  heading: Ex8
+  text: Securely sanitize data storage when hardware is being retired, decommissioned, reassigned, or sent for repairs or
+    replacement
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.am-08.146
+  type: implementation_example
+  abbrev: ID.AM-08.146
+  heading: Ex9
+  text: Offer methods for destroying paper, storage media, and other physical forms of data storage
+  notes: ''
+  parent_id: nist-csf-2.0.id.am-08
+- id: nist-csf-2.0.id.ra-01.147
+  type: implementation_example
+  abbrev: ID.RA-01.147
+  heading: Ex1
+  text: Use vulnerability management technologies to identify unpatched and misconfigured software
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-01
+- id: nist-csf-2.0.id.ra-01.148
+  type: implementation_example
+  abbrev: ID.RA-01.148
+  heading: Ex2
+  text: Assess network and system architectures for design and implementation weaknesses that affect cybersecurity
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-01
+- id: nist-csf-2.0.id.ra-01.149
+  type: implementation_example
+  abbrev: ID.RA-01.149
+  heading: Ex3
+  text: Review, analyze, or test organization-developed software to identify design, coding, and default configuration vulnerabilities
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-01
+- id: nist-csf-2.0.id.ra-01.150
+  type: implementation_example
+  abbrev: ID.RA-01.150
+  heading: Ex4
+  text: Assess facilities that house critical computing assets for physical vulnerabilities and resilience issues
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-01
+- id: nist-csf-2.0.id.ra-01.151
+  type: implementation_example
+  abbrev: ID.RA-01.151
+  heading: Ex5
+  text: Monitor sources of cyber threat intelligence for information on new vulnerabilities in products and services
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-01
+- id: nist-csf-2.0.id.ra-01.152
+  type: implementation_example
+  abbrev: ID.RA-01.152
+  heading: Ex6
+  text: Review processes and procedures for weaknesses that could be exploited to affect cybersecurity
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-01
+- id: nist-csf-2.0.id.ra-02.153
+  type: implementation_example
+  abbrev: ID.RA-02.153
+  heading: Ex1
+  text: Configure cybersecurity tools and technologies with detection or response capabilities to securely ingest cyber threat
+    intelligence feeds
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-02
+- id: nist-csf-2.0.id.ra-02.154
+  type: implementation_example
+  abbrev: ID.RA-02.154
+  heading: Ex2
+  text: Receive and review advisories from reputable third parties on current threat actors and their tactics, techniques,
+    and procedures (TTPs)
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-02
+- id: nist-csf-2.0.id.ra-02.155
+  type: implementation_example
+  abbrev: ID.RA-02.155
+  heading: Ex3
+  text: Monitor sources of cyber threat intelligence for information on the types of vulnerabilities that emerging technologies
+    may have
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-02
+- id: nist-csf-2.0.id.ra-03.156
+  type: implementation_example
+  abbrev: ID.RA-03.156
+  heading: Ex1
+  text: Use cyber threat intelligence to maintain awareness of the types of threat actors likely to target the organization
+    and the TTPs they are likely to use
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-03
+- id: nist-csf-2.0.id.ra-03.157
+  type: implementation_example
+  abbrev: ID.RA-03.157
+  heading: Ex2
+  text: Perform threat hunting to look for signs of threat actors within the environment
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-03
+- id: nist-csf-2.0.id.ra-03.158
+  type: implementation_example
+  abbrev: ID.RA-03.158
+  heading: Ex3
+  text: Implement processes for identifying internal threat actors
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-03
+- id: nist-csf-2.0.id.ra-04.159
+  type: implementation_example
+  abbrev: ID.RA-04.159
+  heading: Ex1
+  text: Business leaders and cybersecurity risk management practitioners work together to estimate the likelihood and impact
+    of risk scenarios and record them in risk registers
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-04
+- id: nist-csf-2.0.id.ra-04.160
+  type: implementation_example
+  abbrev: ID.RA-04.160
+  heading: Ex2
+  text: Enumerate the potential business impacts of unauthorized access to the organization's communications, systems, and
+    data processed in or by those systems
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-04
+- id: nist-csf-2.0.id.ra-04.161
+  type: implementation_example
+  abbrev: ID.RA-04.161
+  heading: Ex3
+  text: Account for the potential impacts of cascading failures for systems of systems
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-04
+- id: nist-csf-2.0.id.ra-05.162
+  type: implementation_example
+  abbrev: ID.RA-05.162
+  heading: Ex1
+  text: Develop threat models to better understand risks to the data and identify appropriate risk responses
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-05
+- id: nist-csf-2.0.id.ra-05.163
+  type: implementation_example
+  abbrev: ID.RA-05.163
+  heading: Ex2
+  text: Prioritize cybersecurity resource allocations and investments based on estimated likelihoods and impacts
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-05
+- id: nist-csf-2.0.id.ra-06.164
+  type: implementation_example
+  abbrev: ID.RA-06.164
+  heading: Ex1
+  text: Apply the vulnerability management plan's criteria for deciding whether to accept, transfer, mitigate, or avoid risk
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-06
+- id: nist-csf-2.0.id.ra-06.165
+  type: implementation_example
+  abbrev: ID.RA-06.165
+  heading: Ex2
+  text: Apply the vulnerability management plan's criteria for selecting compensating controls to mitigate risk
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-06
+- id: nist-csf-2.0.id.ra-06.166
+  type: implementation_example
+  abbrev: ID.RA-06.166
+  heading: Ex3
+  text: Track the progress of risk response implementation (e.g., plan of action and milestones [POA&M], risk register, risk
+    detail report)
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-06
+- id: nist-csf-2.0.id.ra-06.167
+  type: implementation_example
+  abbrev: ID.RA-06.167
+  heading: Ex4
+  text: Use risk assessment findings to inform risk response decisions and actions
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-06
+- id: nist-csf-2.0.id.ra-06.168
+  type: implementation_example
+  abbrev: ID.RA-06.168
+  heading: Ex5
+  text: Communicate planned risk responses to affected stakeholders in priority order
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-06
+- id: nist-csf-2.0.id.ra-08.173
+  type: implementation_example
+  abbrev: ID.RA-08.173
+  heading: Ex1
+  text: Conduct vulnerability information sharing between the organization and its suppliers following the rules and protocols
+    defined in contracts
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-08
+- id: nist-csf-2.0.id.ra-08.174
+  type: implementation_example
+  abbrev: ID.RA-08.174
+  heading: Ex2
+  text: Assign responsibilities and verify the execution of procedures for processing, analyzing the impact of, and responding
+    to cybersecurity threat, vulnerability, or incident disclosures by suppliers, customers, partners, and government cybersecurity
+    organizations
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-08
+- id: nist-csf-2.0.id.ra-09.175
+  type: implementation_example
+  abbrev: ID.RA-09.175
+  heading: Ex1
+  text: Assess the authenticity and cybersecurity of critical technology products and services prior to acquisition and use
+  notes: ''
+  parent_id: nist-csf-2.0.id.ra-09
+- id: nist-csf-2.0.id.im-01.177
+  type: implementation_example
+  abbrev: ID.IM-01.177
+  heading: Ex1
+  text: Perform self-assessments of critical services that take current threats and TTPs into consideration
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-01
+- id: nist-csf-2.0.id.im-01.178
+  type: implementation_example
+  abbrev: ID.IM-01.178
+  heading: Ex2
+  text: Invest in third-party assessments or independent audits of the effectiveness of the organization's cybersecurity program
+    to identify areas that need improvement
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-01
+- id: nist-csf-2.0.id.im-01.179
+  type: implementation_example
+  abbrev: ID.IM-01.179
+  heading: Ex3
+  text: Constantly evaluate compliance with selected cybersecurity requirements through automated means
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-01
+- id: nist-csf-2.0.id.im-02.180
+  type: implementation_example
+  abbrev: ID.IM-02.180
+  heading: Ex1
+  text: Identify improvements for future incident response activities based on findings from incident response assessments
+    (e.g., tabletop exercises and simulations, tests, internal reviews, independent audits)
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-02
+- id: nist-csf-2.0.id.im-02.181
+  type: implementation_example
+  abbrev: ID.IM-02.181
+  heading: Ex2
+  text: Identify improvements for future business continuity, disaster recovery, and incident response activities based on
+    exercises performed in coordination with critical service providers and product suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-02
+- id: nist-csf-2.0.id.im-02.182
+  type: implementation_example
+  abbrev: ID.IM-02.182
+  heading: Ex3
+  text: Involve internal stakeholders (e.g., senior executives, legal department, HR) in security tests and exercises as appropriate
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-02
+- id: nist-csf-2.0.id.im-02.183
+  type: implementation_example
+  abbrev: ID.IM-02.183
+  heading: Ex4
+  text: Perform penetration testing to identify opportunities to improve the security posture of selected high-risk systems
+    as approved by leadership
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-02
+- id: nist-csf-2.0.id.im-02.184
+  type: implementation_example
+  abbrev: ID.IM-02.184
+  heading: Ex5
+  text: Exercise contingency plans for responding to and recovering from the discovery that products or services did not originate
+    with the contracted supplier or partner or were altered before receipt
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-02
+- id: nist-csf-2.0.id.im-02.185
+  type: implementation_example
+  abbrev: ID.IM-02.185
+  heading: Ex6
+  text: Collect and analyze performance metrics using security tools and services to inform improvements to the cybersecurity
+    program
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-02
+- id: nist-csf-2.0.id.im-03.186
+  type: implementation_example
+  abbrev: ID.IM-03.186
+  heading: Ex1
+  text: Conduct collaborative lessons learned sessions with suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-03
+- id: nist-csf-2.0.id.im-03.187
+  type: implementation_example
+  abbrev: ID.IM-03.187
+  heading: Ex2
+  text: Annually review cybersecurity policies, processes, and procedures to take lessons learned into account
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-03
+- id: nist-csf-2.0.id.im-03.188
+  type: implementation_example
+  abbrev: ID.IM-03.188
+  heading: Ex3
+  text: Use metrics to assess operational cybersecurity performance over time
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-03
+- id: nist-csf-2.0.id.im-04.189
+  type: implementation_example
+  abbrev: ID.IM-04.189
+  heading: Ex1
+  text: Establish contingency plans (e.g., incident response, business continuity, disaster recovery) for responding to and
+    recovering from adverse events that can interfere with operations, expose confidential information, or otherwise endanger
+    the organization's mission and viability
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-04
+- id: nist-csf-2.0.id.im-04.190
+  type: implementation_example
+  abbrev: ID.IM-04.190
+  heading: Ex2
+  text: Include contact and communication information, processes for handling common scenarios, and criteria for prioritization,
+    escalation, and elevation in all contingency plans
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-04
+- id: nist-csf-2.0.id.im-04.191
+  type: implementation_example
+  abbrev: ID.IM-04.191
+  heading: Ex3
+  text: Create a vulnerability management plan to identify and assess all types of vulnerabilities and to prioritize, test,
+    and implement risk responses
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-04
+- id: nist-csf-2.0.id.im-04.192
+  type: implementation_example
+  abbrev: ID.IM-04.192
+  heading: Ex4
+  text: Communicate cybersecurity plans (including updates) to those responsible for carrying them out and to affected parties
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-04
+- id: nist-csf-2.0.id.im-04.193
+  type: implementation_example
+  abbrev: ID.IM-04.193
+  heading: Ex5
+  text: Review and update all cybersecurity plans annually or when a need for significant improvements is identified
+  notes: ''
+  parent_id: nist-csf-2.0.id.im-04
+- id: nist-csf-2.0.pr.aa-01.194
+  type: implementation_example
+  abbrev: PR.AA-01.194
+  heading: Ex1
+  text: Initiate requests for new access or additional access for employees, contractors, and others, and track, review, and
+    fulfill the requests, with permission from system or data owners when needed
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-01
+- id: nist-csf-2.0.pr.aa-01.195
+  type: implementation_example
+  abbrev: PR.AA-01.195
+  heading: Ex2
+  text: Issue, manage, and revoke cryptographic certificates and identity tokens, cryptographic keys (i.e., key management),
+    and other credentials
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-01
+- id: nist-csf-2.0.pr.aa-01.196
+  type: implementation_example
+  abbrev: PR.AA-01.196
+  heading: Ex3
+  text: Select a unique identifier for each device from immutable hardware characteristics or an identifier securely provisioned
+    to the device
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-01
+- id: nist-csf-2.0.pr.aa-01.197
+  type: implementation_example
+  abbrev: PR.AA-01.197
+  heading: Ex4
+  text: Physically label authorized hardware with an identifier for inventory and servicing purposes
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-01
+- id: nist-csf-2.0.pr.aa-02.198
+  type: implementation_example
+  abbrev: PR.AA-02.198
+  heading: Ex1
+  text: Verify a person's claimed identity at enrollment time using government-issued identity credentials (e.g., passport,
+    visa, driver's license)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-02
+- id: nist-csf-2.0.pr.aa-02.199
+  type: implementation_example
+  abbrev: PR.AA-02.199
+  heading: Ex2
+  text: Issue a different credential for each person (i.e., no credential sharing)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-02
+- id: nist-csf-2.0.pr.aa-03.200
+  type: implementation_example
+  abbrev: PR.AA-03.200
+  heading: Ex1
+  text: Require multifactor authentication
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-03
+- id: nist-csf-2.0.pr.aa-03.201
+  type: implementation_example
+  abbrev: PR.AA-03.201
+  heading: Ex2
+  text: Enforce policies for the minimum strength of passwords, PINs, and similar authenticators
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-03
+- id: nist-csf-2.0.pr.aa-03.202
+  type: implementation_example
+  abbrev: PR.AA-03.202
+  heading: Ex3
+  text: Periodically reauthenticate users, services, and hardware based on risk (e.g., in zero trust architectures)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-03
+- id: nist-csf-2.0.pr.aa-03.203
+  type: implementation_example
+  abbrev: PR.AA-03.203
+  heading: Ex4
+  text: Ensure that authorized personnel can access accounts essential for protecting safety under emergency conditions
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-03
+- id: nist-csf-2.0.pr.aa-04.204
+  type: implementation_example
+  abbrev: PR.AA-04.204
+  heading: Ex1
+  text: Protect identity assertions that are used to convey authentication and user information through single sign-on systems
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-04
+- id: nist-csf-2.0.pr.aa-04.205
+  type: implementation_example
+  abbrev: PR.AA-04.205
+  heading: Ex2
+  text: Protect identity assertions that are used to convey authentication and user information between federated systems
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-04
+- id: nist-csf-2.0.pr.aa-04.206
+  type: implementation_example
+  abbrev: PR.AA-04.206
+  heading: Ex3
+  text: Implement standards-based approaches for identity assertions in all contexts, and follow all guidance for the generation
+    (e.g., data models, metadata), protection (e.g., digital signing, encryption), and verification (e.g., signature validation)
+    of identity assertions
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-04
+- id: nist-csf-2.0.pr.aa-05.207
+  type: implementation_example
+  abbrev: PR.AA-05.207
+  heading: Ex1
+  text: Review logical and physical access privileges periodically and whenever someone changes roles or leaves the organization,
+    and promptly rescind privileges that are no longer needed
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-05
+- id: nist-csf-2.0.pr.aa-05.208
+  type: implementation_example
+  abbrev: PR.AA-05.208
+  heading: Ex2
+  text: Take attributes of the requester and the requested resource into account for authorization decisions (e.g., geolocation,
+    day/time, requester endpoint's cyber health)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-05
+- id: nist-csf-2.0.pr.aa-05.209
+  type: implementation_example
+  abbrev: PR.AA-05.209
+  heading: Ex3
+  text: Restrict access and privileges to the minimum necessary (e.g., zero trust architecture)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-05
+- id: nist-csf-2.0.pr.aa-05.210
+  type: implementation_example
+  abbrev: PR.AA-05.210
+  heading: Ex4
+  text: Periodically review the privileges associated with critical business functions to confirm proper separation of duties
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-05
+- id: nist-csf-2.0.pr.aa-06.211
+  type: implementation_example
+  abbrev: PR.AA-06.211
+  heading: Ex1
+  text: Use security guards, security cameras, locked entrances, alarm systems, and other physical controls to monitor facilities
+    and restrict access
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-06
+- id: nist-csf-2.0.pr.aa-06.212
+  type: implementation_example
+  abbrev: PR.AA-06.212
+  heading: Ex2
+  text: Employ additional physical security controls for areas that contain high-risk assets
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-06
+- id: nist-csf-2.0.pr.aa-06.213
+  type: implementation_example
+  abbrev: PR.AA-06.213
+  heading: Ex3
+  text: Escort guests, vendors, and other third parties within areas that contain business-critical assets
+  notes: ''
+  parent_id: nist-csf-2.0.pr.aa-06
+- id: nist-csf-2.0.pr.at-01.214
+  type: implementation_example
+  abbrev: PR.AT-01.214
+  heading: Ex1
+  text: Provide basic cybersecurity awareness and training to employees, contractors, partners, suppliers, and all other users
+    of the organization's non-public resources
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-01
+- id: nist-csf-2.0.pr.at-01.215
+  type: implementation_example
+  abbrev: PR.AT-01.215
+  heading: Ex2
+  text: Train personnel to recognize social engineering attempts and other common attacks, report attacks and suspicious activity,
+    comply with acceptable use policies, and perform basic cyber hygiene tasks (e.g., patching software, choosing passwords,
+    protecting credentials)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-01
+- id: nist-csf-2.0.pr.at-01.216
+  type: implementation_example
+  abbrev: PR.AT-01.216
+  heading: Ex3
+  text: Explain the consequences of cybersecurity policy violations, both to individual users and the organization as a whole
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-01
+- id: nist-csf-2.0.pr.at-01.217
+  type: implementation_example
+  abbrev: PR.AT-01.217
+  heading: Ex4
+  text: Periodically assess or test users on their understanding of basic cybersecurity practices
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-01
+- id: nist-csf-2.0.pr.at-01.218
+  type: implementation_example
+  abbrev: PR.AT-01.218
+  heading: Ex5
+  text: Require annual refreshers to reinforce existing practices and introduce new practices
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-01
+- id: nist-csf-2.0.pr.at-02.219
+  type: implementation_example
+  abbrev: PR.AT-02.219
+  heading: Ex1
+  text: Identify the specialized roles within the organization that require additional cybersecurity training, such as physical
+    and cybersecurity personnel, finance personnel, senior leadership, and anyone with access to business-critical data
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-02
+- id: nist-csf-2.0.pr.at-02.220
+  type: implementation_example
+  abbrev: PR.AT-02.220
+  heading: Ex2
+  text: Provide role-based cybersecurity awareness and training to all those in specialized roles, including contractors,
+    partners, suppliers, and other third parties
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-02
+- id: nist-csf-2.0.pr.at-02.221
+  type: implementation_example
+  abbrev: PR.AT-02.221
+  heading: Ex3
+  text: Periodically assess or test users on their understanding of cybersecurity practices for their specialized roles
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-02
+- id: nist-csf-2.0.pr.at-02.222
+  type: implementation_example
+  abbrev: PR.AT-02.222
+  heading: Ex4
+  text: Require annual refreshers to reinforce existing practices and introduce new practices
+  notes: ''
+  parent_id: nist-csf-2.0.pr.at-02
+- id: nist-csf-2.0.pr.ds-01.223
+  type: implementation_example
+  abbrev: PR.DS-01.223
+  heading: Ex1
+  text: Use encryption, digital signatures, and cryptographic hashes to protect the confidentiality and integrity of stored
+    data in files, databases, virtual machine disk images, container images, and other resources
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-01
+- id: nist-csf-2.0.pr.ds-01.224
+  type: implementation_example
+  abbrev: PR.DS-01.224
+  heading: Ex2
+  text: Use full disk encryption to protect data stored on user endpoints
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-01
+- id: nist-csf-2.0.pr.ds-01.225
+  type: implementation_example
+  abbrev: PR.DS-01.225
+  heading: Ex3
+  text: Confirm the integrity of software by validating signatures
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-01
+- id: nist-csf-2.0.pr.ds-01.226
+  type: implementation_example
+  abbrev: PR.DS-01.226
+  heading: Ex4
+  text: Restrict the use of removable media to prevent data exfiltration
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-01
+- id: nist-csf-2.0.pr.ds-01.227
+  type: implementation_example
+  abbrev: PR.DS-01.227
+  heading: Ex5
+  text: Physically secure removable media containing unencrypted sensitive information, such as within locked offices or file
+    cabinets
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-01
+- id: nist-csf-2.0.pr.ds-02.228
+  type: implementation_example
+  abbrev: PR.DS-02.228
+  heading: Ex1
+  text: Use encryption, digital signatures, and cryptographic hashes to protect the confidentiality and integrity of network
+    communications
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-02
+- id: nist-csf-2.0.pr.ds-02.229
+  type: implementation_example
+  abbrev: PR.DS-02.229
+  heading: Ex2
+  text: Automatically encrypt or block outbound emails and other communications that contain sensitive data, depending on
+    the data classification
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-02
+- id: nist-csf-2.0.pr.ds-02.230
+  type: implementation_example
+  abbrev: PR.DS-02.230
+  heading: Ex3
+  text: Block access to personal email, file sharing, file storage services, and other personal communications applications
+    and services from organizational systems and networks
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-02
+- id: nist-csf-2.0.pr.ds-02.231
+  type: implementation_example
+  abbrev: PR.DS-02.231
+  heading: Ex4
+  text: Prevent reuse of sensitive data from production environments (e.g., customer records) in development, testing, and
+    other non-production environments
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-02
+- id: nist-csf-2.0.pr.ds-10.232
+  type: implementation_example
+  abbrev: PR.DS-10.232
+  heading: Ex1
+  text: Remove data that must remain confidential (e.g., from processors and memory) as soon as it is no longer needed
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-10
+- id: nist-csf-2.0.pr.ds-10.233
+  type: implementation_example
+  abbrev: PR.DS-10.233
+  heading: Ex2
+  text: Protect data in use from access by other users and processes of the same platform
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-10
+- id: nist-csf-2.0.pr.ds-11.234
+  type: implementation_example
+  abbrev: PR.DS-11.234
+  heading: Ex1
+  text: Continuously back up critical data in near-real-time, and back up other data frequently at agreed-upon schedules
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-11
+- id: nist-csf-2.0.pr.ds-11.235
+  type: implementation_example
+  abbrev: PR.DS-11.235
+  heading: Ex2
+  text: Test backups and restores for all types of data sources at least annually
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-11
+- id: nist-csf-2.0.pr.ds-11.236
+  type: implementation_example
+  abbrev: PR.DS-11.236
+  heading: Ex3
+  text: Securely store some backups offline and offsite so that an incident or disaster will not damage them
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-11
+- id: nist-csf-2.0.pr.ds-11.237
+  type: implementation_example
+  abbrev: PR.DS-11.237
+  heading: Ex4
+  text: Enforce geographic separation and geolocation restrictions for data backup storage
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ds-11
+- id: nist-csf-2.0.pr.ps-01.238
+  type: implementation_example
+  abbrev: PR.PS-01.238
+  heading: Ex1
+  text: Establish, test, deploy, and maintain hardened baselines that enforce the organization's cybersecurity policies and
+    provide only essential capabilities (i.e., principle of least functionality)
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-01
+- id: nist-csf-2.0.pr.ps-01.239
+  type: implementation_example
+  abbrev: PR.PS-01.239
+  heading: Ex2
+  text: Review all default configuration settings that may potentially impact cybersecurity when installing or upgrading software
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-01
+- id: nist-csf-2.0.pr.ps-01.240
+  type: implementation_example
+  abbrev: PR.PS-01.240
+  heading: Ex3
+  text: Monitor implemented software for deviations from approved baselines
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-01
+- id: nist-csf-2.0.pr.ps-02.241
+  type: implementation_example
+  abbrev: PR.PS-02.241
+  heading: Ex1
+  text: Perform routine and emergency patching within the timeframes specified in the vulnerability management plan
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-02
+- id: nist-csf-2.0.pr.ps-02.242
+  type: implementation_example
+  abbrev: PR.PS-02.242
+  heading: Ex2
+  text: Update container images, and deploy new container instances to replace rather than update existing instances
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-02
+- id: nist-csf-2.0.pr.ps-02.243
+  type: implementation_example
+  abbrev: PR.PS-02.243
+  heading: Ex3
+  text: Replace end-of-life software and service versions with supported, maintained versions
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-02
+- id: nist-csf-2.0.pr.ps-02.244
+  type: implementation_example
+  abbrev: PR.PS-02.244
+  heading: Ex4
+  text: Uninstall and remove unauthorized software and services that pose undue risks
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-02
+- id: nist-csf-2.0.pr.ps-02.245
+  type: implementation_example
+  abbrev: PR.PS-02.245
+  heading: Ex5
+  text: Uninstall and remove any unnecessary software components (e.g., operating system utilities) that attackers might misuse
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-02
+- id: nist-csf-2.0.pr.ps-02.246
+  type: implementation_example
+  abbrev: PR.PS-02.246
+  heading: Ex6
+  text: Define and implement plans for software and service end-of-life maintenance support and obsolescence
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-02
+- id: nist-csf-2.0.pr.ps-03.247
+  type: implementation_example
+  abbrev: PR.PS-03.247
+  heading: Ex1
+  text: Replace hardware when it lacks needed security capabilities or when it cannot support software with needed security
+    capabilities
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-03
+- id: nist-csf-2.0.pr.ps-03.248
+  type: implementation_example
+  abbrev: PR.PS-03.248
+  heading: Ex2
+  text: Define and implement plans for hardware end-of-life maintenance support and obsolescence
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-03
+- id: nist-csf-2.0.pr.ps-03.249
+  type: implementation_example
+  abbrev: PR.PS-03.249
+  heading: Ex3
+  text: Perform hardware disposal in a secure, responsible, and auditable manner
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-03
+- id: nist-csf-2.0.pr.ps-04.250
+  type: implementation_example
+  abbrev: PR.PS-04.250
+  heading: Ex1
+  text: Configure all operating systems, applications, and services (including cloud-based services) to generate log records
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-04
+- id: nist-csf-2.0.pr.ps-04.251
+  type: implementation_example
+  abbrev: PR.PS-04.251
+  heading: Ex2
+  text: Configure log generators to securely share their logs with the organization's logging infrastructure systems and services
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-04
+- id: nist-csf-2.0.pr.ps-04.252
+  type: implementation_example
+  abbrev: PR.PS-04.252
+  heading: Ex3
+  text: Configure log generators to record the data needed by zero-trust architectures
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-04
+- id: nist-csf-2.0.pr.ps-05.253
+  type: implementation_example
+  abbrev: PR.PS-05.253
+  heading: Ex1
+  text: When risk warrants it, restrict software execution to permitted products only or deny the execution of prohibited
+    and unauthorized software
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-05
+- id: nist-csf-2.0.pr.ps-05.254
+  type: implementation_example
+  abbrev: PR.PS-05.254
+  heading: Ex2
+  text: Verify the source of new software and the software's integrity before installing it
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-05
+- id: nist-csf-2.0.pr.ps-05.255
+  type: implementation_example
+  abbrev: PR.PS-05.255
+  heading: Ex3
+  text: Configure platforms to use only approved DNS services that block access to known malicious domains
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-05
+- id: nist-csf-2.0.pr.ps-05.256
+  type: implementation_example
+  abbrev: PR.PS-05.256
+  heading: Ex4
+  text: Configure platforms to allow the installation of organization-approved software only
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-05
+- id: nist-csf-2.0.pr.ps-06.257
+  type: implementation_example
+  abbrev: PR.PS-06.257
+  heading: Ex1
+  text: Protect all components of organization-developed software from tampering and unauthorized access
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-06
+- id: nist-csf-2.0.pr.ps-06.258
+  type: implementation_example
+  abbrev: PR.PS-06.258
+  heading: Ex2
+  text: Secure all software produced by the organization, with minimal vulnerabilities in their releases
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-06
+- id: nist-csf-2.0.pr.ps-06.259
+  type: implementation_example
+  abbrev: PR.PS-06.259
+  heading: Ex3
+  text: Maintain the software used in production environments, and securely dispose of software once it is no longer needed
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ps-06
+- id: nist-csf-2.0.pr.ir-01.260
+  type: implementation_example
+  abbrev: PR.IR-01.260
+  heading: Ex1
+  text: Logically segment organization networks and cloud-based platforms according to trust boundaries and platform types
+    (e.g., IT, IoT, OT, mobile, guests), and permit required communications only between segments
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-01
+- id: nist-csf-2.0.pr.ir-01.261
+  type: implementation_example
+  abbrev: PR.IR-01.261
+  heading: Ex2
+  text: Logically segment organization networks from external networks, and permit only necessary communications to enter
+    the organization's networks from the external networks
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-01
+- id: nist-csf-2.0.pr.ir-01.262
+  type: implementation_example
+  abbrev: PR.IR-01.262
+  heading: Ex3
+  text: Implement zero trust architectures to restrict network access to each resource to the minimum necessary
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-01
+- id: nist-csf-2.0.pr.ir-01.263
+  type: implementation_example
+  abbrev: PR.IR-01.263
+  heading: Ex4
+  text: Check the cyber health of endpoints before allowing them to access and use production resources
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-01
+- id: nist-csf-2.0.pr.ir-02.264
+  type: implementation_example
+  abbrev: PR.IR-02.264
+  heading: Ex1
+  text: Protect organizational equipment from known environmental threats, such as flooding, fire, wind, and excessive heat
+    and humidity
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-02
+- id: nist-csf-2.0.pr.ir-02.265
+  type: implementation_example
+  abbrev: PR.IR-02.265
+  heading: Ex2
+  text: Include protection from environmental threats and provisions for adequate operating infrastructure in requirements
+    for service providers that operate systems on the organization's behalf
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-02
+- id: nist-csf-2.0.pr.ir-03.266
+  type: implementation_example
+  abbrev: PR.IR-03.266
+  heading: Ex1
+  text: Avoid single points of failure in systems and infrastructure
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-03
+- id: nist-csf-2.0.pr.ir-03.267
+  type: implementation_example
+  abbrev: PR.IR-03.267
+  heading: Ex2
+  text: Use load balancing to increase capacity and improve reliability
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-03
+- id: nist-csf-2.0.pr.ir-03.268
+  type: implementation_example
+  abbrev: PR.IR-03.268
+  heading: Ex3
+  text: Use high-availability components like redundant storage and power supplies to improve system reliability
+  notes: ''
+  parent_id: nist-csf-2.0.pr.ir-03
+- id: nist-csf-2.0.de.cm-01.271
+  type: implementation_example
+  abbrev: DE.CM-01.271
+  heading: Ex1
+  text: Monitor DNS, BGP, and other network services for adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-01
+- id: nist-csf-2.0.de.cm-01.272
+  type: implementation_example
+  abbrev: DE.CM-01.272
+  heading: Ex2
+  text: Monitor wired and wireless networks for connections from unauthorized endpoints
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-01
+- id: nist-csf-2.0.de.cm-01.273
+  type: implementation_example
+  abbrev: DE.CM-01.273
+  heading: Ex3
+  text: Monitor facilities for unauthorized or rogue wireless networks
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-01
+- id: nist-csf-2.0.de.cm-01.274
+  type: implementation_example
+  abbrev: DE.CM-01.274
+  heading: Ex4
+  text: Compare actual network flows against baselines to detect deviations
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-01
+- id: nist-csf-2.0.de.cm-01.275
+  type: implementation_example
+  abbrev: DE.CM-01.275
+  heading: Ex5
+  text: Monitor network communications to identify changes in security postures for zero trust purposes
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-01
+- id: nist-csf-2.0.de.cm-02.276
+  type: implementation_example
+  abbrev: DE.CM-02.276
+  heading: Ex1
+  text: Monitor logs from physical access control systems (e.g., badge readers) to find unusual access patterns (e.g., deviations
+    from the norm) and failed access attempts
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-02
+- id: nist-csf-2.0.de.cm-02.277
+  type: implementation_example
+  abbrev: DE.CM-02.277
+  heading: Ex2
+  text: Review and monitor physical access records (e.g., from visitor registration, sign-in sheets)
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-02
+- id: nist-csf-2.0.de.cm-02.278
+  type: implementation_example
+  abbrev: DE.CM-02.278
+  heading: Ex3
+  text: Monitor physical access controls (e.g., locks, latches, hinge pins, alarms) for signs of tampering
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-02
+- id: nist-csf-2.0.de.cm-02.279
+  type: implementation_example
+  abbrev: DE.CM-02.279
+  heading: Ex4
+  text: Monitor the physical environment using alarm systems, cameras, and security guards
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-02
+- id: nist-csf-2.0.de.cm-03.280
+  type: implementation_example
+  abbrev: DE.CM-03.280
+  heading: Ex1
+  text: Use behavior analytics software to detect anomalous user activity to mitigate insider threats
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-03
+- id: nist-csf-2.0.de.cm-03.281
+  type: implementation_example
+  abbrev: DE.CM-03.281
+  heading: Ex2
+  text: Monitor logs from logical access control systems to find unusual access patterns and failed access attempts
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-03
+- id: nist-csf-2.0.de.cm-03.282
+  type: implementation_example
+  abbrev: DE.CM-03.282
+  heading: Ex3
+  text: Continuously monitor deception technology, including user accounts, for any usage
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-03
+- id: nist-csf-2.0.de.cm-06.283
+  type: implementation_example
+  abbrev: DE.CM-06.283
+  heading: Ex1
+  text: Monitor remote and onsite administration and maintenance activities that external providers perform on organizational
+    systems
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-06
+- id: nist-csf-2.0.de.cm-06.284
+  type: implementation_example
+  abbrev: DE.CM-06.284
+  heading: Ex2
+  text: Monitor activity from cloud-based services, internet service providers, and other service providers for deviations
+    from expected behavior
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-06
+- id: nist-csf-2.0.de.cm-09.285
+  type: implementation_example
+  abbrev: DE.CM-09.285
+  heading: Ex1
+  text: Monitor email, web, file sharing, collaboration services, and other common attack vectors to detect malware, phishing,
+    data leaks and exfiltration, and other adverse events
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-09
+- id: nist-csf-2.0.de.cm-09.286
+  type: implementation_example
+  abbrev: DE.CM-09.286
+  heading: Ex2
+  text: Monitor authentication attempts to identify attacks against credentials and unauthorized credential reuse
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-09
+- id: nist-csf-2.0.de.cm-09.287
+  type: implementation_example
+  abbrev: DE.CM-09.287
+  heading: Ex3
+  text: Monitor software configurations for deviations from security baselines
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-09
+- id: nist-csf-2.0.de.cm-09.288
+  type: implementation_example
+  abbrev: DE.CM-09.288
+  heading: Ex4
+  text: Monitor hardware and software for signs of tampering
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-09
+- id: nist-csf-2.0.de.cm-09.289
+  type: implementation_example
+  abbrev: DE.CM-09.289
+  heading: Ex5
+  text: Use technologies with a presence on endpoints to detect cyber health issues (e.g., missing patches, malware infections,
+    unauthorized software), and redirect the endpoints to a remediation environment before access is authorized
+  notes: ''
+  parent_id: nist-csf-2.0.de.cm-09
+- id: nist-csf-2.0.de.ae-02.290
+  type: implementation_example
+  abbrev: DE.AE-02.290
+  heading: Ex1
+  text: Use security information and event management (SIEM) or other tools to continuously monitor log events for known malicious
+    and suspicious activity
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-02
+- id: nist-csf-2.0.de.ae-02.291
+  type: implementation_example
+  abbrev: DE.AE-02.291
+  heading: Ex2
+  text: Utilize up-to-date cyber threat intelligence in log analysis tools to improve detection accuracy and characterize
+    threat actors, their methods, and indicators of compromise
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-02
+- id: nist-csf-2.0.de.ae-02.292
+  type: implementation_example
+  abbrev: DE.AE-02.292
+  heading: Ex3
+  text: Regularly conduct manual reviews of log events for technologies that cannot be sufficiently monitored through automation
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-02
+- id: nist-csf-2.0.de.ae-02.293
+  type: implementation_example
+  abbrev: DE.AE-02.293
+  heading: Ex4
+  text: Use log analysis tools to generate reports on their findings
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-02
+- id: nist-csf-2.0.de.ae-03.294
+  type: implementation_example
+  abbrev: DE.AE-03.294
+  heading: Ex1
+  text: Constantly transfer log data generated by other sources to a relatively small number of log servers
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-03
+- id: nist-csf-2.0.de.ae-03.295
+  type: implementation_example
+  abbrev: DE.AE-03.295
+  heading: Ex2
+  text: Use event correlation technology (e.g., SIEM) to collect information captured by multiple sources
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-03
+- id: nist-csf-2.0.de.ae-03.296
+  type: implementation_example
+  abbrev: DE.AE-03.296
+  heading: Ex3
+  text: Utilize cyber threat intelligence to help correlate events among log sources
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-03
+- id: nist-csf-2.0.de.ae-04.297
+  type: implementation_example
+  abbrev: DE.AE-04.297
+  heading: Ex1
+  text: Use SIEMs or other tools to estimate impact and scope, and review and refine the estimates
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-04
+- id: nist-csf-2.0.de.ae-04.298
+  type: implementation_example
+  abbrev: DE.AE-04.298
+  heading: Ex2
+  text: A person creates their own estimates of impact and scope
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-04
+- id: nist-csf-2.0.de.ae-06.299
+  type: implementation_example
+  abbrev: DE.AE-06.299
+  heading: Ex1
+  text: Use cybersecurity software to generate alerts and provide them to the security operations center (SOC), incident responders,
+    and incident response tools
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-06
+- id: nist-csf-2.0.de.ae-06.300
+  type: implementation_example
+  abbrev: DE.AE-06.300
+  heading: Ex2
+  text: Incident responders and other authorized personnel can access log analysis findings at all times
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-06
+- id: nist-csf-2.0.de.ae-06.301
+  type: implementation_example
+  abbrev: DE.AE-06.301
+  heading: Ex3
+  text: Automatically create and assign tickets in the organization's ticketing system when certain types of alerts occur
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-06
+- id: nist-csf-2.0.de.ae-06.302
+  type: implementation_example
+  abbrev: DE.AE-06.302
+  heading: Ex4
+  text: Manually create and assign tickets in the organization's ticketing system when technical staff discover indicators
+    of compromise
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-06
+- id: nist-csf-2.0.de.ae-07.303
+  type: implementation_example
+  abbrev: DE.AE-07.303
+  heading: Ex1
+  text: Securely provide cyber threat intelligence feeds to detection technologies, processes, and personnel
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-07
+- id: nist-csf-2.0.de.ae-07.304
+  type: implementation_example
+  abbrev: DE.AE-07.304
+  heading: Ex2
+  text: Securely provide information from asset inventories to detection technologies, processes, and personnel
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-07
+- id: nist-csf-2.0.de.ae-07.305
+  type: implementation_example
+  abbrev: DE.AE-07.305
+  heading: Ex3
+  text: Rapidly acquire and analyze vulnerability disclosures for the organization's technologies from suppliers, vendors,
+    and third-party security advisories
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-07
+- id: nist-csf-2.0.de.ae-08.306
+  type: implementation_example
+  abbrev: DE.AE-08.306
+  heading: Ex1
+  text: Apply incident criteria to known and assumed characteristics of activity in order to determine whether an incident
+    should be declared
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-08
+- id: nist-csf-2.0.de.ae-08.307
+  type: implementation_example
+  abbrev: DE.AE-08.307
+  heading: Ex2
+  text: Take known false positives into account when applying incident criteria
+  notes: ''
+  parent_id: nist-csf-2.0.de.ae-08
+- id: nist-csf-2.0.rs.ma-01.308
+  type: implementation_example
+  abbrev: RS.MA-01.308
+  heading: Ex1
+  text: Detection technologies automatically report confirmed incidents
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-01
+- id: nist-csf-2.0.rs.ma-01.309
+  type: implementation_example
+  abbrev: RS.MA-01.309
+  heading: Ex2
+  text: Request incident response assistance from the organization's incident response outsourcer
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-01
+- id: nist-csf-2.0.rs.ma-01.310
+  type: implementation_example
+  abbrev: RS.MA-01.310
+  heading: Ex3
+  text: Designate an incident lead for each incident
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-01
+- id: nist-csf-2.0.rs.ma-01.311
+  type: implementation_example
+  abbrev: RS.MA-01.311
+  heading: Ex4
+  text: Initiate execution of additional cybersecurity plans as needed to support incident response (for example, business
+    continuity and disaster recovery)
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-01
+- id: nist-csf-2.0.rs.ma-02.312
+  type: implementation_example
+  abbrev: RS.MA-02.312
+  heading: Ex1
+  text: Preliminarily review incident reports to confirm that they are cybersecurity-related and necessitate incident response
+    activities
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-02
+- id: nist-csf-2.0.rs.ma-02.313
+  type: implementation_example
+  abbrev: RS.MA-02.313
+  heading: Ex2
+  text: Apply criteria to estimate the severity of an incident
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-02
+- id: nist-csf-2.0.rs.ma-03.314
+  type: implementation_example
+  abbrev: RS.MA-03.314
+  heading: Ex1
+  text: Further review and categorize incidents based on the type of incident (e.g., data breach, ransomware, DDoS, account
+    compromise)
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-03
+- id: nist-csf-2.0.rs.ma-03.315
+  type: implementation_example
+  abbrev: RS.MA-03.315
+  heading: Ex2
+  text: Prioritize incidents based on their scope, likely impact, and time-critical nature
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-03
+- id: nist-csf-2.0.rs.ma-03.316
+  type: implementation_example
+  abbrev: RS.MA-03.316
+  heading: Ex3
+  text: Select incident response strategies for active incidents by balancing the need to quickly recover from an incident
+    with the need to observe the attacker or conduct a more thorough investigation
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-03
+- id: nist-csf-2.0.rs.ma-04.317
+  type: implementation_example
+  abbrev: RS.MA-04.317
+  heading: Ex1
+  text: Track and validate the status of all ongoing incidents
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-04
+- id: nist-csf-2.0.rs.ma-04.318
+  type: implementation_example
+  abbrev: RS.MA-04.318
+  heading: Ex2
+  text: Coordinate incident escalation or elevation with designated internal and external stakeholders
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-04
+- id: nist-csf-2.0.rs.ma-05.319
+  type: implementation_example
+  abbrev: RS.MA-05.319
+  heading: Ex1
+  text: Apply incident recovery criteria to known and assumed characteristics of the incident to determine whether incident
+    recovery processes should be initiated
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-05
+- id: nist-csf-2.0.rs.ma-05.320
+  type: implementation_example
+  abbrev: RS.MA-05.320
+  heading: Ex2
+  text: Take the possible operational disruption of incident recovery activities into account
+  notes: ''
+  parent_id: nist-csf-2.0.rs.ma-05
+- id: nist-csf-2.0.rs.an-03.321
+  type: implementation_example
+  abbrev: RS.AN-03.321
+  heading: Ex1
+  text: Determine the sequence of events that occurred during the incident and which assets and resources were involved in
+    each event
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-03
+- id: nist-csf-2.0.rs.an-03.322
+  type: implementation_example
+  abbrev: RS.AN-03.322
+  heading: Ex2
+  text: Attempt to determine what vulnerabilities, threats, and threat actors were directly or indirectly involved in the
+    incident
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-03
+- id: nist-csf-2.0.rs.an-03.323
+  type: implementation_example
+  abbrev: RS.AN-03.323
+  heading: Ex3
+  text: Analyze the incident to find the underlying, systemic root causes
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-03
+- id: nist-csf-2.0.rs.an-03.324
+  type: implementation_example
+  abbrev: RS.AN-03.324
+  heading: Ex4
+  text: Check any cyber deception technology for additional information on attacker behavior
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-03
+- id: nist-csf-2.0.rs.an-06.325
+  type: implementation_example
+  abbrev: RS.AN-06.325
+  heading: Ex1
+  text: Require each incident responder and others (e.g., system administrators, cybersecurity engineers) who perform incident
+    response tasks to record their actions and make the record immutable
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-06
+- id: nist-csf-2.0.rs.an-06.326
+  type: implementation_example
+  abbrev: RS.AN-06.326
+  heading: Ex2
+  text: Require the incident lead to document the incident in detail and be responsible for preserving the integrity of the
+    documentation and the sources of all information being reported
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-06
+- id: nist-csf-2.0.rs.an-07.327
+  type: implementation_example
+  abbrev: RS.AN-07.327
+  heading: Ex1
+  text: Collect, preserve, and safeguard the integrity of all pertinent incident data and metadata (e.g., data source, date/time
+    of collection) based on evidence preservation and chain-of-custody procedures
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-07
+- id: nist-csf-2.0.rs.an-08.328
+  type: implementation_example
+  abbrev: RS.AN-08.328
+  heading: Ex1
+  text: Review other potential targets of the incident to search for indicators of compromise and evidence of persistence
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-08
+- id: nist-csf-2.0.rs.an-08.329
+  type: implementation_example
+  abbrev: RS.AN-08.329
+  heading: Ex2
+  text: Automatically run tools on targets to look for indicators of compromise and evidence of persistence
+  notes: ''
+  parent_id: nist-csf-2.0.rs.an-08
+- id: nist-csf-2.0.rs.co-02.330
+  type: implementation_example
+  abbrev: RS.CO-02.330
+  heading: Ex1
+  text: Follow the organization's breach notification procedures after discovering a data breach incident, including notifying
+    affected customers
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-02
+- id: nist-csf-2.0.rs.co-02.331
+  type: implementation_example
+  abbrev: RS.CO-02.331
+  heading: Ex2
+  text: Notify business partners and customers of incidents in accordance with contractual requirements
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-02
+- id: nist-csf-2.0.rs.co-02.332
+  type: implementation_example
+  abbrev: RS.CO-02.332
+  heading: Ex3
+  text: Notify law enforcement agencies and regulatory bodies of incidents based on criteria in the incident response plan
+    and management approval
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-02
+- id: nist-csf-2.0.rs.co-03.333
+  type: implementation_example
+  abbrev: RS.CO-03.333
+  heading: Ex1
+  text: Securely share information consistent with response plans and information sharing agreements
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-03
+- id: nist-csf-2.0.rs.co-03.334
+  type: implementation_example
+  abbrev: RS.CO-03.334
+  heading: Ex2
+  text: Voluntarily share information about an attacker's observed TTPs, with all sensitive data removed, with an Information
+    Sharing and Analysis Center (ISAC)
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-03
+- id: nist-csf-2.0.rs.co-03.335
+  type: implementation_example
+  abbrev: RS.CO-03.335
+  heading: Ex3
+  text: Notify HR when malicious insider activity occurs
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-03
+- id: nist-csf-2.0.rs.co-03.336
+  type: implementation_example
+  abbrev: RS.CO-03.336
+  heading: Ex4
+  text: Regularly update senior leadership on the status of major incidents
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-03
+- id: nist-csf-2.0.rs.co-03.337
+  type: implementation_example
+  abbrev: RS.CO-03.337
+  heading: Ex5
+  text: Follow the rules and protocols defined in contracts for incident information sharing between the organization and
+    its suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-03
+- id: nist-csf-2.0.rs.co-03.338
+  type: implementation_example
+  abbrev: RS.CO-03.338
+  heading: Ex6
+  text: Coordinate crisis communication methods between the organization and its critical suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.rs.co-03
+- id: nist-csf-2.0.rs.mi-01.339
+  type: implementation_example
+  abbrev: RS.MI-01.339
+  heading: Ex1
+  text: Cybersecurity technologies (e.g., antivirus software) and cybersecurity features of other technologies (e.g., operating
+    systems, network infrastructure devices) automatically perform containment actions
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-01
+- id: nist-csf-2.0.rs.mi-01.340
+  type: implementation_example
+  abbrev: RS.MI-01.340
+  heading: Ex2
+  text: Allow incident responders to manually select and perform containment actions
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-01
+- id: nist-csf-2.0.rs.mi-01.341
+  type: implementation_example
+  abbrev: RS.MI-01.341
+  heading: Ex3
+  text: Allow a third party (e.g., internet service provider, managed security service provider) to perform containment actions
+    on behalf of the organization
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-01
+- id: nist-csf-2.0.rs.mi-01.342
+  type: implementation_example
+  abbrev: RS.MI-01.342
+  heading: Ex4
+  text: Automatically transfer compromised endpoints to a remediation virtual local area network (VLAN)
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-01
+- id: nist-csf-2.0.rs.mi-02.343
+  type: implementation_example
+  abbrev: RS.MI-02.343
+  heading: Ex1
+  text: Cybersecurity technologies and cybersecurity features of other technologies (e.g., operating systems, network infrastructure
+    devices) automatically perform eradication actions
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-02
+- id: nist-csf-2.0.rs.mi-02.344
+  type: implementation_example
+  abbrev: RS.MI-02.344
+  heading: Ex2
+  text: Allow incident responders to manually select and perform eradication actions
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-02
+- id: nist-csf-2.0.rs.mi-02.345
+  type: implementation_example
+  abbrev: RS.MI-02.345
+  heading: Ex3
+  text: Allow a third party (e.g., managed security service provider) to perform eradication actions on behalf of the organization
+  notes: ''
+  parent_id: nist-csf-2.0.rs.mi-02
+- id: nist-csf-2.0.rc.rp-01.346
+  type: implementation_example
+  abbrev: RC.RP-01.346
+  heading: Ex1
+  text: Begin recovery procedures during or after incident response processes
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-01
+- id: nist-csf-2.0.rc.rp-01.347
+  type: implementation_example
+  abbrev: RC.RP-01.347
+  heading: Ex2
+  text: Make all individuals with recovery responsibilities aware of the plans for recovery and the authorizations required
+    to implement each aspect of the plans
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-01
+- id: nist-csf-2.0.rc.rp-02.348
+  type: implementation_example
+  abbrev: RC.RP-02.348
+  heading: Ex1
+  text: Select recovery actions based on the criteria defined in the incident response plan and available resources
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-02
+- id: nist-csf-2.0.rc.rp-02.349
+  type: implementation_example
+  abbrev: RC.RP-02.349
+  heading: Ex2
+  text: Change planned recovery actions based on a reassessment of organizational needs and resources
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-02
+- id: nist-csf-2.0.rc.rp-03.350
+  type: implementation_example
+  abbrev: RC.RP-03.350
+  heading: Ex1
+  text: Check restoration assets for indicators of compromise, file corruption, and other integrity issues before use
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-03
+- id: nist-csf-2.0.rc.rp-04.351
+  type: implementation_example
+  abbrev: RC.RP-04.351
+  heading: Ex1
+  text: Use business impact and system categorization records (including service delivery objectives) to validate that essential
+    services are restored in the appropriate order
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-04
+- id: nist-csf-2.0.rc.rp-04.352
+  type: implementation_example
+  abbrev: RC.RP-04.352
+  heading: Ex2
+  text: Work with system owners to confirm the successful restoration of systems and the return to normal operations
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-04
+- id: nist-csf-2.0.rc.rp-04.353
+  type: implementation_example
+  abbrev: RC.RP-04.353
+  heading: Ex3
+  text: Monitor the performance of restored systems to verify the adequacy of the restoration
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-04
+- id: nist-csf-2.0.rc.rp-05.354
+  type: implementation_example
+  abbrev: RC.RP-05.354
+  heading: Ex1
+  text: Check restored assets for indicators of compromise and remediation of root causes of the incident before production
+    use
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-05
+- id: nist-csf-2.0.rc.rp-05.355
+  type: implementation_example
+  abbrev: RC.RP-05.355
+  heading: Ex2
+  text: Verify the correctness and adequacy of the restoration actions taken before putting a restored system online
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-05
+- id: nist-csf-2.0.rc.rp-06.356
+  type: implementation_example
+  abbrev: RC.RP-06.356
+  heading: Ex1
+  text: Prepare an after-action report that documents the incident itself, the response and recovery actions taken, and lessons
+    learned
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-06
+- id: nist-csf-2.0.rc.rp-06.357
+  type: implementation_example
+  abbrev: RC.RP-06.357
+  heading: Ex2
+  text: Declare the end of incident recovery once the criteria are met
+  notes: ''
+  parent_id: nist-csf-2.0.rc.rp-06
+- id: nist-csf-2.0.rc.co-03.358
+  type: implementation_example
+  abbrev: RC.CO-03.358
+  heading: Ex1
+  text: Securely share recovery information, including restoration progress, consistent with response plans and information
+    sharing agreements
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co-03
+- id: nist-csf-2.0.rc.co-03.359
+  type: implementation_example
+  abbrev: RC.CO-03.359
+  heading: Ex2
+  text: Regularly update senior leadership on recovery status and restoration progress for major incidents
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co-03
+- id: nist-csf-2.0.rc.co-03.360
+  type: implementation_example
+  abbrev: RC.CO-03.360
+  heading: Ex3
+  text: Follow the rules and protocols defined in contracts for incident information sharing between the organization and
+    its suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co-03
+- id: nist-csf-2.0.rc.co-03.361
+  type: implementation_example
+  abbrev: RC.CO-03.361
+  heading: Ex4
+  text: Coordinate crisis communication between the organization and its critical suppliers
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co-03
+- id: nist-csf-2.0.rc.co-04.362
+  type: implementation_example
+  abbrev: RC.CO-04.362
+  heading: Ex1
+  text: Follow the organization's breach notification procedures for recovering from a data breach incident
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co-04
+- id: nist-csf-2.0.rc.co-04.363
+  type: implementation_example
+  abbrev: RC.CO-04.363
+  heading: Ex2
+  text: Explain the steps being taken to recover from the incident and to prevent a recurrence
+  notes: ''
+  parent_id: nist-csf-2.0.rc.co-04
