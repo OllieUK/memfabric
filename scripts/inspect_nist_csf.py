@@ -335,15 +335,31 @@ def _normalise_iso_ids(dest_raw: str) -> list[str]:
     """
     dest_raw = dest_raw.strip()
 
+    # Valid clause/control number pattern: digits and dots, e.g. "4.1", "5.21"
+    _VALID_ID_RE = re.compile(r'^\d+(?:\.\d+)*$')
+
+    # Known typos in NIST CSF export (missing dots in clause numbers)
+    _CLAUSE_FIXES: dict[str, str] = {
+        "6.11": "6.1.1",
+        "6.13": "6.1.3",
+    }
+
     if dest_raw.startswith('Mandatory Clause:'):
         rest = dest_raw[len('Mandatory Clause:'):].strip()
         # Handle multiple clause numbers separated by commas: "7.1, 7.2"
         parts = [p.strip().rstrip(',').strip() for p in rest.split(',')]
-        return [f'iso-27001-2022.{p}' for p in parts if p]
+        # Filter out non-numeric parts: "None", "4.2(a)", "4.2 (a)"
+        result = []
+        for p in parts:
+            if not p or not _VALID_ID_RE.match(p):
+                continue
+            p = _CLAUSE_FIXES.get(p, p)
+            result.append(f'iso-27001-2022.{p}')
+        return result
 
     if dest_raw.startswith('Annex A Controls:'):
         rest = dest_raw[len('Annex A Controls:'):].strip().rstrip(',').strip()
-        if not rest:
+        if not rest or not _VALID_ID_RE.match(rest):
             return []
         return [f'iso-27001-2022.a.{rest}']
 

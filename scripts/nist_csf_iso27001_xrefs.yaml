@@ -47,14 +47,6 @@
   dest_raw: 'Mandatory Clause: 8.3'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.oc-03
-  dest_id: iso-27001-2022.4.2(a)
-  dest_raw: 'Mandatory Clause: 4.2(a)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.oc-03
-  dest_id: iso-27001-2022.4.2(b)
-  dest_raw: 'Mandatory Clause: 4.2(b)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.oc-03
   dest_id: iso-27001-2022.a.5.20
   dest_raw: 'Annex A Controls: 5.20'
   relationship: external_reference
@@ -63,32 +55,16 @@
   dest_raw: 'Annex A Controls: 5.31'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.oc-04
-  dest_id: iso-27001-2022.4.2(a)
-  dest_raw: 'Mandatory Clause: 4.2(a)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.oc-04
-  dest_id: iso-27001-2022.4.2(b)
-  dest_raw: 'Mandatory Clause: 4.2(b)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.oc-04
   dest_id: iso-27001-2022.a.5.20
   dest_raw: 'Annex A Controls: 5.20'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.oc-04
   dest_id: iso-27001-2022.a.5.31
   dest_raw: 'Annex A Controls: 5.31'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.oc-05
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.oc-05
   dest_id: iso-27001-2022.a.5.3
   dest_raw: 'Annex A Controls: 5.3'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.oc
-  dest_id: iso-27001-2022.4.2(a)
-  dest_raw: 'Mandatory Clause: 4.2(a)'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.oc
   dest_id: iso-27001-2022.4.4
@@ -179,12 +155,8 @@
   dest_raw: 'Annex A Controls: 5.1'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.rm-07
-  dest_id: iso-27001-2022.6.11
+  dest_id: iso-27001-2022.6.1.1
   dest_raw: 'Mandatory Clause: 6.11'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.rm-07
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.rm
   dest_id: iso-27001-2022.6.1
@@ -205,10 +177,6 @@
 - source_id: nist-csf-2.0.gv.rr-02
   dest_id: iso-27001-2022.7.2
   dest_raw: 'Mandatory Clause: 7.2'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.rr-02
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.rr-03
   dest_id: iso-27001-2022.7.1
@@ -439,10 +407,6 @@
   dest_raw: 'Annex A Controls: 5.22'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.sc-05
-  dest_id: iso-27001-2022.4.2 (a)
-  dest_raw: 'Mandatory Clause: 4.2 (a)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.sc-05
   dest_id: iso-27001-2022.a.5.19
   dest_raw: 'Annex A Controls: 5.19'
   relationship: external_reference
@@ -453,10 +417,6 @@
 - source_id: nist-csf-2.0.gv.sc-05
   dest_id: iso-27001-2022.a.5.31
   dest_raw: 'Annex A Controls: 5.31'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.sc-06
-  dest_id: iso-27001-2022.4.2 (a)
-  dest_raw: 'Mandatory Clause: 4.2 (a)'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.sc-06
   dest_id: iso-27001-2022.a.5.19
@@ -493,10 +453,6 @@
 - source_id: nist-csf-2.0.gv.sc-07
   dest_id: iso-27001-2022.a.5.31
   dest_raw: 'Annex A Controls: 5.31'
-  relationship: external_reference
-- source_id: nist-csf-2.0.gv.sc-08
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.gv.sc-08
   dest_id: iso-27001-2022.a.5.26
@@ -591,24 +547,12 @@
   dest_raw: 'Annex A Controls: 5.1'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-01
   dest_id: iso-27001-2022.a.5.9
   dest_raw: 'Annex A Controls: 5.9'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-02
   dest_id: iso-27001-2022.a.5.9
   dest_raw: 'Annex A Controls: 5.9'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-03
   dest_id: iso-27001-2022.a.5.14
@@ -627,16 +571,8 @@
   dest_raw: 'Annex A Controls: 8.22'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-04
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-04
   dest_id: iso-27001-2022.a.5.22
   dest_raw: 'Annex A Controls: 5.22'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-05
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-05
   dest_id: iso-27001-2022.a.5.9
@@ -651,16 +587,8 @@
   dest_raw: 'Annex A Controls: 5.13'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-07
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-07
   dest_id: iso-27001-2022.a.5.9
   dest_raw: 'Annex A Controls: 5.9'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am-08
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am-08
   dest_id: iso-27001-2022.a.5.8
@@ -699,10 +627,6 @@
   dest_raw: 'Annex A Controls: 7.14'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.am
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.am
   dest_id: iso-27001-2022.a.5.9
   dest_raw: 'Annex A Controls: 5.9'
   relationship: external_reference
@@ -715,18 +639,10 @@
   dest_raw: 'Annex A Controls: 5.13'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.ra-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.ra-01
   dest_id: iso-27001-2022.a.8.8
   dest_raw: 'Annex A Controls: 8.8'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.ra-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.ra-02
   dest_id: iso-27001-2022.a.5.7
   dest_raw: 'Annex A Controls: 5.7'
   relationship: external_reference
@@ -773,10 +689,6 @@
 - source_id: nist-csf-2.0.id.ra-04
   dest_id: iso-27001-2022.6.1.3
   dest_raw: 'Mandatory Clause: 6.1.3'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.ra-04
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.ra-05
   dest_id: iso-27001-2022.6.1.1
@@ -795,7 +707,7 @@
   dest_raw: 'Annex A Controls: 5.7'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.ra-06
-  dest_id: iso-27001-2022.6.13
+  dest_id: iso-27001-2022.6.1.3
   dest_raw: 'Mandatory Clause: 6.13'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.ra-06
@@ -805,14 +717,6 @@
 - source_id: nist-csf-2.0.id.ra-08
   dest_id: iso-27001-2022.6.1.2
   dest_raw: 'Mandatory Clause: 6.1.2'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.ra-08
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.ra-09
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.ra-09
   dest_id: iso-27001-2022.a.5.19
@@ -837,10 +741,6 @@
 - source_id: nist-csf-2.0.id.ra
   dest_id: iso-27001-2022.6.1.3
   dest_raw: 'Mandatory Clause: 6.1.3'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id.ra
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.id.im-01
   dest_id: iso-27001-2022.9.2
@@ -914,10 +814,6 @@
   dest_id: iso-27001-2022.10.2
   dest_raw: 'Mandatory Clause: 10.2'
   relationship: external_reference
-- source_id: nist-csf-2.0.id.im
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
-  relationship: external_reference
 - source_id: nist-csf-2.0.id
   dest_id: iso-27001-2022.8.1
   dest_raw: 'Mandatory Clause: 8.1'
@@ -933,14 +829,6 @@
 - source_id: nist-csf-2.0.id
   dest_id: iso-27001-2022.10.2
   dest_raw: 'Mandatory Clause: 10.2'
-  relationship: external_reference
-- source_id: nist-csf-2.0.id
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa-01
   dest_id: iso-27001-2022.a.5.15
@@ -959,10 +847,6 @@
   dest_raw: 'Annex A Controls: 8.5'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa-02
   dest_id: iso-27001-2022.a.8.2
   dest_raw: 'Annex A Controls: 8.2'
   relationship: external_reference
@@ -973,10 +857,6 @@
 - source_id: nist-csf-2.0.pr.aa-02
   dest_id: iso-27001-2022.a.8.5
   dest_raw: 'Annex A Controls: 8.5'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa-03
   dest_id: iso-27001-2022.a.5.15
@@ -999,16 +879,8 @@
   dest_raw: 'Annex A Controls: 8.5'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa-04
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa-04
   dest_id: iso-27001-2022.a.5.16
   dest_raw: 'Annex A Controls: 5.16'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa-05
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa-05
   dest_id: iso-27001-2022.a.5.1
@@ -1055,10 +927,6 @@
   dest_raw: 'Annex A Controls: 8.18'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa-06
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa-06
   dest_id: iso-27001-2022.a.7.1
   dest_raw: 'Annex A Controls: 7.1'
   relationship: external_reference
@@ -1077,10 +945,6 @@
 - source_id: nist-csf-2.0.pr.aa-06
   dest_id: iso-27001-2022.a.7.12
   dest_raw: 'Annex A Controls: 7.12'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.aa
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.aa
   dest_id: iso-27001-2022.a.5.15
@@ -1125,10 +989,6 @@
 - source_id: nist-csf-2.0.pr.at
   dest_id: iso-27001-2022.a.6.3
   dest_raw: 'Annex A Controls: 6.3'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ds-01
-  dest_id: iso-27001-2022.4.2(b)
-  dest_raw: 'Mandatory Clause: 4.2(b)'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ds-01
   dest_id: iso-27001-2022.5.2
@@ -1215,10 +1075,6 @@
   dest_raw: 'Annex A Controls: 8.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ds-02
-  dest_id: iso-27001-2022.4.2(b)
-  dest_raw: 'Mandatory Clause: 4.2(b)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ds-02
   dest_id: iso-27001-2022.5.2
   dest_raw: 'Mandatory Clause: 5.2'
   relationship: external_reference
@@ -1283,10 +1139,6 @@
   dest_raw: 'Annex A Controls: 8.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ds-10
-  dest_id: iso-27001-2022.4.2(b)
-  dest_raw: 'Mandatory Clause: 4.2(b)'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ds-10
   dest_id: iso-27001-2022.5.2
   dest_raw: 'Mandatory Clause: 5.2'
   relationship: external_reference
@@ -1347,10 +1199,6 @@
   dest_raw: 'Annex A Controls: 8.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ds-11
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ds-11
   dest_id: iso-27001-2022.a.8.13
   dest_raw: 'Annex A Controls: 8.13'
   relationship: external_reference
@@ -1375,24 +1223,12 @@
   dest_raw: 'Annex A Controls: 8.9'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ps-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ps-02
   dest_id: iso-27001-2022.a.5.9
   dest_raw: 'Annex A Controls: 5.9'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ps-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ps-03
   dest_id: iso-27001-2022.a.5.9
   dest_raw: 'Annex A Controls: 5.9'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ps-04
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ps-04
   dest_id: iso-27001-2022.a.8.15
@@ -1403,16 +1239,8 @@
   dest_raw: 'Annex A Controls: 8.17'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ps-05
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ps-05
   dest_id: iso-27001-2022.a.8.19
   dest_raw: 'Annex A Controls: 8.19'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ps-06
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ps-06
   dest_id: iso-27001-2022.a.8.25
@@ -1443,10 +1271,6 @@
   dest_raw: 'Annex A Controls: 8.14'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ir-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ir-01
   dest_id: iso-27001-2022.a.8.20
   dest_raw: 'Annex A Controls: 8.20'
   relationship: external_reference
@@ -1459,16 +1283,8 @@
   dest_raw: 'Annex A Controls: 8.22'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ir-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ir-02
   dest_id: iso-27001-2022.a.7.5
   dest_raw: 'Annex A Controls: 7.5'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ir-03
-  dest_id: iso-27001-2022.4.2(b)
-  dest_raw: 'Mandatory Clause: 4.2(b)'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ir-03
   dest_id: iso-27001-2022.6.1.1
@@ -1483,10 +1299,6 @@
   dest_raw: 'Annex A Controls: 8.14'
   relationship: external_reference
 - source_id: nist-csf-2.0.pr.ir
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.pr.ir
   dest_id: iso-27001-2022.a.6.6
   dest_raw: 'Annex A Controls: 6.6'
   relationship: external_reference
@@ -1498,21 +1310,9 @@
   dest_id: iso-27001-2022.8.3
   dest_raw: 'Mandatory Clause: 8.3'
   relationship: external_reference
-- source_id: nist-csf-2.0.pr
-  dest_id: iso-27001-2022.a.All applicable controls
-  dest_raw: 'Annex A Controls: All applicable controls'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.cm-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
 - source_id: nist-csf-2.0.de.cm-01
   dest_id: iso-27001-2022.a.8.16
   dest_raw: 'Annex A Controls: 8.16'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.cm-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.cm-02
   dest_id: iso-27001-2022.a.7.4
@@ -1529,10 +1329,6 @@
 - source_id: nist-csf-2.0.de.cm-03
   dest_id: iso-27001-2022.a.8.16
   dest_raw: 'Annex A Controls: 8.16'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.cm-06
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.cm-06
   dest_id: iso-27001-2022.a.5.22
@@ -1543,10 +1339,6 @@
   dest_raw: 'Annex A Controls: 8.16'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.cm-09
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.cm-09
   dest_id: iso-27001-2022.a.8.16
   dest_raw: 'Annex A Controls: 8.16'
   relationship: external_reference
@@ -1559,20 +1351,12 @@
   dest_raw: 'Annex A Controls: 8.16'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae-02
   dest_id: iso-27001-2022.a.5.24
   dest_raw: 'Annex A Controls: 5.24'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-02
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-03
   dest_id: iso-27001-2022.a.8.15
@@ -1583,34 +1367,18 @@
   dest_raw: 'Annex A Controls: 8.16'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-04
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae-04
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-06
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae-06
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae-07
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-07
   dest_id: iso-27001-2022.a.5.7
   dest_raw: 'Annex A Controls: 5.7'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae-08
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae-08
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
   relationship: external_reference
@@ -1619,10 +1387,6 @@
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.de.ae
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de.ae
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
@@ -1631,16 +1395,8 @@
   dest_raw: 'Annex A Controls: 8.16'
   relationship: external_reference
 - source_id: nist-csf-2.0.de
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.de
   dest_id: iso-27001-2022.a.8.16
   dest_raw: 'Annex A Controls: 8.16'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.ma-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.ma-01
   dest_id: iso-27001-2022.a.5.26
@@ -1653,10 +1409,6 @@
 - source_id: nist-csf-2.0.rs.ma-01
   dest_id: iso-27001-2022.a.5.28
   dest_raw: 'Annex A Controls: 5.28'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.ma-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.ma-02
   dest_id: iso-27001-2022.a.5.24
@@ -1679,32 +1431,16 @@
   dest_raw: 'Annex A Controls: 6.8'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.ma-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.ma-03
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.ma-04
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.ma-04
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.ma-05
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.ma-05
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.ma
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.ma
   dest_id: iso-27001-2022.a.5.24
@@ -1727,10 +1463,6 @@
   dest_raw: 'Annex A Controls: 5.28'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.an-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.an-03
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
   relationship: external_reference
@@ -1739,32 +1471,16 @@
   dest_raw: 'Annex A Controls: 5.27'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.an-06
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.an-06
   dest_id: iso-27001-2022.a.5.28
   dest_raw: 'Annex A Controls: 5.28'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.an-07
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.an-07
   dest_id: iso-27001-2022.a.5.28
   dest_raw: 'Annex A Controls: 5.28'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.an-08
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.an-08
   dest_id: iso-27001-2022.a.5.25
   dest_raw: 'Annex A Controls: 5.25'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.an
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.an
   dest_id: iso-27001-2022.a.5.26
@@ -1791,64 +1507,32 @@
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.co
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.co
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.mi-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.mi-01
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.mi-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.mi-02
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs.mi
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs.mi
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.rs
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rs
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp-01
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rc.rp-01
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
   relationship: external_reference
 - source_id: nist-csf-2.0.rc.rp-02
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp-02
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp-03
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rc.rp-03
   dest_id: iso-27001-2022.a.8.13
@@ -1858,21 +1542,9 @@
   dest_id: iso-27001-2022.8.1
   dest_raw: 'Mandatory Clause: 8.1'
   relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp-04
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp-05
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
 - source_id: nist-csf-2.0.rc.rp-05
   dest_id: iso-27001-2022.a.5.26
   dest_raw: 'Annex A Controls: 5.26'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp-06
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rc.rp-06
   dest_id: iso-27001-2022.a.5.27
@@ -1883,10 +1555,6 @@
   dest_raw: 'Annex A Controls: 8.13'
   relationship: external_reference
 - source_id: nist-csf-2.0.rc.rp
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc.rp
   dest_id: iso-27001-2022.a.8.13
   dest_raw: 'Annex A Controls: 8.13'
   relationship: external_reference
@@ -1902,10 +1570,6 @@
   dest_id: iso-27001-2022.7.4
   dest_raw: 'Mandatory Clause: 7.4'
   relationship: external_reference
-- source_id: nist-csf-2.0.rc.co-04
-  dest_id: iso-27001-2022.a.None
-  dest_raw: 'Annex A Controls: None'
-  relationship: external_reference
 - source_id: nist-csf-2.0.rc.co
   dest_id: iso-27001-2022.8.1
   dest_raw: 'Mandatory Clause: 8.1'
@@ -1913,10 +1577,6 @@
 - source_id: nist-csf-2.0.rc.co
   dest_id: iso-27001-2022.a.5.28
   dest_raw: 'Annex A Controls: 5.28'
-  relationship: external_reference
-- source_id: nist-csf-2.0.rc
-  dest_id: iso-27001-2022.None
-  dest_raw: 'Mandatory Clause: None'
   relationship: external_reference
 - source_id: nist-csf-2.0.rc
   dest_id: iso-27001-2022.a.5.29
