@@ -90,7 +90,7 @@ def main() -> None:
         print("\n1. Framework")
         s = _post(client, "/knowledge/frameworks", {
             "id": framework_id,
-            "name": "ISO/IEC 27001",
+            "title": "ISO/IEC 27001",
             "version": "2022",
             "description": "Information security management systems requirements",
             "level": "framework",
@@ -103,7 +103,7 @@ def main() -> None:
         # Annex A top-level and structural group nodes (not in inspection YAML)
         _post(client, "/knowledge/frameworks", {
             "id": "iso-27001-2022.a",
-            "name": "Annex A — Information Security Controls",
+            "title": "Annex A — Information Security Controls",
             "level": "category",
             "parent_id": framework_id,
         }, "iso-27001-2022.a")
@@ -117,7 +117,7 @@ def main() -> None:
         for gid, (gname, gparent) in annex_groups.items():
             _post(client, "/knowledge/frameworks", {
                 "id": gid,
-                "name": gname,
+                "title": gname,
                 "level": "section",
                 "parent_id": gparent,
             }, gid)
@@ -137,7 +137,7 @@ def main() -> None:
                 level = "sub-clause"   # Deep sub-clause / statement node
 
             st = _classify_statement_type(fw_id, body)
-            payload: dict = {"id": fw_id, "name": name, "level": level}
+            payload: dict = {"id": fw_id, "title": name, "level": level}
             if body:
                 payload["body"] = body
             if parent_id:
