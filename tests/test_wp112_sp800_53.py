@@ -534,3 +534,195 @@ class TestNormaliseControlId:
     def test_already_normalised(self):
         mod = _import_csf()
         assert mod._normalise_control_id("SI-7") == "SI-7"
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — MITIGATES edges (SP 800-53 → ATT&CK)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+class TestSP80053MitigatesEdges:
+    """Verify MITIGATES edges from SP 800-53 controls to ATT&CK techniques."""
+
+    def test_mitigates_edge_count_reasonable(self, test_driver):
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (src:Framework)-[r:MITIGATES]->(dst:Framework)
+                WHERE src.id STARTS WITH 'sp800-53r5.'
+                RETURN count(r) AS cnt
+                """
+            ).single()
+        if result is None or result["cnt"] == 0:
+            pytest.skip("SP 800-53 MITIGATES edges not yet created — run scripts/ingest_sp800_53_attack_mappings.py first")
+        assert result["cnt"] >= 1000, f"Expected >= 1000 MITIGATES edges, got {result['cnt']}"
+
+    def test_known_control_mitigates_technique(self, test_driver):
+        """AC-3 (Access Enforcement) should mitigate at least one ATT&CK technique."""
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Framework {id: 'sp800-53r5.AC-3'})-[:MITIGATES]->(t:Framework)
+                WHERE t.level IN ['technique', 'sub-technique']
+                RETURN count(*) AS cnt
+                """
+            ).single()
+        if result is None or result["cnt"] == 0:
+            pytest.skip("SP 800-53 MITIGATES edges not yet created")
+        assert result["cnt"] >= 1
+
+    def test_mitigates_targets_are_techniques(self, test_driver):
+        """Sample 10 MITIGATES targets — all must be technique or sub-technique level."""
+        with test_driver.session() as session:
+            rows = list(session.run(
+                """
+                MATCH (src:Framework)-[:MITIGATES]->(dst:Framework)
+                WHERE src.id STARTS WITH 'sp800-53r5.'
+                RETURN dst.level AS level
+                LIMIT 10
+                """
+            ))
+        if not rows:
+            pytest.skip("SP 800-53 MITIGATES edges not yet created")
+        allowed = {"technique", "sub-technique"}
+        for row in rows:
+            assert row["level"] in allowed, f"Unexpected level: {row['level']}"
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — INFORMS edges to NIST CSF 2.0 (OLIR)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+class TestSP80053InformsCSFEdges:
+    """Verify INFORMS edges from SP 800-53 to NIST CSF 2.0 (NIST OLIR, structured)."""
+
+    def test_informs_csf_edge_count_reasonable(self, test_driver):
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (src:Framework)-[r:INFORMS]->(dst:Framework)
+                WHERE src.id STARTS WITH 'sp800-53r5.'
+                  AND dst.id STARTS WITH 'nist-csf-2.0.'
+                  AND r.source = 'nist-olir-sp800-53-csf2'
+                RETURN count(r) AS cnt
+                """
+            ).single()
+        if result is None or result["cnt"] == 0:
+            pytest.skip("SP 800-53 OLIR INFORMS edges not yet created — run scripts/ingest_sp800_53_csf_crosswalk.py first")
+        assert result["cnt"] >= 100, f"Expected >= 100 SP 800-53→CSF INFORMS edges, got {result['cnt']}"
+
+    def test_known_control_informs_csf(self, test_driver):
+        """PM-9 (Risk Management Strategy) should map to at least one CSF subcategory."""
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (c:Framework {id: 'sp800-53r5.PM-9'})-[r:INFORMS]->(s:Framework)
+                WHERE s.id STARTS WITH 'nist-csf-2.0.'
+                  AND r.source = 'nist-olir-sp800-53-csf2'
+                RETURN count(*) AS cnt
+                """
+            ).single()
+        if result is None or result["cnt"] == 0:
+            pytest.skip("SP 800-53 OLIR INFORMS edges not yet created")
+        assert result["cnt"] >= 1
+
+    def test_informs_targets_are_subcategories(self, test_driver):
+        """Sample 10 OLIR INFORMS targets — all must be subcategory level."""
+        with test_driver.session() as session:
+            rows = list(session.run(
+                """
+                MATCH (src:Framework)-[r:INFORMS]->(dst:Framework)
+                WHERE src.id STARTS WITH 'sp800-53r5.'
+                  AND r.source = 'nist-olir-sp800-53-csf2'
+                RETURN dst.level AS level
+                LIMIT 10
+                """
+            ))
+        if not rows:
+            pytest.skip("SP 800-53 OLIR INFORMS edges not yet created")
+        for row in rows:
+            assert row["level"] == "subcategory", f"Unexpected level: {row['level']}"
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — INFORMS edges to ISO 27001 (embedding similarity)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+class TestSP80053InformsISOEdges:
+    """Verify INFORMS edges from SP 800-53 to ISO 27001 (embedding similarity)."""
+
+    def test_informs_iso_edge_count_reasonable(self, test_driver):
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (src:Framework)-[r:INFORMS]->(dst:Framework)
+                WHERE src.id STARTS WITH 'sp800-53r5.'
+                  AND dst.id STARTS WITH 'iso-27001-2022.'
+                  AND r.source = 'embedding-similarity'
+                RETURN count(r) AS cnt
+                """
+            ).single()
+        if result is None or result["cnt"] == 0:
+            pytest.skip("SP 800-53→ISO INFORMS edges not yet created — run scripts/create_cross_framework_informs.py --sp800-53 first")
+        assert result["cnt"] >= 200, f"Expected >= 200 SP 800-53→ISO INFORMS edges, got {result['cnt']}"
+
+    def test_informs_has_similarity_score(self, test_driver):
+        """Embedding-similarity INFORMS edges should have a similarity property."""
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (src:Framework)-[r:INFORMS]->(dst:Framework)
+                WHERE src.id STARTS WITH 'sp800-53r5.'
+                  AND r.source = 'embedding-similarity'
+                RETURN r.similarity AS sim
+                LIMIT 1
+                """
+            ).single()
+        if result is None:
+            pytest.skip("SP 800-53→ISO INFORMS edges not yet created")
+        assert result["sim"] is not None
+        assert 0.0 < result["sim"] <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — full traversal path
+# ---------------------------------------------------------------------------
+
+@pytest.mark.integration
+class TestTraversalPath:
+    """Verify the full traversal path: ATT&CK ←[MITIGATES]← SP800-53 →[INFORMS]→ NIST CSF."""
+
+    def test_attack_to_csf_via_sp800_53(self, test_driver):
+        """An ATT&CK technique should be reachable from a CSF subcategory via SP 800-53."""
+        with test_driver.session() as session:
+            result = session.run(
+                """
+                MATCH (t:Framework)<-[:MITIGATES]-(sp:Framework)-[r:INFORMS]->(csf:Framework)
+                WHERE t.level IN ['technique', 'sub-technique']
+                  AND sp.id STARTS WITH 'sp800-53r5.'
+                  AND csf.id STARTS WITH 'nist-csf-2.0.'
+                  AND r.source = 'nist-olir-sp800-53-csf2'
+                RETURN count(*) AS cnt
+                LIMIT 1
+                """
+            ).single()
+        if result is None or result["cnt"] == 0:
+            pytest.skip("SP 800-53 bridge not fully populated — run all ingest scripts first")
+        assert result["cnt"] >= 1
+
+    def test_sp800_53_vector_search(self, knowledge_client):
+        """Semantic search for access control should return SP 800-53 results."""
+        resp = knowledge_client.post("/knowledge/search/frameworks", json={
+            "query": "access control account management",
+            "limit": 20,
+        })
+        if resp.status_code != 200:
+            pytest.skip("Search endpoint unavailable")
+        hits = resp.json()
+        if not hits:
+            pytest.skip("SP 800-53 not yet ingested")
+        hit_ids = [h["id"] for h in hits]
+        sp_hits = [hid for hid in hit_ids if hid.startswith("sp800-53r5.")]
+        assert len(sp_hits) >= 1, f"Expected at least one SP 800-53 result, got: {hit_ids}"
