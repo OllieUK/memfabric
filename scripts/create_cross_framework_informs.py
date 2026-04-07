@@ -51,6 +51,9 @@ _ISO_LEVELS = ['clause', 'annex_control']
 _NIST_LEVELS = ['category', 'subcategory']
 _ATTACK_MITIGATION_LEVELS = ['mitigation']
 
+_SP800_53_PREFIX = 'sp800-53r5.'
+_SP800_53_LEVELS = ['control']
+
 
 # ---------------------------------------------------------------------------
 # Core math helpers (tested directly)
@@ -315,6 +318,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=False,
         help='Run M-Series ATT&CK mitigation→ISO/NIST/COBIT similarity passes (additive)',
     )
+    parser.add_argument(
+        '--sp800-53',
+        action='store_true',
+        default=False,
+        help='Run SP 800-53 control→ISO 27001 similarity pass (additive)',
+    )
     return parser.parse_args(argv)
 
 
@@ -473,6 +482,46 @@ def main(argv: list[str] | None = None) -> int:
                         print(f'M-Series → {target_name}: {created} edges {"(dry-run)" if args.dry_run else "created"} ({len(pairs_m)} pairs above threshold)')
                         total_created += created
                         total_errors += errors
+
+            # ---- SP 800-53 Rev 5 → ISO 27001 ----
+            if args.sp800_53:
+                print('Fetching SP 800-53 Rev 5 control nodes...')
+                sp800_53_nodes = _fetch_nodes(session, _SP800_53_PREFIX, _SP800_53_LEVELS)
+                print(f'  {len(sp800_53_nodes)} nodes fetched (levels: {_SP800_53_LEVELS})')
+
+                if not sp800_53_nodes:
+                    print('[WARN] No SP 800-53 nodes found — run ingest_sp800_53.py first.', file=sys.stderr)
+                else:
+                    sp_arr = np.array([n['embedding'] for n in sp800_53_nodes], dtype=np.float32)
+
+                    if iso_nodes:
+                        iso_arr = np.array([n['embedding'] for n in iso_nodes], dtype=np.float32)
+                        sim_sp_iso = cosine_similarity_matrix(sp_arr, iso_arr)
+
+                        if args.histogram:
+                            _print_histogram(sim_sp_iso, 'SP 800-53 → ISO 27001')
+
+                        pairs_sp_iso = threshold_pairs(sim_sp_iso, args.threshold)
+                        print(f'\nSP 800-53 → ISO 27001: {len(pairs_sp_iso)} pairs above threshold {args.threshold}')
+
+                        if not args.dry_run:
+                            created, errors = create_informs_edges(
+                                session=session,
+                                src_nodes=sp800_53_nodes,
+                                dst_nodes=iso_nodes,
+                                threshold=args.threshold,
+                                dry_run=False,
+                                now=now,
+                            )
+                        else:
+                            created = len(pairs_sp_iso)
+                            errors = 0
+
+                        print(f'SP 800-53 → ISO 27001: {created} edges {"(dry-run)" if args.dry_run else "created"} ({len(pairs_sp_iso)} pairs above threshold)')
+                        total_created += created
+                        total_errors += errors
+                    else:
+                        print('[WARN] No ISO 27001 nodes found — skipping SP 800-53 → ISO edges.', file=sys.stderr)
 
         suffix = ' (dry-run, no edges written)' if args.dry_run else ''
         print(f'\nTotal: {total_created} edges{suffix}, {total_errors} errors')
