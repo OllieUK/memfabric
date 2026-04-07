@@ -4,6 +4,21 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-112 — SP 800-53 Rev 5 ATT&CK bridge ingestion
+
+**Completed:** 2026-04-07.
+
+- Downloaded three source files: NIST OSCAL SP 800-53 Rev 5 catalog (10 MB), CTID `attack-control-framework-mappings` STIX bundle (2.1 MB + 3.4 MB controls file), NIST OLIR SP 800-53 ↔ CSF 2.0 crosswalk (740 records, converted from xlsx)
+- Wrote `scripts/ingest_sp800_53.py`: parses 324 base controls (20 families) from OSCAL, creates `Framework` nodes (`level=control`, `domain=federal`) under root `sp800-53-r5` via `POST /knowledge/frameworks`; enhancements (e.g. AC-2(1)) excluded by design
+- Wrote `scripts/ingest_sp800_53_attack_mappings.py`: three-way STIX join (CTID controls.json stix_id→control_id, CTID mappings.json relationships, enterprise-attack-17.0.json technique stix_ids); enhancement controls stripped to base (`AC-2(1)` → `AC-2`) to maximise MITIGATES coverage; created **4,920 MITIGATES edges** (SP800-53 → ATT&CK technique/sub-technique) via batched UNWIND
+- Wrote `scripts/ingest_sp800_53_csf_crosswalk.py`: parses NIST OLIR flat-list crosswalk; normalises zero-padded IDs (`"AC-01"` → `"AC-1"`) and strips enhancements; created **719 INFORMS edges** (SP800-53 → NIST CSF 2.0 subcategory, `source='nist-olir-sp800-53-csf2'`)
+- Extended `scripts/create_cross_framework_informs.py` with `--sp800-53` flag: runs SP 800-53 controls against ISO 27001 at threshold 0.55; created **1,173 INFORMS edges** (`source='embedding-similarity'`)
+- **34 unit tests + 16 integration tests, all green (50/50)**; traversal-path test confirms `ATT&CK ←[MITIGATES]← SP800-53 →[INFORMS]→ NIST CSF` multi-hop is live
+
+**Retrospective:** The CTID file was a STIX 2.1 bundle (not the flat JSON assumed in the plan), requiring a two-file join with the companion controls.json. The NIST OLIR crosswalk used zero-padded IDs (`"AC-01"`) inconsistent with OSCAL (`"ac-1"`) — the mismatch reduced initial edge count from 725 to 164 until normalisation was added. Both issues were caught by the verify-before-claiming-done discipline: running the edge count query after each script revealed silent MATCH failures rather than wrong assertions. The `source_name` field in CTID controls changed between releases (`"NIST_SP-800-53_rev5"` vs `"NIST 800-53 Revision 5"`); the script accepts both via a set. OSCAL base catalog has 324 controls (not the ~1,100 estimated in the spec — enhancements live in separate profile catalogs). WP-107 (cluster analysis) dependency on WP-112 is now satisfied.
+
+---
+
 ## WP-111 — M-Series ATT&CK mitigations ingestion
 
 **Completed:** 2026-04-07.
