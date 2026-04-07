@@ -354,7 +354,7 @@ def test_framework_upsert_with_level_body_parent(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": parent_id,
-            "name": "Test Root Framework",
+            "title": "Test Root Framework",
             "level": "framework",
         })
         assert r.status_code == 200, r.text
@@ -364,7 +364,7 @@ def test_framework_upsert_with_level_body_parent(client, test_driver):
 
         r = client.post("/knowledge/frameworks", json={
             "id": child_id,
-            "name": "Test Child Clause",
+            "title": "Test Child Clause",
             "level": "clause",
             "body": "This clause requires organisations to do X.",
             "parent_id": parent_id,
@@ -405,7 +405,7 @@ def test_supports_edge_chunk_to_framework(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": fw_id,
-            "name": "Test Framework for SUPPORTS",
+            "title": "Test Framework for SUPPORTS",
             "level": "clause",
             "body": "Access control requirements.",
         })
@@ -414,23 +414,23 @@ def test_supports_edge_chunk_to_framework(client, test_driver):
         r = client.post("/knowledge/documents", json={
             "id": doc_id,
             "title": "Test Doc",
-            "doc_type": "standard",
+            "policy_level": "operational",
         })
         assert r.status_code == 200, r.text
 
         r = client.post("/knowledge/chunks", json={
             "id": chunk_id,
-            "text": "All users must authenticate before accessing systems.",
+            "body": "All users must authenticate before accessing systems.",
             "sequence": 1,
             "doc_id": doc_id,
         })
         assert r.status_code == 200, r.text
 
-        r = client.post("/knowledge/chunk/supports", json={
+        r = client.post("/knowledge/chunks/supports", json={
             "chunk_id": chunk_id,
             "framework_id": fw_id,
             "confidence": 0.95,
-            "status": "human-reviewed",
+            "status": "auto-inferred",
         })
         assert r.status_code == 200, r.text
         data = r.json()
@@ -463,14 +463,14 @@ def test_framework_search_returns_body_nodes(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": fw_root_id,
-            "name": "Test Root",
+            "title": "Test Root",
             "level": "framework",
         })
         assert r.status_code == 200, r.text
 
         r = client.post("/knowledge/frameworks", json={
             "id": fw_leaf_id,
-            "name": "Access control policy",
+            "title": "Access control policy",
             "level": "clause",
             "body": "User access rights must be defined and reviewed periodically.",
             "parent_id": fw_root_id,
@@ -494,14 +494,21 @@ def test_framework_search_returns_body_nodes(client, test_driver):
 
 
 @pytest.mark.integration
-def test_controls_endpoint_removed(client):
-    """POST /knowledge/controls must return 404 or 405 — route removed."""
-    r = client.post("/knowledge/controls", json={
-        "id": "test-ctrl",
-        "name": "Test Control",
-        "framework_id": "iso-27001-2022",
-    })
-    assert r.status_code in (404, 405), f"Expected 404/405 but got {r.status_code}"
+def test_controls_endpoint_exists(client, test_driver):
+    """POST /knowledge/controls creates an org Control node (re-added after WP-099 for org controls)."""
+    ctrl_id = "test-wp099-ctrl-check"
+    try:
+        r = client.post("/knowledge/controls", json={
+            "id": ctrl_id,
+            "name": "Test Control WP-099",
+            "framework_id": "iso-27001-2022",
+        })
+        assert r.status_code == 200, f"Expected 200 but got {r.status_code}: {r.text}"
+        data = r.json()
+        assert data["id"] == ctrl_id
+    finally:
+        with test_driver.session() as s:
+            s.run("MATCH (c:Control {id: $id}) DETACH DELETE c", id=ctrl_id)
 
 
 @pytest.mark.integration
@@ -511,7 +518,7 @@ def test_framework_statement_type_persisted(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": fw_id,
-            "name": "Test Framework statement_type",
+            "title": "Test Framework statement_type",
             "level": "clause",
             "body": "This clause defines normative requirements.",
             "statement_type": "normative",
@@ -537,7 +544,7 @@ def test_framework_modality_with_normative(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": fw_id,
-            "name": "Test Framework modality",
+            "title": "Test Framework modality",
             "level": "clause",
             "body": "All systems shall implement access control.",
             "statement_type": "normative",
@@ -564,7 +571,7 @@ def test_framework_invalid_statement_type_rejected(client):
     """Invalid statement_type returns 400."""
     r = client.post("/knowledge/frameworks", json={
         "id": "test-wp099-invalid-st",
-        "name": "Test Invalid statement_type",
+        "title": "Test Invalid statement_type",
         "level": "clause",
         "body": "Some body text.",
         "statement_type": "invalid_type",
@@ -577,7 +584,7 @@ def test_framework_modality_without_normative_rejected(client):
     """modality without statement_type='normative' returns 400."""
     r = client.post("/knowledge/frameworks", json={
         "id": "test-wp099-modality-no-normative",
-        "name": "Test modality without normative",
+        "title": "Test modality without normative",
         "level": "clause",
         "body": "This is informative text.",
         "statement_type": "informative",
@@ -591,7 +598,7 @@ def test_framework_invalid_modality_rejected(client):
     """Invalid modality returns 400."""
     r = client.post("/knowledge/frameworks", json={
         "id": "test-wp099-invalid-modality",
-        "name": "Test Invalid modality",
+        "title": "Test Invalid modality",
         "level": "clause",
         "body": "All systems must comply.",
         "statement_type": "normative",
@@ -608,7 +615,7 @@ def test_search_frameworks_with_statement_type_filter(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": fw_normative_id,
-            "name": "Normative Access Control Clause",
+            "title": "Normative Access Control Clause",
             "level": "clause",
             "body": "All systems shall implement role-based access control for user authentication.",
             "statement_type": "normative",
@@ -617,7 +624,7 @@ def test_search_frameworks_with_statement_type_filter(client, test_driver):
 
         r = client.post("/knowledge/frameworks", json={
             "id": fw_informative_id,
-            "name": "Informative Access Control Note",
+            "title": "Informative Access Control Note",
             "level": "clause",
             "body": "This section provides guidance on implementing role-based access control approaches.",
             "statement_type": "informative",
@@ -648,7 +655,7 @@ def test_framework_statement_type_defaults_none(client, test_driver):
     try:
         r = client.post("/knowledge/frameworks", json={
             "id": fw_id,
-            "name": "Test Framework no statement_type",
+            "title": "Test Framework no statement_type",
             "level": "clause",
             "body": "Some clause body without a statement type.",
         })

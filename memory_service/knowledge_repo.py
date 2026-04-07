@@ -26,6 +26,8 @@ def upsert_framework(session, req, now: str) -> dict:
             f.body = $body,
             f.statement_type = $statement_type,
             f.modality = $modality,
+            f.external_id = $external_id,
+            f.domain = $domain,
             f.created_at = $created_at
         ON MATCH SET
             f.statement_type = $statement_type,
@@ -33,7 +35,10 @@ def upsert_framework(session, req, now: str) -> dict:
         RETURN f.id AS id, f.title AS title, f.version AS version,
                f.level AS level, f.body AS body,
                f.statement_type AS statement_type,
-               f.modality AS modality, f.created_at AS created_at
+               f.modality AS modality,
+               f.external_id AS external_id,
+               f.domain AS domain,
+               f.created_at AS created_at
         """,
         id=req.id,
         title=req.title,
@@ -42,6 +47,8 @@ def upsert_framework(session, req, now: str) -> dict:
         body=req.body,
         statement_type=req.statement_type,
         modality=req.modality,
+        external_id=getattr(req, "external_id", None),
+        domain=getattr(req, "domain", None),
         created_at=now,
     )
     record = dict(result.single())
@@ -59,6 +66,40 @@ def upsert_framework(session, req, now: str) -> dict:
     return record
 
 
+def create_mitigates_edge(session, control_id: str, framework_id: str, now: str) -> dict | None:
+    """MERGE MITIGATES edge Control→Framework. Returns edge details or None if either node missing."""
+    result = session.run(
+        """
+        MATCH (c:Control {id: $control_id}), (f:Framework {id: $framework_id})
+        MERGE (c)-[r:MITIGATES]->(f)
+        ON CREATE SET r.created_at = $created_at
+        RETURN c.id AS control_id, f.id AS framework_id, r.created_at AS created_at
+        """,
+        control_id=control_id,
+        framework_id=framework_id,
+        created_at=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+def create_informs_edge(session, framework_id: str, control_id: str, now: str) -> dict | None:
+    """MERGE INFORMS edge Framework→Control. Returns edge details or None if either node missing."""
+    result = session.run(
+        """
+        MATCH (f:Framework {id: $framework_id}), (c:Control {id: $control_id})
+        MERGE (f)-[r:INFORMS]->(c)
+        ON CREATE SET r.created_at = $created_at
+        RETURN f.id AS framework_id, c.id AS control_id, r.created_at AS created_at
+        """,
+        framework_id=framework_id,
+        control_id=control_id,
+        created_at=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
 def get_framework(session, framework_id: str) -> dict | None:
     result = session.run(
         """
@@ -66,7 +107,10 @@ def get_framework(session, framework_id: str) -> dict | None:
         RETURN f.id AS id, f.title AS title, f.version AS version,
                f.level AS level, f.body AS body,
                f.statement_type AS statement_type,
-               f.modality AS modality, f.created_at AS created_at
+               f.modality AS modality,
+               f.external_id AS external_id,
+               f.domain AS domain,
+               f.created_at AS created_at
         """,
         id=framework_id,
     )
@@ -382,6 +426,7 @@ def search_frameworks(
         WHERE ($statement_type IS NULL OR f.statement_type = $statement_type)
         RETURN f.id AS id, f.title AS title, f.level AS level,
                f.body AS body, f.created_at AS created_at,
+               f.external_id AS external_id, f.domain AS domain,
                distance
         ORDER BY distance ASC
         """,

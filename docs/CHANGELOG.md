@@ -4,6 +4,23 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-106 — MITRE ATT&CK Enterprise ingestion
+
+**Completed:** 2026-04-07.
+
+- Extended `FrameworkCreate`/`FrameworkResponse`/`FrameworkHit` with `external_id` (e.g. `T1566.001`, `TA0001`) and `domain` (e.g. `enterprise`) fields; persisted in `upsert_framework` Cypher and returned by `get_framework` and `search_frameworks`
+- Added `POST /knowledge/mitigates` endpoint (Control→Framework `MITIGATES` edge, idempotent); activates the `MITIGATES` edge type defined in ADR-002
+- Added `POST /knowledge/informs` endpoint (Framework→Control `INFORMS` edge, idempotent); complement to the direct-Cypher INFORMS creation in WP-105
+- Added `create_mitigates_edge` and `create_informs_edge` to `knowledge_repo.py`
+- Downloaded ATT&CK Enterprise v17.0 STIX bundle to `data/frameworks/enterprise-attack-17.0.json`
+- Wrote `scripts/ingest_attack.py` using `mitreattack-python` library; ingests 694 nodes: 1 root + 14 tactics + 211 techniques + 468 sub-techniques; idempotent (all writes via API MERGE); 34 extra CONTAINS edges for multi-tactic techniques
+- Installed `mitreattack-python==5.4.4` (brings `stix2`, `deepdiff`, `pandas` and supporting deps)
+- **12 unit tests + 15 integration tests, all green (27/27)**
+
+**Retrospective:** The `mitreattack-python` library significantly simplified ingestion — `get_tactics()`, `get_techniques()`, and `get_parent_technique_of_subtechnique()` handle all STIX relationship traversal. The `get_parent_technique_of_subtechnique()` API returns a list of `{"object": <stix2 obj>, "relationships": [...]}` dicts (not raw STIX objects) — worth noting for future STIX queries. Sub-technique parent IDs are more simply derived by `rsplit(".", 1)[0]` on the external ID (T1566.001 → T1566) rather than via the API. 34 techniques span multiple tactics in Enterprise v17 — multi-parent CONTAINS edges are correctly handled via the existing MERGE-based API. Pre-existing failures in WP-099/WP-105 integration tests (unrelated: `name` field renamed to `title`, and 4-dim test embeddings conflicting with 384-dim vector index) were left as-is.
+
+---
+
 ## WP-099 — Knowledge layer schema correction: `:Framework` hierarchy, `body` field, retire `:Control`
 
 **Completed:** 2026-04-04.

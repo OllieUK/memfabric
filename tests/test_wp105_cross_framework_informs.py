@@ -180,8 +180,10 @@ def test_informs_edge_created(test_driver):
     src_id = f'{_TEST_PREFIX}cobit-obj-01'
     dst_id = f'{_TEST_PREFIX}iso-ctrl-01'
 
-    embedding_a = [1.0, 0.0, 0.0, 0.0]
-    embedding_b = [0.95, 0.1, 0.0, 0.0]
+    # Use 384-dim embeddings matching the live framework_embedding_idx dimension.
+    # Vectors are unit-normalised: a≈b so cosine similarity > 0.5 threshold.
+    embedding_a = [1.0 / (384 ** 0.5)] * 384
+    embedding_b = [0.98 / (384 ** 0.5)] * 383 + [0.2 / (384 ** 0.5)]
 
     now = '2026-04-07T00:00:00+00:00'
 
@@ -238,8 +240,8 @@ def test_merge_idempotency(test_driver):
     src_id = f'{_TEST_PREFIX}cobit-obj-02'
     dst_id = f'{_TEST_PREFIX}iso-ctrl-02'
 
-    embedding_a = [0.8, 0.6, 0.0, 0.0]
-    embedding_b = [0.7, 0.7, 0.0, 0.0]
+    embedding_a = [1.0 / (384 ** 0.5)] * 384
+    embedding_b = [1.0 / (384 ** 0.5)] * 384
     now = '2026-04-07T00:00:00+00:00'
 
     try:
@@ -290,8 +292,8 @@ def test_existing_edge_source_preserved(test_driver):
     src_id = f'{_TEST_PREFIX}cobit-obj-03'
     dst_id = f'{_TEST_PREFIX}iso-ctrl-03'
 
-    embedding_a = [1.0, 0.0, 0.0, 0.0]
-    embedding_b = [0.9, 0.3, 0.0, 0.0]
+    embedding_a = [1.0 / (384 ** 0.5)] * 384
+    embedding_b = [1.0 / (384 ** 0.5)] * 384
     now = '2026-04-07T00:00:00+00:00'
     original_source = 'nist-csf-2.0-reference-tool'
 
@@ -331,6 +333,7 @@ def test_existing_edge_source_preserved(test_driver):
                 'RETURN r.source AS source',
                 src=src_id, dst=dst_id,
             ).single()
+
 
         assert result is not None, 'INFORMS edge not found'
         assert result['source'] == original_source, (

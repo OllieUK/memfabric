@@ -40,6 +40,8 @@ class FrameworkCreate(BaseModel):
     parent_id: Optional[str] = None    # if set, creates CONTAINS edge parent→this
     statement_type: Optional[str] = None
     modality: Optional[str] = None
+    external_id: Optional[str] = None  # e.g. T1566.001, TA0001 — human-readable ID from source
+    domain: Optional[str] = None       # e.g. enterprise, ics, mobile — for ATT&CK matrices
 
 
 class FrameworkResponse(BaseModel):
@@ -51,6 +53,8 @@ class FrameworkResponse(BaseModel):
     created_at: str
     statement_type: Optional[str] = None
     modality: Optional[str] = None
+    external_id: Optional[str] = None
+    domain: Optional[str] = None
 
 
 class NormCreate(BaseModel):
@@ -147,6 +151,8 @@ class FrameworkHit(BaseModel):
     body: Optional[str] = None
     created_at: str
     distance: float
+    external_id: Optional[str] = None
+    domain: Optional[str] = None
 
 
 class ChunkHit(BaseModel):
@@ -159,6 +165,28 @@ class ChunkHit(BaseModel):
     status: Optional[str] = None
     created_at: str
     distance: float
+
+
+class MitigatesCreate(BaseModel):
+    control_id: str
+    framework_id: str   # ATT&CK technique/sub-technique Framework node id
+
+
+class MitigatesResponse(BaseModel):
+    control_id: str
+    framework_id: str
+    created_at: str
+
+
+class InformsCreate(BaseModel):
+    framework_id: str   # Framework node that informs the control
+    control_id: str
+
+
+class InformsResponse(BaseModel):
+    framework_id: str
+    control_id: str
+    created_at: str
 
 
 class SupportsCreate(BaseModel):
@@ -521,6 +549,43 @@ async def create_supports(req: SupportsCreate, request: Request) -> SupportsResp
     if record is None:
         raise HTTPException(status_code=404, detail="Chunk or Framework not found")
     return SupportsResponse(**record)
+
+
+@router.post("/mitigates", response_model=MitigatesResponse)
+async def create_mitigates(req: MitigatesCreate, request: Request) -> MitigatesResponse:
+    """Create a MITIGATES edge from a Control to a Framework (ATT&CK technique).
+
+    Direction: Control → Framework. Semantics: this control counters this technique.
+    Idempotent: calling twice with the same ids is safe.
+    """
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_mitigates_edge(session, req.control_id, req.framework_id, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Control or Framework node not found")
+    return MitigatesResponse(**record)
+
+
+@router.post("/informs", response_model=InformsResponse)
+async def create_informs(req: InformsCreate, request: Request) -> InformsResponse:
+    """Create an INFORMS edge from a Framework to a Control.
+
+    Direction: Framework → Control. Semantics: this framework element shapes or guides
+    this part of the control tree. Non-prescriptive — no normative weight.
+    Idempotent: calling twice with the same ids is safe.
+    """
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_informs_edge(session, req.framework_id, req.control_id, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Framework or Control node not found")
+    return InformsResponse(**record)
 
 
 @router.get("/frameworks/{framework_id}/chunks", response_model=List[ChunkWithSupports])
