@@ -112,7 +112,7 @@ def _resolve_informs_pairs(
     pairs = []
     for item in crosswalk:
         ctrl_id = item.get("sp800_53_id", "")
-        csf_id = item.get("csf_id", "")
+        csf_id = item.get("csf_id", "").strip()
         if not ctrl_id or not csf_id:
             continue
         csf_node = csf_node_map.get(csf_id)
@@ -200,7 +200,8 @@ def main() -> None:
             sys.exit(1)
 
         pairs = _resolve_informs_pairs(raw, csf_node_map)
-        print(f"  Resolved {len(pairs)} INFORMS pairs (skipped unknown CSF IDs)")
+        skipped = len(raw) - len(pairs)
+        print(f"  Resolved {len(pairs)} INFORMS pairs ({skipped} skipped — unknown CSF IDs or missing sp800_53_id)")
 
         now = datetime.now(timezone.utc).isoformat()
         _write_informs_edges(driver, pairs, now, dry_run=args.dry_run)
