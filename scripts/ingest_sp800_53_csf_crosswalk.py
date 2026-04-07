@@ -186,10 +186,6 @@ def main() -> None:
         sys.exit(1)
     print(f"Crosswalk records: {len(raw)}")
 
-    if args.dry_run:
-        print(f"Dry run: {len(raw)} records would be processed")
-        return
-
     driver = GraphDatabase.driver(
         f"bolt://{cfg.memgraph_host}:{cfg.memgraph_port}",
         auth=("", ""),
@@ -207,11 +203,12 @@ def main() -> None:
         print(f"  Resolved {len(pairs)} INFORMS pairs (skipped unknown CSF IDs)")
 
         now = datetime.now(timezone.utc).isoformat()
-        _write_informs_edges(driver, pairs, now, dry_run=False)
+        _write_informs_edges(driver, pairs, now, dry_run=args.dry_run)
     finally:
         driver.close()
 
-    print(f"\nDone: {len(pairs)} SP 800-53 → NIST CSF 2.0 INFORMS edges processed")
+    if not args.dry_run:
+        print(f"\nDone: {len(pairs)} SP 800-53 → NIST CSF 2.0 INFORMS edges processed")
 
 
 if __name__ == "__main__":
