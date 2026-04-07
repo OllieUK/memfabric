@@ -437,3 +437,67 @@ class TestResolveMitigatesPairs:
         technique_stix_map = {"attack-pattern--xyz": "attack-enterprise.T1548"}
         pairs = mod._resolve_mitigates_pairs(rel_objects, control_stix_map, technique_stix_map)
         assert len(pairs) == 0
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — NIST OLIR CSF crosswalk parser
+# ---------------------------------------------------------------------------
+
+class TestResolveCsfInformsPairs:
+    """Tests for _resolve_informs_pairs in ingest_sp800_53_csf_crosswalk.py."""
+
+    def test_basic_pair_resolved(self):
+        mod = _import_csf()
+        crosswalk = [
+            {"csf_id": "GV.OC-01", "sp800_53_id": "PM-11", "strength": None}
+        ]
+        csf_node_map = {"GV.OC-01": "nist-csf-2.0.GV.OC-01"}
+        pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
+        assert len(pairs) == 1
+        assert pairs[0] == ("sp800-53r5.PM-11", "nist-csf-2.0.GV.OC-01")
+
+    def test_multiple_csf_ids_for_same_control(self):
+        mod = _import_csf()
+        crosswalk = [
+            {"csf_id": "GV.PO-01", "sp800_53_id": "AC-1"},
+            {"csf_id": "GV.PO-02", "sp800_53_id": "AC-1"},
+        ]
+        csf_node_map = {
+            "GV.PO-01": "nist-csf-2.0.GV.PO-01",
+            "GV.PO-02": "nist-csf-2.0.GV.PO-02",
+        }
+        pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
+        assert len(pairs) == 2
+        sp_ids = {p[0] for p in pairs}
+        csf_ids = {p[1] for p in pairs}
+        assert sp_ids == {"sp800-53r5.AC-1"}
+        assert csf_ids == {"nist-csf-2.0.GV.PO-01", "nist-csf-2.0.GV.PO-02"}
+
+    def test_unknown_csf_id_excluded(self):
+        mod = _import_csf()
+        crosswalk = [
+            {"csf_id": "XX.YY-99", "sp800_53_id": "AC-1"}
+        ]
+        csf_node_map = {}
+        pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
+        assert len(pairs) == 0
+
+    def test_missing_sp800_53_id_excluded(self):
+        mod = _import_csf()
+        crosswalk = [
+            {"csf_id": "GV.PO-01"}  # no sp800_53_id key
+        ]
+        csf_node_map = {"GV.PO-01": "nist-csf-2.0.GV.PO-01"}
+        pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
+        assert len(pairs) == 0
+
+    def test_sp800_53_id_uppercased(self):
+        """sp800_53_id is already uppercase in the crosswalk, but lowercase input is handled."""
+        mod = _import_csf()
+        crosswalk = [
+            {"csf_id": "GV.PO-01", "sp800_53_id": "ac-1"}  # lowercase
+        ]
+        csf_node_map = {"GV.PO-01": "nist-csf-2.0.GV.PO-01"}
+        pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
+        assert len(pairs) == 1
+        assert pairs[0][0] == "sp800-53r5.AC-1"
