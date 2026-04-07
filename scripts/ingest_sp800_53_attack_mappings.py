@@ -132,8 +132,13 @@ def _write_mitigates_edges(
     driver,
     pairs: list[tuple[str, str]],
     now: str,
+    dry_run: bool = False,
 ) -> tuple[int, int]:
     """Write MITIGATES edges via Bolt using batched UNWIND. Returns (created, errors)."""
+    if dry_run:
+        print(f"  MITIGATES edges (dry-run): {len(pairs)} pairs would be written")
+        return 0, 0
+
     cypher = (
         "UNWIND $pairs AS pair "
         "MATCH (src:Framework {id: pair[0]}), (dst:Framework {id: pair[1]}) "
@@ -201,6 +206,9 @@ def main() -> None:
 
     control_stix_map = _build_control_stix_map(controls_objects)
     print(f"  {len(control_stix_map)} SP 800-53 controls mapped (including enhancements -> base)")
+    if not control_stix_map:
+        print("[ERR] No SP 800-53 controls resolved — check CTID controls file format", file=sys.stderr)
+        sys.exit(1)
 
     technique_stix_map = _build_technique_stix_map(attack_data)
     print(f"  {len(technique_stix_map)} ATT&CK techniques mapped")
@@ -218,7 +226,7 @@ def main() -> None:
     )
     try:
         now = datetime.now(timezone.utc).isoformat()
-        _write_mitigates_edges(driver, pairs, now)
+        _write_mitigates_edges(driver, pairs, now, dry_run=False)
     finally:
         driver.close()
 

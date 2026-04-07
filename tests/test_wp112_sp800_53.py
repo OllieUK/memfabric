@@ -360,6 +360,19 @@ class TestBuildControlStixMap:
         result = mod._build_control_stix_map(objects)
         assert "course-of-action--ghi" not in result
 
+    def test_underscore_source_name_also_accepted(self):
+        """NIST_SP-800-53_rev5 (underscore) variant is also a valid source name."""
+        mod = _import_ctid()
+        objects = [
+            {
+                "type": "course-of-action",
+                "id": "course-of-action--uvw",
+                "external_references": [{"source_name": "NIST_SP-800-53_rev5", "external_id": "SI-3"}],
+            }
+        ]
+        result = mod._build_control_stix_map(objects)
+        assert result["course-of-action--uvw"] == "sp800-53r5.SI-3"
+
 
 class TestResolveMitigatesPairs:
     """Tests for _resolve_mitigates_pairs in ingest_sp800_53_attack_mappings.py."""
