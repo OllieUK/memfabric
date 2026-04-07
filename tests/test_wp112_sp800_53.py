@@ -100,6 +100,50 @@ class TestParseControl:
         mod = _import_sp800_53()
         assert mod._parse_control({"id": "ac-1"}) is None
 
+    def test_body_extracted_from_sub_parts(self):
+        """Statement with no top-level prose but sub-parts should extract sub-part text."""
+        mod = _import_sp800_53()
+        ctrl = {
+            "id": "ac-2",
+            "title": "Account Management",
+            "parts": [
+                {
+                    "id": "ac-2_smt",
+                    "name": "statement",
+                    "parts": [
+                        {"id": "ac-2_smt.a", "prose": "Identify and select types of accounts."},
+                        {"id": "ac-2_smt.b", "prose": "Assign account managers."},
+                    ],
+                }
+            ],
+        }
+        result = mod._parse_control(ctrl)
+        assert result is not None
+        assert "Identify and select types of accounts" in result["body"]
+        assert "Assign account managers" in result["body"]
+
+    def test_body_combines_top_prose_and_sub_parts(self):
+        """Statement with both top prose and sub-parts should include both."""
+        mod = _import_sp800_53()
+        ctrl = {
+            "id": "ac-3",
+            "title": "Access Enforcement",
+            "parts": [
+                {
+                    "id": "ac-3_smt",
+                    "name": "statement",
+                    "prose": "Enforce approved authorizations.",
+                    "parts": [
+                        {"id": "ac-3_smt.a", "prose": "For all system access."},
+                    ],
+                }
+            ],
+        }
+        result = mod._parse_control(ctrl)
+        assert result is not None
+        assert "Enforce approved authorizations" in result["body"]
+        assert "For all system access" in result["body"]
+
 
 class TestExtractBaseControls:
     def test_basic_extraction(self):

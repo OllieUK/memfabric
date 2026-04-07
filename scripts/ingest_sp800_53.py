@@ -50,16 +50,16 @@ def _node_id(external_id: str) -> str:
 def _extract_statement_prose(control: dict) -> str:
     """Extract statement prose from OSCAL control parts.
 
-    Looks for a part with name='statement'. Returns first 2000 chars.
-    Some statements have direct 'prose'; others have sub-parts with prose.
+    Looks for a part with name='statement'. Collects both the top-level prose
+    and any sub-part prose to handle OSCAL's variable statement structure.
+    Returns first 2000 chars.
     """
     for part in control.get("parts", []):
         if part.get("name") == "statement":
-            prose = part.get("prose", "")
-            if prose:
-                return prose[:2000]
             sub_parts = part.get("parts", [])
-            texts = [sp.get("prose", "") for sp in sub_parts if sp.get("prose")]
+            sub_texts = [sp.get("prose", "") for sp in sub_parts if sp.get("prose")]
+            top_prose = part.get("prose", "")
+            texts = ([top_prose] if top_prose else []) + sub_texts
             if texts:
                 return " ".join(texts)[:2000]
     return ""
@@ -118,18 +118,18 @@ def _upsert(client: httpx.Client, body: dict, label: str, dry_run: bool) -> str:
         return "error"
 
 
-def _ensure_root_node(client: httpx.Client, dry_run: bool) -> None:
+def _ensure_root_node(client: httpx.Client) -> None:
     body = {
         "id": ROOT_ID,
         "title": ROOT_TITLE,
         "level": "framework-root",
         "domain": DOMAIN,
     }
-    status = _upsert(client, body, "sp800-53-r5 root", dry_run)
+    status = _upsert(client, body, "sp800-53-r5 root", dry_run=False)
     print(f"  Root node ({ROOT_ID}): {status}")
 
 
-def _ingest_controls(client: httpx.Client, controls: list[dict], dry_run: bool) -> int:
+def _ingest_controls(client: httpx.Client, controls: list[dict]) -> int:
     ok = 0
     for ctrl in controls:
         body = {
@@ -142,7 +142,7 @@ def _ingest_controls(client: httpx.Client, controls: list[dict], dry_run: bool) 
         }
         if ctrl["body"]:
             body["body"] = ctrl["body"]
-        status = _upsert(client, body, ctrl["external_id"], dry_run)
+        status = _upsert(client, body, ctrl["external_id"], dry_run=False)
         if status != "error":
             ok += 1
     return ok
@@ -183,8 +183,8 @@ def main() -> None:
         return
 
     with httpx.Client(base_url=cfg.api_base_url, timeout=120.0) as client:
-        _ensure_root_node(client, dry_run=False)
-        ok = _ingest_controls(client, controls, dry_run=False)
+        _ensure_root_node(client)
+        ok = _ingest_controls(client, controls)
 
     print(f"\nDone: {ok}/{len(controls)} SP 800-53 controls upserted")
 
