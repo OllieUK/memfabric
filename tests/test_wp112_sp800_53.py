@@ -491,13 +491,46 @@ class TestResolveCsfInformsPairs:
         pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
         assert len(pairs) == 0
 
-    def test_sp800_53_id_uppercased(self):
-        """sp800_53_id is already uppercase in the crosswalk, but lowercase input is handled."""
+    def test_sp800_53_id_zero_padded_normalised(self):
+        """'AC-01' in crosswalk maps to sp800-53r5.AC-1 (no leading zero) in graph."""
         mod = _import_csf()
         crosswalk = [
-            {"csf_id": "GV.PO-01", "sp800_53_id": "ac-1"}  # lowercase
+            {"csf_id": "GV.PO-01", "sp800_53_id": "AC-01"}
         ]
         csf_node_map = {"GV.PO-01": "nist-csf-2.0.GV.PO-01"}
         pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
         assert len(pairs) == 1
         assert pairs[0][0] == "sp800-53r5.AC-1"
+
+    def test_sp800_53_id_enhancement_stripped(self):
+        """Enhancement IDs like 'CP-02(08)' are stripped to their base 'CP-2'."""
+        mod = _import_csf()
+        crosswalk = [
+            {"csf_id": "GV.PO-01", "sp800_53_id": "CP-02(08)"}
+        ]
+        csf_node_map = {"GV.PO-01": "nist-csf-2.0.GV.PO-01"}
+        pairs = mod._resolve_informs_pairs(crosswalk, csf_node_map)
+        assert len(pairs) == 1
+        assert pairs[0][0] == "sp800-53r5.CP-2"
+
+
+class TestNormaliseControlId:
+    def test_zero_padded_single_digit(self):
+        mod = _import_csf()
+        assert mod._normalise_control_id("AC-01") == "AC-1"
+
+    def test_two_digit_no_padding(self):
+        mod = _import_csf()
+        assert mod._normalise_control_id("PM-11") == "PM-11"
+
+    def test_zero_padded_two_digit(self):
+        mod = _import_csf()
+        assert mod._normalise_control_id("PM-09") == "PM-9"
+
+    def test_enhancement_stripped_and_normalised(self):
+        mod = _import_csf()
+        assert mod._normalise_control_id("CP-02(08)") == "CP-2"
+
+    def test_already_normalised(self):
+        mod = _import_csf()
+        assert mod._normalise_control_id("SI-7") == "SI-7"

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re as _re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,6 +30,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 DEFAULT_CROSSWALK_PATH = Path(__file__).parent.parent / "data" / "frameworks" / "nist-sp800-53-r5-csf2-crosswalk.json"
 _SP800_53_PREFIX = "sp800-53r5."
 _EDGE_SOURCE = "nist-olir-sp800-53-csf2"
+_ENHANCEMENT_RE = _re.compile(r'\(\d+\)$')
 
 
 class ETLSettings(BaseSettings):
@@ -43,6 +45,32 @@ class ETLSettings(BaseSettings):
 
 def _node_id_sp800_53(control_id: str) -> str:
     return f"{_SP800_53_PREFIX}{control_id.upper()}"
+
+
+def _normalise_control_id(raw_id: str) -> str:
+    """Normalise a raw SP 800-53 control ID to the form stored in the graph.
+
+    Handles two transformations:
+      - Strip enhancement suffix: 'CP-02(08)' → 'CP-02'
+      - Remove leading zeros from numeric part: 'AC-01' → 'AC-1'
+
+    Examples:
+      'AC-01'      → 'AC-1'
+      'PM-09'      → 'PM-9'
+      'CP-02(08)'  → 'CP-2'
+      'SI-7'       → 'SI-7'
+    """
+    # Strip enhancement suffix first
+    base = _ENHANCEMENT_RE.sub('', raw_id).strip()
+    # Remove leading zeros from the numeric part
+    parts = base.split('-', 1)
+    if len(parts) == 2:
+        family, num = parts
+        try:
+            return f"{family}-{int(num)}"
+        except ValueError:
+            pass
+    return base
 
 
 _CSF_ID_PREFIX = "nist-csf-2.0."
@@ -90,7 +118,7 @@ def _resolve_informs_pairs(
         csf_node = csf_node_map.get(csf_id)
         if csf_node is None:
             continue
-        pairs.append((_node_id_sp800_53(ctrl_id), csf_node))
+        pairs.append((_node_id_sp800_53(_normalise_control_id(ctrl_id)), csf_node))
     return pairs
 
 
