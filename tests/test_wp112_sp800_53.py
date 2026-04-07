@@ -298,3 +298,129 @@ class TestSP80053ContainsEdges:
         if result is None or result["cnt"] == 0:
             pytest.skip("SP 800-53 not yet ingested — run scripts/ingest_sp800_53.py first")
         assert result["cnt"] >= 300, f"Expected >= 300 CONTAINS edges from root, got {result['cnt']}"
+
+
+# ---------------------------------------------------------------------------
+# Unit tests — CTID MITIGATES parser
+# ---------------------------------------------------------------------------
+
+class TestBuildControlStixMap:
+    """Tests for _build_control_stix_map in ingest_sp800_53_attack_mappings.py."""
+
+    def test_base_control_mapped(self):
+        mod = _import_ctid()
+        objects = [
+            {
+                "type": "course-of-action",
+                "id": "course-of-action--abc",
+                "external_references": [{"source_name": "NIST 800-53 Revision 5", "external_id": "AC-3"}],
+            }
+        ]
+        result = mod._build_control_stix_map(objects)
+        assert result["course-of-action--abc"] == "sp800-53r5.AC-3"
+
+    def test_enhancement_stripped_to_base(self):
+        """AC-2(1) should map to sp800-53r5.AC-2, not create a new node."""
+        mod = _import_ctid()
+        objects = [
+            {
+                "type": "course-of-action",
+                "id": "course-of-action--xyz",
+                "external_references": [{"source_name": "NIST 800-53 Revision 5", "external_id": "AC-2(1)"}],
+            }
+        ]
+        result = mod._build_control_stix_map(objects)
+        assert result["course-of-action--xyz"] == "sp800-53r5.AC-2"
+
+    def test_non_control_objects_excluded(self):
+        """Non-course-of-action objects are ignored."""
+        mod = _import_ctid()
+        objects = [
+            {"type": "relationship", "id": "relationship--abc", "external_references": []},
+            {
+                "type": "course-of-action",
+                "id": "course-of-action--def",
+                "external_references": [{"source_name": "NIST 800-53 Revision 5", "external_id": "AC-1"}],
+            },
+        ]
+        result = mod._build_control_stix_map(objects)
+        assert "relationship--abc" not in result
+        assert "course-of-action--def" in result
+
+    def test_missing_external_ref_excluded(self):
+        """course-of-action without a NIST_SP-800-53_rev5 external reference is skipped."""
+        mod = _import_ctid()
+        objects = [
+            {
+                "type": "course-of-action",
+                "id": "course-of-action--ghi",
+                "external_references": [{"source_name": "other", "external_id": "SOMETHING"}],
+            }
+        ]
+        result = mod._build_control_stix_map(objects)
+        assert "course-of-action--ghi" not in result
+
+
+class TestResolveMitigatesPairs:
+    """Tests for _resolve_mitigates_pairs in ingest_sp800_53_attack_mappings.py."""
+
+    def test_mitigates_pair_resolved(self):
+        mod = _import_ctid()
+        rel_objects = [
+            {
+                "type": "relationship",
+                "relationship_type": "mitigates",
+                "source_ref": "course-of-action--abc",
+                "target_ref": "attack-pattern--xyz",
+            }
+        ]
+        control_stix_map = {"course-of-action--abc": "sp800-53r5.AC-3"}
+        technique_stix_map = {"attack-pattern--xyz": "attack-enterprise.T1548"}
+        pairs = mod._resolve_mitigates_pairs(rel_objects, control_stix_map, technique_stix_map)
+        assert len(pairs) == 1
+        assert pairs[0] == ("sp800-53r5.AC-3", "attack-enterprise.T1548")
+
+    def test_non_mitigates_relationship_excluded(self):
+        mod = _import_ctid()
+        rel_objects = [
+            {
+                "type": "relationship",
+                "relationship_type": "uses",
+                "source_ref": "course-of-action--abc",
+                "target_ref": "attack-pattern--xyz",
+            }
+        ]
+        control_stix_map = {"course-of-action--abc": "sp800-53r5.AC-3"}
+        technique_stix_map = {"attack-pattern--xyz": "attack-enterprise.T1548"}
+        pairs = mod._resolve_mitigates_pairs(rel_objects, control_stix_map, technique_stix_map)
+        assert len(pairs) == 0
+
+    def test_unknown_technique_excluded(self):
+        mod = _import_ctid()
+        rel_objects = [
+            {
+                "type": "relationship",
+                "relationship_type": "mitigates",
+                "source_ref": "course-of-action--abc",
+                "target_ref": "attack-pattern--unknown",
+            }
+        ]
+        control_stix_map = {"course-of-action--abc": "sp800-53r5.AC-3"}
+        technique_stix_map = {}
+        pairs = mod._resolve_mitigates_pairs(rel_objects, control_stix_map, technique_stix_map)
+        assert len(pairs) == 0
+
+    def test_unknown_control_excluded(self):
+        mod = _import_ctid()
+        rel_objects = [
+            {
+                "type": "relationship",
+                "relationship_type": "mitigates",
+                "source_ref": "course-of-action--unknown",
+                "target_ref": "attack-pattern--xyz",
+            }
+        ]
+        control_stix_map = {}
+        technique_stix_map = {"attack-pattern--xyz": "attack-enterprise.T1548"}
+        pairs = mod._resolve_mitigates_pairs(rel_objects, control_stix_map, technique_stix_map)
+        assert len(pairs) == 0
