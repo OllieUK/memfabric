@@ -48,8 +48,8 @@ _None_
 | 30 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
 | 31 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
 
-| 34 | R2 | WP-105 | Cross-framework INFORMS edges: COBIT ↔ ISO 27001, COBIT ↔ NIST CSF 2.0 | H | M | 1.5 | WP-104 ✅ | Use embedding similarity (proven pattern from WP-073) to create INFORMS edges between COBIT practices and ISO 27001 / NIST CSF 2.0 controls. OLIR (CSF 1.1 → COBIT) used as validation reference only — not as primary source due to CSF 1.1/2.0 version gap. |
-| 35 | R2 | WP-106 | MITRE ATT&CK Enterprise ingestion | H | M | 1.5 | WP-105 | Ingest ATT&CK Enterprise from STIX 2.1 JSON bundle. Hierarchy: ATT&CK root → Tactic → Technique → Sub-technique. Activates MAPPED_TO_TECHNIQUE and MITIGATES edge types from ADR-002. Source: MITRE published STIX 2.1 JSON (cleanest source data of any framework so far). |
+| 34 | R2 | WP-106 | MITRE ATT&CK Enterprise ingestion | H | M | 1.5 | WP-105 ✅ | Ingest ATT&CK Enterprise from STIX 2.1 JSON bundle. Hierarchy: ATT&CK root → Tactic → Technique → Sub-technique. Activates MAPPED_TO_TECHNIQUE and MITIGATES edge types from ADR-002. Source: MITRE published STIX 2.1 JSON (cleanest source data of any framework so far). |
+| 35 | R2 | WP-107 | Cross-framework cluster analysis | H | H | 1.0 | WP-106 | Community detection (Louvain/Label Propagation via Memgraph MAGE) + embedding clustering across ISO 27001, NIST CSF, COBIT, ATT&CK. Surface bridge nodes (high betweenness centrality). Output: cluster annotations on Framework nodes + summary report of convergence zones. New capability — no existing WP covers knowledge-layer analytics. |
 | 36 | R2 | WP-107 | Cross-framework cluster analysis | H | H | 1.0 | WP-106 | Community detection (Louvain/Label Propagation via Memgraph MAGE) + embedding clustering across ISO 27001, NIST CSF, COBIT, ATT&CK. Surface bridge nodes (high betweenness centrality). Output: cluster annotations on Framework nodes + summary report of convergence zones. New capability — no existing WP covers knowledge-layer analytics. |
 | 37 | R2 | WP-108 | Threat report ingestion and cluster validation | H | M | 1.5 | WP-107 | Load authoritative threat reports (Verizon DBIR, CrowdStrike Global Threat Report) as ThreatReport → Threat → MAPPED_TO_TECHNIQUE → ATT&CK nodes. Validate that WP-107 clusters align with observed threat patterns. Activates ThreatReport, Threat, IDENTIFIES, TARGETS, JEOPARDISES node/edge types from ADR-002. |
 | 38 | R3 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | H | M | 1.5 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer. |
@@ -1168,3 +1168,23 @@ This is blocking correct ISO 27001 loading and will cause confusion for any down
 - Verified: 1,479 Framework nodes, 1,478 CONTAINS edges, 1,479 embeddings — all green
 
 **Retrospective:** Smooth execution. Activity regex capture group was the one implementation bug caught in review (regex had no capture group — counter fallback ran unconditionally). Purpose Statement separation was caught during YAML human review and fixed before load. OLIR cross-references deferred to WP-105: CSF 1.1→2.0 version gap makes the mapping unreliable as a primary source; embedding similarity is the correct approach.
+
+---
+
+### WP-105 — Cross-framework INFORMS edges (COBIT ↔ ISO 27001 / NIST CSF 2.0) ✅
+
+> **Completed 2026-04-07.** Commit `5af6ac3` on `master`.
+
+- `scripts/create_cross_framework_informs.py`: fetches Framework node embeddings from Memgraph, computes pairwise cosine similarity via numpy bulk matrix multiply, creates INFORMS edges above threshold via MERGE (idempotent, preserves existing source property)
+- `tests/test_wp105_cross_framework_informs.py`: 5 unit tests + 3 integration tests
+- Threshold **0.55** chosen to match density of existing NIST→ISO official reference edges (2.2% vs 3.4%); calibration confirmed p50 of known-good pairs is 0.49 so 0.55 captures the higher-confidence half
+- Results: 737 COBIT→ISO + 745 COBIT→NIST = **1,482 new INFORMS edges**; 1,879 total INFORMS edges in graph
+- Coverage: 31/40 COBIT objectives and 178/231 practices connected; 9 unconnected objectives all BAI domain (corroborates ISACA journal finding that BAI aligns weakly to ISO 27001)
+- OLIR (CSF 1.1 → COBIT) not used — CSF 1.1/2.0 version gap makes it unreliable as primary source
+
+**Retrospective:** Calibrate mode against existing NIST→ISO xref edges was essential — revealed the default 0.55 threshold is already stricter than half the official NIST reference mappings (p50=0.49). BAI domain gap confirms published ISACA research. Deferred to BACKLOG: double similarity computation in main() (performance), compute_histogram linear scan, histogram boundary bin artefact.
+
+**Deferred to BACKLOG:**
+- Double similarity computation in `main()` — similarity matrix recomputed twice per framework pair (performance, not correctness). Low priority.
+- `compute_histogram` linear scan — use `np.histogram` for large matrices. Low priority.
+- Histogram `high=1.0+bin_width` creates spurious 1.00–1.05 bin. Low priority.
