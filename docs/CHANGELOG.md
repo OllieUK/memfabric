@@ -4,6 +4,18 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-111 — M-Series ATT&CK mitigations ingestion
+
+**Completed:** 2026-04-07.
+
+- Wrote `scripts/ingest_attack_mitigations.py`: parses 44 active `course-of-action` STIX objects from the enterprise ATT&CK v17 bundle, creates `Framework` nodes (`level=mitigation`, `domain=enterprise`) under the ATT&CK root via `POST /knowledge/frameworks`, and writes 1421 `MITIGATES` edges (M-Series → technique/sub-technique) directly via neo4j driver using batched `UNWIND` Cypher (1421 pairs → 3 batches of 500)
+- Extended `scripts/create_cross_framework_informs.py` with `--m-series` flag: fetches M-Series nodes and runs embedding similarity against ISO 27001, NIST CSF 2.0, and COBIT 2019; produced 371 `INFORMS` edges (144 ISO, 163 NIST, 64 COBIT) at threshold 0.55
+- **12 unit tests + 11 integration tests, all green (23/23)**; integration tests confirmed against live Memgraph + FastAPI stack
+
+**Retrospective:** The `mitreattack-python` library's `get_objects_by_type("relationship")` returns all relationship types in one call — filtering for `relationship_type == "mitigates"` is straightforward but requires building a `{stix_id: node_id}` lookup dict during the mitigation parse pass to resolve STIX UUIDs to graph node IDs. MITIGATES edge writes were initially coded one-per-pair (N+1 pattern); simplify review caught this and the fix to batched `UNWIND` was applied before commit. M-Series descriptions are defensive-control vocabulary and cos-sim significantly better than raw ATT&CK technique descriptions — the 371 INFORMS edges at threshold 0.55 confirm the vocabulary alignment hypothesis from the design. New backlog item WP-115 added to refactor the COBIT→ISO/NIST copy-paste blocks to use the loop pattern introduced in this WP.
+
+---
+
 ## WP-106 — MITRE ATT&CK Enterprise ingestion
 
 **Completed:** 2026-04-07.

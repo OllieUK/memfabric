@@ -43,11 +43,13 @@ class Settings(BaseSettings):
 _COBIT_PREFIX = 'cobit-2019.'
 _ISO_PREFIX = 'iso-27001-2022.'
 _NIST_PREFIX = 'nist-csf-2.0.'
+_ATTACK_MITIGATION_PREFIX = 'attack-enterprise.M'
 
 _COBIT_LEVELS_DEFAULT = ['objective', 'practice']
 _COBIT_LEVELS_WITH_ACTIVITIES = ['objective', 'practice', 'activity']
 _ISO_LEVELS = ['clause', 'annex_control']
 _NIST_LEVELS = ['category', 'subcategory']
+_ATTACK_MITIGATION_LEVELS = ['mitigation']
 
 
 # ---------------------------------------------------------------------------
@@ -307,6 +309,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=False,
         help='Report percentiles of existing NIST→ISO xref edge similarities',
     )
+    parser.add_argument(
+        '--m-series',
+        action='store_true',
+        default=False,
+        help='Run M-Series ATT&CK mitigation→ISO/NIST/COBIT similarity passes (additive)',
+    )
     return parser.parse_args(argv)
 
 
@@ -419,6 +427,52 @@ def main(argv: list[str] | None = None) -> int:
                 total_errors += errors
             else:
                 print('[WARN] No NIST CSF nodes found — skipping COBIT → NIST edges.', file=sys.stderr)
+
+            # ---- M-Series ATT&CK → ISO / NIST / COBIT ----
+            if args.m_series:
+                print('Fetching M-Series ATT&CK mitigation nodes...')
+                m_series_nodes = _fetch_nodes(session, _ATTACK_MITIGATION_PREFIX, _ATTACK_MITIGATION_LEVELS)
+                print(f'  {len(m_series_nodes)} nodes fetched (levels: {_ATTACK_MITIGATION_LEVELS})')
+
+                if not m_series_nodes:
+                    print('[WARN] No M-Series nodes found — run ingest_attack_mitigations.py first.', file=sys.stderr)
+                else:
+                    m_arr = np.array([n['embedding'] for n in m_series_nodes], dtype=np.float32)
+
+                    for target_name, target_nodes in [
+                        ('ISO 27001', iso_nodes),
+                        ('NIST CSF 2.0', nist_nodes),
+                        ('COBIT 2019', cobit_nodes),
+                    ]:
+                        if not target_nodes:
+                            print(f'[WARN] No {target_name} nodes found — skipping M-Series → {target_name} edges.', file=sys.stderr)
+                            continue
+
+                        target_arr = np.array([n['embedding'] for n in target_nodes], dtype=np.float32)
+                        sim_m = cosine_similarity_matrix(m_arr, target_arr)
+
+                        if args.histogram:
+                            _print_histogram(sim_m, f'M-Series → {target_name}')
+
+                        pairs_m = threshold_pairs(sim_m, args.threshold)
+                        print(f'\nM-Series → {target_name}: {len(pairs_m)} pairs above threshold {args.threshold}')
+
+                        if not args.dry_run:
+                            created, errors = create_informs_edges(
+                                session=session,
+                                src_nodes=m_series_nodes,
+                                dst_nodes=target_nodes,
+                                threshold=args.threshold,
+                                dry_run=False,
+                                now=now,
+                            )
+                        else:
+                            created = len(pairs_m)
+                            errors = 0
+
+                        print(f'M-Series → {target_name}: {created} edges {"(dry-run)" if args.dry_run else "created"} ({len(pairs_m)} pairs above threshold)')
+                        total_created += created
+                        total_errors += errors
 
         suffix = ' (dry-run, no edges written)' if args.dry_run else ''
         print(f'\nTotal: {total_created} edges{suffix}, {total_errors} errors')

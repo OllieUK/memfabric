@@ -9,8 +9,6 @@
 
 ## Currently In Progress
 
-_None_
-
 ---
 
 ## Prioritised Backlog
@@ -47,11 +45,15 @@ _None_
 | 29 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
 | 30 | R2 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges at `add_memory` time | L | L | 1.0 | — | The `add_memory` auto-link path (vector search MERGE at ingest) does not set `activation_count` or `last_activated_at` on newly created `RELATED_TO` edges. All other edge writers (long_rest, short_rest) set these fields on creation. The gap means edge-decay and count queries must defensively `COALESCE` these fields. Surfaced during WP-055. |
 | 31 | R2 | WP-041 | Subject/object schema on Memory nodes | H | H | 1.0 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
+| 32 | R2 | WP-115 | Refactor COBIT→ISO/NIST blocks in `create_cross_framework_informs.py` to loop | L | L | 1.0 | WP-111 ✅ | WP-111 simplify review (Agent 2): the COBIT→ISO and COBIT→NIST blocks in `main()` are near-identical (compute array, sim matrix, histogram, threshold_pairs, create_informs_edges, print summary). The M-Series block added in WP-111 uses a cleaner loop-over-targets pattern. Refactor the two COBIT blocks to use the same loop, eliminating the copy-paste. Low priority — no correctness issue. |
 
-| 35 | R2 | WP-107 | Cross-framework cluster analysis | H | H | 1.0 | WP-106 | Community detection (Louvain/Label Propagation via Memgraph MAGE) + embedding clustering across ISO 27001, NIST CSF, COBIT, ATT&CK. Surface bridge nodes (high betweenness centrality). Output: cluster annotations on Framework nodes + summary report of convergence zones. New capability — no existing WP covers knowledge-layer analytics. |
+| 34 | R2 | WP-112 | SP 800-53 Rev 5 ATT&CK bridge ingestion | H | M | 1.5 | WP-111 | Ingest NIST SP 800-53 Rev 5 (~1,100 base controls) as Framework nodes from NIST OSCAL JSON (public GitHub). Use CTID `attack-control-framework-mappings` JSON to create `MITIGATES` edges SP800-53 → ATT&CK techniques. Use NIST SP800-53 ↔ CSF 2.0 crosswalk to create `INFORMS` edges SP800-53 → NIST CSF subcategories. This bridges the ATT&CK island: ATT&CK ←[MITIGATES]← SP800-53 →[INFORMS]→ NIST CSF →[INFORMS]→ ISO 27001. SP 800-53 is "traversal glue" — not a primary UI surface but essential for multi-hop threat-to-compliance paths. |
+| 35 | R2 | WP-107 | Cross-framework cluster analysis | H | H | 1.0 | WP-112 | Community detection (Louvain/Label Propagation via Memgraph MAGE) + embedding clustering across ISO 27001, NIST CSF, COBIT, ATT&CK, M-Series, SP 800-53. Surface bridge nodes (high betweenness centrality). Output: cluster annotations on Framework nodes + summary report of convergence zones. New capability — no existing WP covers knowledge-layer analytics. Updated dependency: WP-112 (ATT&CK bridge) must be ingested before clustering so the analysis captures the full connected graph. |
 | 36 | R2 | WP-108 | Threat report ingestion and cluster validation | H | M | 1.5 | WP-107 | Load authoritative threat reports (Verizon DBIR, CrowdStrike Global Threat Report) as ThreatReport → Threat → MAPPED_TO_TECHNIQUE → ATT&CK nodes. Validate that WP-107 clusters align with observed threat patterns. Activates ThreatReport, Threat, IDENTIFIES, TARGETS, JEOPARDISES node/edge types from ADR-002. |
 | 37 | R2 | WP-109 | ISO 22301 Business Continuity ingestion | H | M | 1.5 | WP-107 | Ingest ISO 22301:2019 (Business Continuity Management) as Framework nodes. Fills the recovery/resilience gap identified in WP-107 cluster analysis: COBIT's RC coverage is weakest of all NIST CSF functions (cobit_in=12 vs GV=98). ISO 22301 BCM vocabulary (BIA, RTO, RPO, recovery strategies, continuity exercises) maps precisely to NIST RC subcategories that COBIT leaves thin. Document available locally. |
-| 38 | R2 | WP-110 | ISO 27005 Risk Management ingestion | H | M | 1.5 | WP-107 | Ingest ISO 27005:2022 (Information Security Risk Management) as Framework nodes. Fills the risk vocabulary gap between COBIT's governance language and NIST CSF GV.RM subcategories. Designed as a companion standard to ISO 27001 — its vocabulary will cos-sim strongly with existing graph content, strengthening Cluster 1 (Governance & Risk Oversight). Document available locally. Consider ISO 31000:2018 and ISO 37301:2021 as lower-priority follow-ons. Note: NIST SP 800-53 Rev 5 (not currently held) would fill the vulnerability management gap identified in WP-107; worth obtaining. |
+| 38 | R2 | WP-110 | ISO 27005 Risk Management ingestion | H | M | 1.5 | WP-107 | Ingest ISO 27005:2022 (Information Security Risk Management) as Framework nodes. Fills the risk vocabulary gap between COBIT's governance language and NIST CSF GV.RM subcategories. Designed as a companion standard to ISO 27001 — its vocabulary will cos-sim strongly with existing graph content, strengthening Cluster 1 (Governance & Risk Oversight). Document available locally. Consider ISO 31000:2018 and ISO 37301:2021 as lower-priority follow-ons. SP 800-53 Rev 5 delivered by WP-112 fills the vulnerability management gap identified in WP-107. |
+| 39 | R2 | WP-113 | Security architecture layer: SABSA, precepts, and business attributes | H | H | 1.0 | WP-107 | Activate the strategic threat-to-business path from ADR-002. Three components: (1) Seed SABSA Business Attribute Profile as `BusinessAttribute` nodes (customer trust, regulatory standing, operational continuity, competitive advantage, brand reputation, etc.) — SABSA is the primary driver of this layer. (2) Seed universal `Precept` nodes derived from cross-framework convergence (the obligations that ISO 27001, NIST CSF, COBIT, and SP 800-53 all independently demand). Wire `REQUIRES` from Norms, `ADDRESSES` from Controls, `FULFILS` from Precepts to BusinessAttributes. (3) Consider ingestion of additional architectural frameworks that feed the precept model: SABSA conceptual layer, C2M2 capability dimensions, Zero Trust (NIST SP 800-207), CIS Controls v8, TOGAF security architecture domain. Unlocks the board-level query: "Which business attributes face the most active threats?" via Threat → JEOPARDISES → Precept → FULFILS → BusinessAttribute. |
+| 40 | R2 | WP-114 | D3FEND defensive technique ingestion | M | M | 1.0 | WP-108 | Ingest MITRE D3FEND (~500 defensive techniques) from OWL/JSON-LD ontology. Create Framework nodes (level=defensive-technique) under a D3FEND root. Create `d3f:counters` edges as MITIGATES edges D3FEND → ATT&CK. Run embedding similarity to ISO/NIST/COBIT/SP800-53 for INFORMS edges (D3FEND vocabulary is defensive/technical — closer to SP 800-53 controls than to governance frameworks). D3FEND adds a second defensive pathway alongside M-Series for SOC-level traversal; primarily valuable once the threat intelligence model (WP-108) is operational. D3FEND also carries its own informative references to SP 800-53 and NIST CSF which may be used as an alternative to embedding similarity. |
 | 38 | R3 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | H | M | 1.5 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer. |
 | 35 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | M | H | 1.0 | WP-085, WP-047, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
 | 36 | R2 | WP-091 | Add `agent_id` to lifecycle operation log entries | L | L | 1.0 | WP-056 ✅ | The operation log introduced in WP-056 records `update`, `merge`, `archive`, and `restore` events but omits `agent_id` because the lifecycle endpoints do not currently accept it. Add `agent_id` as an optional field to the four request models (`UpdateMemoryRequest`, `MergeMemoryRequest`, and query params for `archive`/`restore`) and pass it through to `append_operation_log` entries. Enables per-agent traceability on all lifecycle mutations. |
@@ -1188,3 +1190,141 @@ This is blocking correct ISO 27001 loading and will cause confusion for any down
 - Double similarity computation in `main()` — similarity matrix recomputed twice per framework pair (performance, not correctness). Low priority.
 - `compute_histogram` linear scan — use `np.histogram` for large matrices. Low priority.
 - Histogram `high=1.0+bin_width` creates spurious 1.00–1.05 bin. Low priority.
+
+---
+
+### WP-111 — M-Series ATT&CK mitigations ingestion
+
+#### Motivation
+
+MITRE ATT&CK Enterprise includes 43 `course-of-action` mitigation objects (M-XXXX) alongside the techniques. These describe high-level countermeasures in defensive language ("Restrict use of privileged accounts", "Use MFA") — vocabulary that is semantically much closer to ISO/NIST/COBIT controls than raw ATT&CK technique descriptions. The STIX bundle already downloaded at `data/frameworks/enterprise-attack-17.0.json` contains both the mitigation objects and the `mitigates` relationships linking them to specific techniques. This WP requires no new data sources.
+
+Creating M-Series nodes and their MITIGATES edges to ATT&CK techniques provides:
+1. The first edges that connect ATT&CK to the rest of the graph (via embedding similarity to ISO/NIST/COBIT)
+2. A human-readable intermediate layer between adversary techniques and compliance controls
+3. Infrastructure for WP-112's SP 800-53 bridge and WP-108's threat report ingestion
+
+#### Scope
+
+- Parse `course-of-action` STIX objects from `enterprise-attack-17.0.json`
+- Create `Framework` nodes: `attack-enterprise.M1017`, etc. with `level=mitigation`, `domain=enterprise`, `external_id=M1017`
+- Create `CONTAINS` edges from the ATT&CK root node (`attack-enterprise-v17`) to each mitigation node
+- Parse `relationship` STIX objects where `relationship_type == "mitigates"` — create `MITIGATES` edges: M-Series node → ATT&CK technique node
+- Run embedding similarity (reuse `create_cross_framework_informs.py` logic) between M-Series nodes and ISO/NIST/COBIT Framework nodes to create `INFORMS` edges
+- Use same 0.55 threshold as WP-105; calibrate against known M-Series → control overlaps if possible
+
+#### Out of scope
+
+- D3FEND (WP-114)
+- SP 800-53 (WP-112)
+- Any Threat or ThreatReport nodes (WP-108)
+
+#### Data sources
+
+- `data/frameworks/enterprise-attack-17.0.json` — already present (downloaded in WP-106)
+- No additional downloads required
+
+---
+
+### WP-112 — SP 800-53 Rev 5 ATT&CK bridge ingestion
+
+#### Motivation
+
+After WP-111, ATT&CK techniques are connected to M-Series mitigation nodes. But M-Series nodes (43 total) only bridge ATT&CK to the rest of the graph via embedding similarity — there is no authoritative structured path from ATT&CK techniques to ISO/NIST/COBIT controls. NIST SP 800-53 Rev 5 provides that bridge:
+
+- CTID (`center-for-threat-informed-defense/attack-control-framework-mappings`) publishes a machine-readable mapping of SP 800-53 Rev 5 controls → ATT&CK techniques with `MITIGATES` semantics
+- NIST publishes a SP 800-53 ↔ CSF 2.0 crosswalk as part of the OLIR/Informative References programme
+
+Combined, these produce the traversal path:
+```
+ATT&CK technique ←[MITIGATES]← SP800-53 control →[INFORMS]→ NIST CSF subcategory →[INFORMS]→ ISO 27001 clause
+```
+
+SP 800-53 is "traversal glue" — it does not need to be a primary browsable surface; it just needs to exist so multi-hop queries can traverse it.
+
+#### Scope
+
+- Download NIST SP 800-53 Rev 5 OSCAL JSON from `usnistgov/oscal-content` (public GitHub, ~2MB)
+- Ingest ~1,100 base controls as Framework nodes: `sp800-53r5.AC-1`, `sp800-53r5.AC-2`, etc. with `level=control`, `external_id=AC-1`
+- Do NOT ingest enhancement statements as separate nodes (keep granularity manageable)
+- Download CTID `attack-control-framework-mappings` for SP 800-53 Rev 5 (JSON, public GitHub)
+- Create `MITIGATES` edges: SP800-53 node → ATT&CK technique node (from CTID mappings)
+- Download/use NIST SP800-53 ↔ CSF 2.0 crosswalk (NIST OLIR programme, CSV/JSON)
+- Create `INFORMS` edges: SP800-53 node → NIST CSF 2.0 subcategory node (from NIST crosswalk)
+- Run embedding similarity between SP 800-53 nodes and ISO 27001 nodes for additional `INFORMS` edges (supplementing the structured crosswalk)
+
+#### Out of scope
+
+- SP 800-53 enhancement statements (too granular — base controls only)
+- SP 800-53 as a Norm/compliance object (treat as Framework only in this WP)
+- SP 800-53 → COBIT direct mapping (allow graph traversal to handle this)
+
+#### Data sources
+
+- NIST OSCAL content: `https://github.com/usnistgov/oscal-content` (public)
+- CTID mappings: `https://github.com/center-for-threat-informed-defense/attack-control-framework-mappings` (public)
+- NIST OLIR SP800-53/CSF crosswalk: NIST website (public)
+
+---
+
+### WP-113 — Security architecture layer: SABSA, precepts, and business attributes
+
+#### Motivation
+
+ADR-002 defines a strategic threat-to-business traversal path:
+
+```
+Threat → [JEOPARDISES] → Precept → [FULFILS] → BusinessAttribute
+```
+
+This path enables the board-level question: *"Which business objectives face the most active threats?"* — traversable without descending into the control tree. Neither `Precept` nodes nor `BusinessAttribute` nodes exist yet.
+
+`BusinessAttribute` nodes are grounded in the SABSA (Sherwood Applied Business Security Architecture) Business Attribute Profile — the canonical set of security-relevant business outcomes. SABSA is the architectural framework that ADR-002's node model was designed around. WP-113 should be approached with SABSA as the primary lens, then broadened to include other architectural frameworks that feed the precept/attribute model.
+
+#### Scope
+
+**Component 1 — SABSA Business Attribute Profile:**
+- Seed canonical SABSA Business Attribute nodes: confidentiality, integrity, availability, accountability, assurance, reliability, safety, and the higher-order business attributes they compose (customer trust, regulatory standing, operational continuity, competitive advantage, brand reputation)
+- Wire SABSA's conceptual security architecture as a Framework (the six SABSA layers: contextual, conceptual, logical, physical, component, operational) if text is available and adds value
+- Create `FULFILS` edges: universal Precepts → Business Attributes
+
+**Component 2 — Universal Precept seeding:**
+- Derive ~30–50 universal Precept nodes from cross-framework convergence: obligations that ISO 27001, NIST CSF, COBIT 2019, and SP 800-53 all independently demand (access control, data protection, audit/logging, incident response, risk assessment, supply chain security, etc.)
+- Wire `REQUIRES` edges from existing Norm nodes (ISO 27001 as a Norm if mandated) to Precepts
+- Wire `ADDRESSES` edges from top-level Control nodes to Precepts (requires Control tree to have content — may be seeded manually or from an org's control framework)
+
+**Component 3 — Additional architectural frameworks (assess fit, ingest selectively):**
+- **C2M2 (Cybersecurity Capability Maturity Model):** 10 domains with maturity-level descriptors. Useful for capability gap analysis alongside compliance gap analysis. Assess whether ingesting as Framework nodes adds value vs treating as metadata on Control nodes.
+- **CIS Controls v8:** 18 controls with implementation groups (IG1/IG2/IG3). Highly practical. Strong overlap with SP 800-53 and NIST CSF — likely to produce dense INFORMS edges. May serve as a better "glue" between ATT&CK and governance frameworks than SP 800-53 for some use cases.
+- **Zero Trust Architecture (NIST SP 800-207):** Principles rather than controls — more suitable as Precept-level content than as Framework nodes.
+- **TOGAF Security Architecture domain:** Relevant for enterprise architecture alignment. Lower priority unless a TOGAF-aligned org context is added.
+
+#### Out of scope
+
+- Full SABSA methodology ingestion (the full SABSA framework is proprietary and lengthy)
+- Org-specific Control tree population (this WP seeds universal/reference content only)
+- `JEOPARDISES` edges (Threat → Precept) — these belong in WP-108 once Threat nodes exist
+
+---
+
+### WP-114 — D3FEND defensive technique ingestion
+
+#### Motivation
+
+MITRE D3FEND is a knowledge graph of cybersecurity countermeasures (~500 defensive techniques) published as an OWL ontology. It complements ATT&CK by describing *how to defend* at a technical level. D3FEND's `d3f:counters` relationships link each defensive technique to the ATT&CK offensive techniques it counters.
+
+After WP-108 (threat reports) activates the full threat intelligence model, D3FEND adds a second, more granular defensive pathway alongside M-Series for SOC-level analysis. D3FEND's own informative references also map to SP 800-53 and NIST CSF, providing alternative non-embedding bridge paths.
+
+#### Scope
+
+- Download D3FEND ontology JSON-LD from `https://d3fend.mitre.org/ontologies/d3fend.json` (public)
+- Create a D3FEND root Framework node + hierarchy (Harden, Detect, Isolate, Deceive, Evict, Model)
+- Create ~500 Framework nodes (level=defensive-technique) with `external_id=D3-XXX`, `domain=enterprise`
+- Create `MITIGATES` edges: D3FEND technique → ATT&CK technique (from `d3f:counters` relationships)
+- Use D3FEND's own SP 800-53/NIST CSF informative references for structured `INFORMS` edges where available (prefer structured over embedding for known mappings)
+- Run embedding similarity for remaining gaps against ISO/NIST/COBIT/SP800-53
+
+#### Out of scope
+
+- D3FEND Digital Artifacts (the `d3f:DigitalArtifact` taxonomy) — relevant for future Asset modelling but out of scope here
+- D3FEND ICS/OT coverage (focus on enterprise)
