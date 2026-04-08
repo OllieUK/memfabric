@@ -4,6 +4,37 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-119 — Built-in maintenance scheduler + maintenance observability
+
+**Completed:** 2026-04-08. *(Delivered without a pre-written WP — added retroactively.)*
+
+### Maintenance scheduler (`memory_service/scheduler.py`)
+
+- New asyncio background task launched inside the FastAPI lifespan — no external cron or systemd timers required
+- **Short-rest**: runs every `SHORT_REST_INTERVAL_HOURS` (default 6h); interval-based
+- **Long-rest**: runs at `LONG_REST_UTC_HOUR` UTC (default 03:00) if ≥ `LONG_REST_MIN_INTERVAL_HOURS` have elapsed (default 20h); also runs immediately on startup if ≥ `LONG_REST_OVERDUE_HOURS` have elapsed (default 27h) — this is the "service was down at 03:00, run ASAP on restart" path
+- Scheduler task is cancelled cleanly on FastAPI shutdown via `asyncio.CancelledError`
+- Kill switch: `SCHEDULER_ENABLED=false` reverts to external timer approach
+- Six new settings in `Settings`: `scheduler_enabled`, `scheduler_poll_interval_seconds`, `short_rest_interval_hours`, `long_rest_utc_hour`, `long_rest_min_interval_hours`, `long_rest_overdue_hours`
+
+### Index capacity monitoring (added to `long_rest`)
+
+- Step 5 added to `long_rest`: counts all Memory nodes with an embedding (including archived — Memgraph HNSW indexes by node existence, not status) and reports `embedded_memory_count`, `index_capacity`, `index_utilisation_pct`, `index_near_capacity` (flag at ≥80%)
+- `memory_index_capacity` now passed through to `long_rest` from settings
+- Scheduler logs a `WARNING` when the index is near capacity, referencing WP-116 (embedding migration) as the resolution path
+- `LongRestResponse` extended with four new fields; CLI and MCP tool output updated
+
+### Near-duplicate wiring into maintenance
+
+- `long_rest` now runs `find_near_duplicates` as step 6 (after edge rediscovery, so newly linked pairs are immediately evaluated)
+- Returns `near_duplicate_count` and `near_duplicate_candidates` (top N preview) in response, maintenance log, CLI output, and MCP summary
+- `maintenance_stats` (health endpoint) also reports `near_duplicate_count` so the dedup queue is visible without running a full long-rest
+- Scheduler logs near-duplicate count after each long-rest
+
+**Retrospective:** All three improvements were implemented ad-hoc during a maintenance review session triggered by discovering 16 test artefact memories polluting the near-duplicate queue. The scheduler in particular should have been a formal WP — it touches the service lifespan, adds new settings, and changes operational behaviour. Future work: WP-039 (ephemeral test-memory handling), WP-117 (autonomous dedup auto-merge threshold), WP-118 (hard-delete endpoint).
+
+---
+
 ## WP-112 — SP 800-53 Rev 5 ATT&CK bridge ingestion
 
 **Completed:** 2026-04-07.

@@ -162,9 +162,15 @@ class TestLongRest:
         assert r.status_code == 200
         data = r.json()
         assert data["dry_run"] is True
-        for field in ["nodes_decayed", "edges_decayed", "edges_discovered", "edges_pruned"]:
+        for field in ["nodes_decayed", "edges_decayed", "edges_discovered", "edges_pruned",
+                      "embedded_memory_count", "index_capacity", "near_duplicate_count"]:
             assert field in data
             assert isinstance(data[field], int)
+        assert "index_utilisation_pct" in data
+        assert "index_near_capacity" in data
+        assert isinstance(data["index_near_capacity"], bool)
+        assert "near_duplicate_candidates" in data
+        assert isinstance(data["near_duplicate_candidates"], list)
 
     def test_long_rest_live_updates_system_node(self, client, test_driver):
         """Live long-rest sets last_long_rest_at on System node."""

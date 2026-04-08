@@ -1,5 +1,6 @@
 # memory_service/main.py
 
+import asyncio
 import subprocess
 import uuid
 from contextlib import asynccontextmanager
@@ -16,6 +17,7 @@ from pydantic import BaseModel, Field, model_validator
 from memory_service import memory_repo
 from memory_service.config import get_driver, settings
 from memory_service.embeddings import get_embedding, get_embedding_dimension
+from memory_service.scheduler import run_scheduler
 
 
 
@@ -50,9 +52,20 @@ async def lifespan(app: FastAPI):
         if settings.enable_knowledge_layer:
             get_embedding_dimension(settings.knowledge_embedding_model)
     app.state.driver = driver
+
+    scheduler_task = None
+    if settings.scheduler_enabled:
+        scheduler_task = asyncio.create_task(run_scheduler(driver, settings))
+
     try:
         yield
     finally:
+        if scheduler_task is not None:
+            scheduler_task.cancel()
+            try:
+                await scheduler_task
+            except asyncio.CancelledError:
+                pass
         driver.close()
 
 
@@ -574,11 +587,23 @@ async def short_rest(
     return ShortRestResponse(**result)
 
 
+class NearDuplicateCandidate(BaseModel):
+    a: dict
+    b: dict
+    similarity: float
+
+
 class LongRestResponse(BaseModel):
     nodes_decayed: int
     edges_decayed: int
     edges_discovered: int
     edges_pruned: int
+    embedded_memory_count: int
+    index_capacity: int
+    index_utilisation_pct: Optional[float] = None
+    index_near_capacity: bool
+    near_duplicate_count: int
+    near_duplicate_candidates: List[NearDuplicateCandidate]
     dry_run: bool
 
 
@@ -601,6 +626,9 @@ async def long_rest(
                 edge_hard_prune_floor=settings.edge_hard_prune_floor,
                 edge_hard_prune_min_days=settings.edge_hard_prune_min_days,
                 edge_decay_rate=settings.edge_decay_rate,
+                memory_index_capacity=settings.memory_index_capacity,
+                near_duplicate_threshold=settings.near_duplicate_threshold,
+                near_duplicate_preview_limit=settings.near_duplicate_limit,
                 dry_run=dry_run,
                 prune=prune,
             )
@@ -628,6 +656,7 @@ class MaintenanceStatsMaintenance(BaseModel):
     last_long_rest_at: Optional[str] = None
     short_rest_overdue: bool
     long_rest_overdue: bool
+    near_duplicate_count: int
 
 
 class MaintenanceStatsResponse(BaseModel):
@@ -647,6 +676,7 @@ async def maintenance_stats(request: Request) -> MaintenanceStatsResponse:
                 edge_prune_threshold=settings.edge_hard_prune_floor,
                 short_rest_recency_days=settings.short_rest_recency_days,
                 long_rest_recency_days=settings.long_rest_recency_days,
+                near_duplicate_threshold=settings.near_duplicate_threshold,
             )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc

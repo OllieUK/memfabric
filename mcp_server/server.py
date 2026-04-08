@@ -245,11 +245,18 @@ def memory_long_rest(dry_run: bool = False, prune: bool = False) -> str:
     with MemoryClient(base_url=settings.api_base_url) as client:
         result = client.long_rest(dry_run=dry_run, prune=prune)
     dr = " (dry-run)" if result.get("dry_run") else ""
+    util_pct = result.get("index_utilisation_pct")
+    util_str = f"{util_pct}%" if util_pct is not None else "n/a"
+    near_cap = " ⚠ index near capacity" if result.get("index_near_capacity") else ""
+    dup_count = result.get("near_duplicate_count", 0)
+    dup_note = f" {dup_count} near-duplicate pairs pending review." if dup_count else ""
     return (
         f"Long Rest{dr}: {result['nodes_decayed']} nodes decayed, "
         f"{result['edges_decayed']} edges decayed, "
         f"{result['edges_discovered']} edges discovered, "
-        f"{result['edges_pruned']} edges pruned."
+        f"{result['edges_pruned']} edges pruned. "
+        f"Index: {result.get('embedded_memory_count', '?')}/{result.get('index_capacity', '?')} "
+        f"({util_str}){near_cap}.{dup_note}"
     )
 
 

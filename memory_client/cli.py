@@ -310,12 +310,23 @@ def long_rest(
         with _make_client() as client:
             result = client.long_rest(dry_run=dry_run, prune=prune)
         dr_label = " [dim](dry-run)[/dim]" if result.get("dry_run") else ""
+        util_pct = result.get("index_utilisation_pct")
+        util_str = f"{util_pct}%" if util_pct is not None else "n/a"
+        near_cap = result.get("index_near_capacity", False)
+        cap_label = " [yellow bold]⚠ near capacity[/yellow bold]" if near_cap else ""
+        dup_count = result.get("near_duplicate_count", 0)
+        dup_label = f" [yellow]({dup_count} near-duplicate pairs — run `memory duplicates` to review)[/yellow]" if dup_count else ""
         console.print(
             f"Nodes decayed: {result['nodes_decayed']}, "
             f"Edges decayed: {result['edges_decayed']}, "
             f"Edges discovered: {result['edges_discovered']}, "
             f"Edges pruned: {result['edges_pruned']}{dr_label}"
         )
+        console.print(
+            f"Index: {result.get('embedded_memory_count', '?')} / "
+            f"{result.get('index_capacity', '?')} nodes ({util_str}){cap_label}"
+        )
+        console.print(f"Dedup queue: {dup_count} pairs above threshold{dup_label}")
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)

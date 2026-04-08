@@ -11,7 +11,8 @@ Build a local-first memory service that represents all "memories" as graph nodes
         |
         v
 [Memory API Service]  ←  FastAPI + sentence-transformers (local embeddings)
-        |
+        |                 Built-in scheduler: short-rest every 6h,
+        |                 long-rest daily at 03:00 UTC (ASAP if missed)
         v
 [Memgraph]            ←  Graph DB + vector index + MAGE procedures
         |
@@ -20,6 +21,28 @@ Build a local-first memory service that represents all "memories" as graph nodes
 ```
 
 No server-side LLM calls. No external API dependencies.
+
+## Built-in maintenance scheduler
+
+The service runs its own asyncio scheduler — no external cron or systemd timers required.
+
+| Operation | Default schedule | "ASAP if missed" |
+|-----------|-----------------|-----------------|
+| short-rest | every 6h (`SHORT_REST_INTERVAL_HOURS`) | yes — runs on next poll if overdue |
+| long-rest | 03:00 UTC (`LONG_REST_UTC_HOUR`) | yes — runs on startup if ≥27h elapsed |
+
+Key settings (all in `.env`):
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `SCHEDULER_ENABLED` | `true` | Set `false` to use external systemd timers instead |
+| `SCHEDULER_POLL_INTERVAL_SECONDS` | `300` | How often the scheduler checks (5 min) |
+| `SHORT_REST_INTERVAL_HOURS` | `6` | Short-rest cadence |
+| `LONG_REST_UTC_HOUR` | `3` | Wall-clock hour for long-rest (UTC) |
+| `LONG_REST_MIN_INTERVAL_HOURS` | `20` | Minimum gap — prevents double-run |
+| `LONG_REST_OVERDUE_HOURS` | `27` | Run ASAP threshold (missed window) |
+
+The scheduler runs `memory_repo.long_rest` and `memory_repo.short_rest` directly in-process (not via HTTP). Log output goes to the service logger (`memory_service.scheduler`).
 
 ## Session startup
 

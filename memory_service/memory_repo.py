@@ -1482,6 +1482,9 @@ def long_rest(
     edge_hard_prune_floor: float,
     edge_hard_prune_min_days: int,
     edge_decay_rate: float,
+    memory_index_capacity: int = 5000,
+    near_duplicate_threshold: float = 0.92,
+    near_duplicate_preview_limit: int = 5,
     dry_run: bool = False,
     prune: bool = False,
 ) -> dict:
@@ -1492,6 +1495,8 @@ def long_rest(
     2. Edge rediscovery: for strong nodes, vector search and MERGE new RELATED_TO edges
     3. Weak-edge candidate identification (prune if prune=True and not dry_run)
     4. Update System node last_long_rest_at (skipped when dry_run)
+    5. Index capacity check: count embedded Memory nodes vs configured capacity
+    6. Near-duplicate review: surface pairs above threshold for human-initiated merge
     """
     now = _parse_iso(now_iso)
 
@@ -1618,6 +1623,30 @@ def long_rest(
     # Step 4: Update System node
     if not dry_run:
         upsert_system_node(session, last_long_rest_at=now_iso)
+
+    # Step 5: Index capacity check — count all Memory nodes with an embedding (archived
+    # nodes included: Memgraph HNSW indexes by node existence, not by status property).
+    capacity_row = session.run(
+        """
+        MATCH (m:Memory)
+        WHERE m.embedding IS NOT NULL AND size(m.embedding) > 0
+        RETURN count(m) AS n
+        """
+    ).single()
+    embedded_count = capacity_row["n"] if capacity_row else 0
+    utilisation_pct = round(embedded_count / memory_index_capacity * 100, 1) if memory_index_capacity else None
+    index_near_capacity = utilisation_pct is not None and utilisation_pct >= 80.0
+
+    # Step 6: Near-duplicate review — run after edge rediscovery so newly linked pairs
+    # are immediately eligible. Returns top pairs by similarity for the response preview;
+    # full list always available via GET /memory/duplicates.
+    near_duplicate_pairs = find_near_duplicates(
+        session, threshold=near_duplicate_threshold, limit=1000
+    )
+    near_duplicate_count = len(near_duplicate_pairs)
+    near_duplicate_candidates = near_duplicate_pairs[:near_duplicate_preview_limit]
+
+    if not dry_run:
         append_maintenance_log(session, {
             "operation": "long_rest",
             "ran_at": now_iso,
@@ -1626,6 +1655,10 @@ def long_rest(
             "edges_affected": edges_decayed,
             "edges_discovered": edges_discovered,
             "edges_pruned": edges_pruned,
+            "embedded_memory_count": embedded_count,
+            "index_capacity": memory_index_capacity,
+            "index_utilisation_pct": utilisation_pct,
+            "near_duplicate_count": near_duplicate_count,
         })
 
     return {
@@ -1633,6 +1666,12 @@ def long_rest(
         "edges_decayed": edges_decayed,
         "edges_discovered": edges_discovered,
         "edges_pruned": edges_pruned,
+        "embedded_memory_count": embedded_count,
+        "index_capacity": memory_index_capacity,
+        "index_utilisation_pct": utilisation_pct,
+        "index_near_capacity": index_near_capacity,
+        "near_duplicate_count": near_duplicate_count,
+        "near_duplicate_candidates": near_duplicate_candidates,
         "dry_run": dry_run,
     }
 
@@ -1665,6 +1704,7 @@ def maintenance_stats(
     edge_prune_threshold: float,
     short_rest_recency_days: int,
     long_rest_recency_days: int,
+    near_duplicate_threshold: float = 0.92,
 ) -> dict:
     """Return a health snapshot of the memory graph for monitoring.
 
@@ -1713,6 +1753,8 @@ def maintenance_stats(
         except (ValueError, TypeError):
             return True
 
+    near_duplicate_count = len(find_near_duplicates(session, threshold=near_duplicate_threshold, limit=10000))
+
     return {
         "nodes": {
             "total": total_nodes,
@@ -1731,6 +1773,7 @@ def maintenance_stats(
             "last_long_rest_at": last_long,
             "short_rest_overdue": _is_overdue(last_short, short_rest_recency_days),
             "long_rest_overdue": _is_overdue(last_long, long_rest_recency_days),
+            "near_duplicate_count": near_duplicate_count,
         },
     }
 

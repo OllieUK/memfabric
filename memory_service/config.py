@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     knowledge_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     enable_knowledge_layer: bool = False
 
+    # Built-in maintenance scheduler
+    scheduler_enabled: bool = True
+    scheduler_poll_interval_seconds: int = 300          # how often to check (5 min)
+    short_rest_interval_hours: int = 6                  # run short-rest every N hours
+    long_rest_utc_hour: int = 3                         # target wall-clock hour (UTC)
+    long_rest_min_interval_hours: int = 20              # don't double-run within this window
+    long_rest_overdue_hours: int = 27                   # run ASAP if missed by this much
+
     # Document ingestion pipeline (WP-073)
     ingest_chunk_size: int = 2000
     ingest_chunk_overlap: int = 200
