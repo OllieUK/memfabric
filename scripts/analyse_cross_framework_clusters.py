@@ -24,18 +24,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 import numpy as np
-from neo4j import GraphDatabase
 from neo4j.exceptions import AuthError, ServiceUnavailable
-from pydantic_settings import BaseSettings
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-
-class Settings(BaseSettings):
-    memgraph_host: str = 'localhost'
-    memgraph_port: int = 7687
-
-    model_config = {'env_file': '.env', 'extra': 'ignore'}
+from memory_service.config import Settings, get_driver
 
 
 def _normalize_embeddings(embs: np.ndarray) -> np.ndarray:
@@ -165,27 +158,31 @@ def _write_cluster_annotations(
     session, annotations: list[dict[str, Any]]
 ) -> int:
     """Write louvain_community_id, embedding_cluster_id, betweenness_centrality
-    back to each Framework node. Returns count of nodes actually updated."""
+    back to each Framework node in a single batched query.
+    Returns count of nodes actually matched and updated."""
     now = datetime.now(timezone.utc).isoformat()
-    count = 0
-    for ann in annotations:
-        result = session.run(
-            'MATCH (f:Framework {id: $id}) '
-            'SET f.louvain_community_id = $louvain, '
-            '    f.embedding_cluster_id = $emb_cluster, '
-            '    f.betweenness_centrality = $betweenness, '
-            '    f.cluster_updated_at = $now '
-            'RETURN count(f) AS updated',
-            id=ann['id'],
-            louvain=ann.get('louvain_community_id'),
-            emb_cluster=ann.get('embedding_cluster_id'),
-            betweenness=ann.get('betweenness_centrality'),
-            now=now,
-        )
-        rec = result.single()
-        if rec:
-            count += rec['updated']
-    return count
+    rows = [
+        {
+            'id': ann['id'],
+            'louvain': ann.get('louvain_community_id'),
+            'emb_cluster': ann.get('embedding_cluster_id'),
+            'betweenness': ann.get('betweenness_centrality'),
+        }
+        for ann in annotations
+    ]
+    result = session.run(
+        'UNWIND $rows AS row '
+        'MATCH (f:Framework {id: row.id}) '
+        'SET f.louvain_community_id = row.louvain, '
+        '    f.embedding_cluster_id = row.emb_cluster, '
+        '    f.betweenness_centrality = row.betweenness, '
+        '    f.cluster_updated_at = $now '
+        'RETURN count(f) AS updated',
+        rows=rows,
+        now=now,
+    )
+    rec = result.single()
+    return rec['updated'] if rec else 0
 
 
 # ── Report ────────────────────────────────────────────────────────────────────
@@ -215,6 +212,27 @@ def _framework_label(node_id: str) -> str:
     return fallback
 
 
+def _render_group_section(
+    lines: list[str],
+    heading: str,
+    groups: dict[int, list[dict]],
+    label_fn: str,
+) -> None:
+    """Append a community/cluster breakdown section to *lines* in-place."""
+    lines.append(f'{heading} — {len(groups)} {"communities" if "Community" in heading else "clusters"}')
+    lines.append('─' * 50)
+    for cid in sorted(groups, key=lambda k: -len(groups[k]))[:_REPORT_TOP_N]:
+        members = groups[cid]
+        fw_counts = Counter(_framework_label(n['id']) for n in members)
+        total = len(members)
+        fw_summary = ', '.join(
+            f'{fw} ({round(100 * cnt / total)}%)'
+            for fw, cnt in fw_counts.most_common(4)
+        )
+        lines.append(f'  {label_fn} {cid}: {total} nodes — {fw_summary}')
+    lines.append('')
+
+
 def _generate_summary_report(
     nodes: list[dict[str, Any]],
     top_bridge: list[dict[str, Any]],
@@ -228,19 +246,7 @@ def _generate_summary_report(
         cid = n.get('louvain_community_id')
         if cid is not None:
             communities[cid].append(n)
-
-    lines.append(f'Graph-Based Communities (Louvain) — {len(communities)} communities')
-    lines.append('─' * 50)
-    for cid in sorted(communities, key=lambda k: -len(communities[k]))[:_REPORT_TOP_N]:
-        members = communities[cid]
-        fw_counts = Counter(_framework_label(n['id']) for n in members)
-        total = len(members)
-        fw_summary = ', '.join(
-            f'{fw} ({round(100 * cnt / total)}%)'
-            for fw, cnt in fw_counts.most_common(4)
-        )
-        lines.append(f'  Community {cid}: {total} nodes — {fw_summary}')
-    lines.append('')
+    _render_group_section(lines, 'Graph-Based Communities (Louvain)', communities, 'Community')
 
     # ── Embedding clusters ───────────────────────────────────────────────────
     emb_clusters: dict[int, list[dict]] = defaultdict(list)
@@ -248,19 +254,7 @@ def _generate_summary_report(
         cid = n.get('embedding_cluster_id')
         if cid is not None:
             emb_clusters[cid].append(n)
-
-    lines.append(f'Embedding-Based Clusters (k-means) — {len(emb_clusters)} clusters')
-    lines.append('─' * 50)
-    for cid in sorted(emb_clusters, key=lambda k: -len(emb_clusters[k]))[:_REPORT_TOP_N]:
-        members = emb_clusters[cid]
-        fw_counts = Counter(_framework_label(n['id']) for n in members)
-        total = len(members)
-        fw_summary = ', '.join(
-            f'{fw} ({round(100 * cnt / total)}%)'
-            for fw, cnt in fw_counts.most_common(4)
-        )
-        lines.append(f'  Cluster {cid}: {total} nodes — {fw_summary}')
-    lines.append('')
+    _render_group_section(lines, 'Embedding-Based Clusters (k-means)', emb_clusters, 'Cluster')
 
     # ── Convergence zones ────────────────────────────────────────────────────
     convergence: dict[tuple, list[dict]] = defaultdict(list)
@@ -270,7 +264,7 @@ def _generate_summary_report(
         if lc is not None and ec is not None:
             convergence[(lc, ec)].append(n)
 
-    top_zones = sorted(convergence.items(), key=lambda kv: -len(kv[1]))[:10]
+    top_zones = sorted(convergence.items(), key=lambda kv: -len(kv[1]))[:_REPORT_TOP_N]
     lines.append(f'Convergence Zones (Louvain ∩ k-means) — top {len(top_zones)} of {len(convergence)}')
     lines.append('─' * 50)
     for (lc, ec), members in top_zones:
@@ -320,10 +314,7 @@ def main(argv: list[str] | None = None) -> None:
         parser.error(f'--k-min ({args.k_min}) must be <= --k-max ({args.k_max})')
 
     settings = Settings()
-    driver = GraphDatabase.driver(
-        f'bolt://{settings.memgraph_host}:{settings.memgraph_port}',
-        auth=('', ''),
-    )
+    driver = get_driver(settings)
 
     try:
         print('Fetching Framework embeddings...', flush=True)
@@ -356,9 +347,9 @@ def main(argv: list[str] | None = None) -> None:
         # ── MAGE community detection ──────────────────────────────────────────
         print('Running MAGE community detection...', flush=True)
         with driver.session() as s:
-            communities = _run_louvain_on_framework_subgraph(s)
-        print(f'  {len(communities)} community assignments returned.')
-        for row in communities:
+            louvain_rows = _run_louvain_on_framework_subgraph(s)
+        print(f'  {len(louvain_rows)} community assignments returned.')
+        for row in louvain_rows:
             if row['id'] in id_to_node:
                 id_to_node[row['id']]['louvain_community_id'] = row['community_id']
             else:
@@ -400,7 +391,7 @@ def main(argv: list[str] | None = None) -> None:
     except (ServiceUnavailable, AuthError) as exc:
         print(
             f'ERROR: Cannot connect to Memgraph at '
-            f'{settings.memgraph_host}:{settings.memgraph_port} — {exc}',
+            f'bolt://{settings.memgraph_host}:{settings.memgraph_port} — {exc}',
             file=sys.stderr,
         )
         sys.exit(1)

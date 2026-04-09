@@ -6,12 +6,19 @@ import pytest
 
 _SCRIPT_PATH = pathlib.Path(__file__).parent.parent / 'scripts' / 'analyse_cross_framework_clusters.py'
 
-
+# Cache at module level — exec_module triggers heavy sklearn/numpy imports on every call.
 def _import_script():
+    return _MODULE
+
+
+def _load_module():
     spec = importlib.util.spec_from_file_location('analyse_cross_framework_clusters', _SCRIPT_PATH)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+_MODULE = _load_module()
 
 
 class TestNormalizeEmbeddings:
