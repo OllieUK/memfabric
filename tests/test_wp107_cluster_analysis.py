@@ -60,9 +60,10 @@ class TestKmeansCluster:
     def test_single_cluster_falls_back(self):
         """When n_clusters >= n_samples, should fall back to k=1."""
         mod = _import_script()
-        embs = np.random.default_rng(0).normal(size=(3, 4)).astype(np.float32)
+        embs = np.random.default_rng(0).normal(size=(2, 4)).astype(np.float32)
         labels = mod._kmeans_cluster(embs, n_clusters=10, random_state=0)
-        assert labels.shape == (3,)
+        assert labels.shape == (2,)
+        assert len(set(labels.tolist())) == 1  # all in the same cluster
 
 
 class TestFindOptimalK:
@@ -82,3 +83,18 @@ class TestFindOptimalK:
         embs = np.random.default_rng(0).normal(size=(10, 4)).astype(np.float32)
         k = mod._find_optimal_k(embs, k_min=2, k_max=5, random_state=0)
         assert 2 <= k <= 5
+
+    def test_warns_and_returns_k_min_when_no_valid_silhouette(self, capsys):
+        """With only 3 samples and k_min=2, k_max=2: only k=2 is tried.
+        KMeans with k=2 on 3 points gives 2 distinct labels, so silhouette
+        runs fine — but with k_min=3 on 3 samples, k_max clamps to 2,
+        k_min clamps to 2, and the single iteration at k=2 gives 2 labels
+        which is >= 2, so silhouette does run. Use a true degenerate: 2 samples.
+        With 2 samples, k_max clamps to 1, k_min clamps to 1, KMeans k=1
+        gives only 1 label, silhouette guard fires, no valid score found."""
+        mod = _import_script()
+        embs = np.array([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+        k = mod._find_optimal_k(embs, k_min=2, k_max=5, random_state=0)
+        assert k == 1  # clamped to k_max = n-1 = 1, then k_min clamped to 1
+        captured = capsys.readouterr()
+        assert 'WARNING' in captured.err

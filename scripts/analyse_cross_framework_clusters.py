@@ -58,16 +58,28 @@ def _find_optimal_k(
     k_max: int = 40,
     random_state: int = 42,
 ) -> int:
-    """Sweep k from k_min to k_max; return k with highest silhouette score."""
+    """Sweep k from k_min to k_max; return k with highest silhouette score.
+
+    Falls back to k_min if the dataset is too small for any valid silhouette
+    computation (warns to stderr in that case).
+    """
     n = len(embs)
     k_max = min(k_max, n - 1)
     k_min = min(k_min, k_max)
     best_k, best_score = k_min, -1.0
+    found_valid = False
     for k in range(k_min, k_max + 1):
         labels = _kmeans_cluster(embs, n_clusters=k, random_state=random_state)
         if len(set(labels)) < 2:
             continue
         score = silhouette_score(embs, labels, metric='cosine')
+        found_valid = True
         if score > best_score:
             best_score, best_k = score, k
+    if not found_valid:
+        print(
+            f'WARNING: _find_optimal_k: no valid silhouette score found '
+            f'(n={n}, k_min={k_min}, k_max={k_max}); returning k_min={k_min}',
+            file=sys.stderr,
+        )
     return best_k
