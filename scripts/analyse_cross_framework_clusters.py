@@ -294,3 +294,104 @@ def _generate_summary_report(
         lines.append('')
 
     return '\n'.join(lines)
+
+
+# ── main ──────────────────────────────────────────────────────────────────────
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description='WP-107: Cross-framework cluster analysis')
+    parser.add_argument(
+        '--write', action='store_true',
+        help='Write cluster annotations back to Framework nodes (default: dry-run)',
+    )
+    parser.add_argument(
+        '--k', type=int, default=None,
+        help='Force k-means to k=N (default: auto-select via silhouette)',
+    )
+    parser.add_argument('--k-min', type=int, default=5, dest='k_min')
+    parser.add_argument('--k-max', type=int, default=40, dest='k_max')
+    parser.add_argument('--top-bridge', type=int, default=20, dest='top_bridge')
+    args = parser.parse_args(argv)
+
+    settings = Settings()
+    driver = GraphDatabase.driver(
+        f'bolt://{settings.memgraph_host}:{settings.memgraph_port}',
+        auth=('', ''),
+    )
+
+    try:
+        print('Fetching Framework embeddings...', flush=True)
+        with driver.session() as s:
+            raw_nodes = _fetch_framework_embeddings(s)
+
+        print(f'  {len(raw_nodes)} Framework nodes with embeddings found.')
+        if not raw_nodes:
+            print(
+                'ERROR: No Framework nodes with embeddings. '
+                'Has the knowledge layer been ingested?',
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        # ── Embedding clustering ──────────────────────────────────────────────
+        print('Running embedding k-means clustering...', flush=True)
+        embs = np.array([n['embedding'] for n in raw_nodes], dtype=np.float32)
+        normalized = _normalize_embeddings(embs)
+        k = args.k if args.k else _find_optimal_k(
+            normalized, k_min=args.k_min, k_max=args.k_max,
+        )
+        print(f'  k={k} ({"forced" if args.k else "auto-selected via silhouette"})')
+        emb_labels = _kmeans_cluster(normalized, n_clusters=k)
+        for i, node in enumerate(raw_nodes):
+            node['embedding_cluster_id'] = int(emb_labels[i])
+
+        id_to_node: dict[str, dict[str, Any]] = {n['id']: n for n in raw_nodes}
+
+        # ── MAGE community detection ──────────────────────────────────────────
+        print('Running MAGE community detection...', flush=True)
+        with driver.session() as s:
+            communities = _run_louvain_on_framework_subgraph(s)
+        print(f'  {len(communities)} community assignments returned.')
+        for row in communities:
+            if row['id'] in id_to_node:
+                id_to_node[row['id']]['louvain_community_id'] = row['community_id']
+            else:
+                id_to_node[row['id']] = {
+                    'id': row['id'],
+                    'louvain_community_id': row['community_id'],
+                    'embedding_cluster_id': None,
+                    'title': '',
+                    'level': '',
+                    'domain': '',
+                }
+
+        # ── Betweenness centrality ────────────────────────────────────────────
+        print('Running MAGE betweenness centrality...', flush=True)
+        with driver.session() as s:
+            bridge_nodes = _run_betweenness_on_framework_subgraph(s, top_n=args.top_bridge)
+        print(f'  {len(bridge_nodes)} bridge nodes returned.')
+        for row in bridge_nodes:
+            if row['id'] in id_to_node:
+                id_to_node[row['id']]['betweenness_centrality'] = row['betweenness_centrality']
+
+        all_nodes = list(id_to_node.values())
+
+        # ── Write-back ────────────────────────────────────────────────────────
+        if args.write:
+            print('Writing cluster annotations to Framework nodes...', flush=True)
+            with driver.session() as s:
+                count = _write_cluster_annotations(s, all_nodes)
+            print(f'  {count} Framework nodes annotated.')
+        else:
+            print('  [DRY-RUN] Pass --write to commit annotations to graph.')
+
+        # ── Report ────────────────────────────────────────────────────────────
+        report = _generate_summary_report(all_nodes, top_bridge=bridge_nodes)
+        print(report)
+
+    finally:
+        driver.close()
+
+
+if __name__ == '__main__':
+    main()
