@@ -4,6 +4,22 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-118 — `DELETE /memory/{id}` hard-delete endpoint
+
+**Completed:** 2026-04-09.
+
+**Delivered:**
+- `memory_repo.delete_memory(session, memory_id)` — two-query Cypher pattern (existence check + `DETACH DELETE`); no status filter; raises `ValueError` if not found
+- `DELETE /memory/{memory_id}` FastAPI route — 204 on success, 404 on missing, 503 on Memgraph down; operation log entry appended
+- `MemoryClient.delete_memory(memory_id)` — returns `None` on 204
+- `memory delete <id>` CLI command — prints `Deleted <8-char prefix>`; exits 1 on error; no confirmation prompt
+- `memory_delete` MCP tool — plain-text confirmation; module docstring updated
+- 14 tests (8 unit + 6 integration) in `tests/test_wp118_hard_delete.py`; all passing against live stack
+
+**Retrospective:** Textbook WP — clear scope, clean implementation, no surprises. The Memgraph `DETACH DELETE` / no-RETURN-clause constraint was handled correctly up-front. Two-stage review caught one real issue (hardcoded 404 detail string vs `str(exc)`) and two documentation gaps; all fixed before merge. Now unblocks WP-039 (ephemeral test-memory cleanup).
+
+---
+
 ## WP-119 — Built-in maintenance scheduler + maintenance observability
 
 **Completed:** 2026-04-08. *(Delivered without a pre-written WP — added retroactively.)*

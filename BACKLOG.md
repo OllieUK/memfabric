@@ -9,10 +9,6 @@
 
 ## Currently In Progress
 
-| ID | Title |
-|----|-------|
-| WP-118 | `DELETE /memory/{id}` hard-delete endpoint |
-
 ---
 
 ## Prioritised Backlog
@@ -26,9 +22,8 @@
 
 | Order | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |-------|---------|-----|-------|-------|--------|----------------|------------|-------|
-| 1 | R1 | WP-118 | `DELETE /memory/{id}` hard-delete endpoint | H | L | 5.0 | — | No hard-delete API exists. Archive is the only removal path, meaning junk data (test artefacts, stale entries) cannot be removed cleanly via the API — operators must bypass the service and issue `DETACH DELETE` directly against Memgraph. Confirmed gap (2026-04-08): 16 test artefacts deleted this way during a dedup review. A hard-delete endpoint is a prerequisite for WP-039's `purge-ephemeral` endpoint and for any future automated cleanup path. Scope: `DELETE /memory/{id}` returns 204 on success, 404 if not found; `DETACH DELETE` in Cypher; CLI `memory delete <id>`; MCP `memory_delete`. |
-| 2 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.7 | WP-038 ✅ | **HIGH URGENCY.** Confirmed real-world impact (2026-04-08): 16 test artefact memories from 4 integration test sessions (2026-04-04 to 2026-04-07) were found polluting the live graph, flooding the near-duplicate review queue with noise and requiring manual DETACH DELETE directly against Memgraph. Every integration test run currently leaves junk behind. See detail below. |
-| 3 | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.7 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
+| 1 | R1 | WP-039 | Ephemeral test-memory handling — TTL, tagging, cleanup | H | M | 1.7 | WP-038 ✅, WP-118 ✅ | **HIGH URGENCY.** Confirmed real-world impact (2026-04-08): 16 test artefact memories from 4 integration test sessions (2026-04-04 to 2026-04-07) were found polluting the live graph, flooding the near-duplicate review queue with noise and requiring manual DETACH DELETE directly against Memgraph. Every integration test run currently leaves junk behind. See detail below. |
+| 2 | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.7 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
 | 4 | R2 | WP-008 | API-based LLM provider abstraction | H | M | 1.7 | WP-007 ✅ | Replace the IDE-tied framing with a runtime `LLMClient` provider layer for Anthropic/OpenAI/Ollama. The goal is to let the fabric and future agents run outside VS Code while keeping provider choice swappable behind one interface. |
 | 5 | R2 | WP-009 | Headless agent runtime outside VS Code | H | M | 1.7 | WP-008 | Build `BaseAgent` on top of `memory_client` + `LLMClient` so scheduled/event-driven agents can run without an editor session. This is the execution foundation for all higher-level agents that should share the same fabric. |
 | 6 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | H | M | 1.7 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
