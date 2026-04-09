@@ -186,3 +186,45 @@ class TestAddMemoryEphemeralClient:
         body = json.loads(request_body)
         assert "ephemeral" in body
         assert body["ephemeral"] is False
+
+
+# ---------------------------------------------------------------------------
+# U9: CLI purge-ephemeral prints count and exits 0
+# ---------------------------------------------------------------------------
+
+@respx.mock
+def test_cli_purge_ephemeral_prints_deleted_count():
+    """CLI purge-ephemeral command prints the deleted count and exits 0."""
+    from typer.testing import CliRunner
+    from memory_client.cli import app
+
+    respx.post(f"{BASE}/memory/maintenance/purge-ephemeral").mock(
+        return_value=httpx.Response(200, json={"deleted": 5})
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["purge-ephemeral"])
+
+    assert result.exit_code == 0
+    assert "5" in result.output
+    assert "ephemeral" in result.output.lower()
+
+
+# ---------------------------------------------------------------------------
+# U10: CLI purge-ephemeral exits 1 on HTTP error
+# ---------------------------------------------------------------------------
+
+@respx.mock
+def test_cli_purge_ephemeral_exits_nonzero_on_error():
+    """CLI purge-ephemeral exits with code 1 when the service returns an error."""
+    from typer.testing import CliRunner
+    from memory_client.cli import app
+
+    respx.post(f"{BASE}/memory/maintenance/purge-ephemeral").mock(
+        return_value=httpx.Response(503, text="Service Unavailable")
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(app, ["purge-ephemeral"])
+
+    assert result.exit_code == 1

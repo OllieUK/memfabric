@@ -279,6 +279,21 @@ def run_decay() -> None:
         raise typer.Exit(1)
 
 
+@app.command("purge-ephemeral")
+def purge_ephemeral() -> None:
+    """Hard-delete all ephemeral memories from the graph."""
+    try:
+        with _make_client() as client:
+            result = client.purge_ephemeral()
+        console.print(f"Deleted {result['deleted']} ephemeral memories.")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("short-rest")
 def short_rest(
     dry_run: bool = typer.Option(False, "--dry-run", help="Compute but do not write"),

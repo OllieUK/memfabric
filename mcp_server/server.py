@@ -6,7 +6,7 @@ Exposes tools via FastMCP over STDIO transport:
   memory_list_projects, memory_create_project,
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
   memory_update, memory_archive, memory_restore, memory_delete, memory_merge,
-  memory_find_duplicates
+  memory_find_duplicates, memory_purge_ephemeral
 """
 from datetime import datetime, timezone
 from itertools import groupby
@@ -424,6 +424,21 @@ def memory_find_duplicates(
     """Find near-duplicate memory pairs above a similarity threshold for review and merge."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.find_duplicates(threshold=threshold, limit=limit)
+
+
+@mcp.tool
+def memory_purge_ephemeral() -> str:
+    """Hard-delete all ephemeral memories from the graph.
+
+    Ephemeral memories are test artefacts created with ephemeral=true.
+    Returns a plain-text summary of the count deleted.
+
+    Warning: deletes ALL ephemeral memories globally — not safe for concurrent
+    test sessions against the same Memgraph instance.
+    """
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        result = client.purge_ephemeral()
+    return f"Purged {result['deleted']} ephemeral memories."
 
 
 @mcp.tool
