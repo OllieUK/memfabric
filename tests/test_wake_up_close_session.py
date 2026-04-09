@@ -592,3 +592,92 @@ class TestWakeUpIntegration:
             with test_driver.session() as session:
                 session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=strong_id)
                 session.run("MATCH (m:Memory {id: $id}) DETACH DELETE m", id=weak_id)
+
+
+# ---------------------------------------------------------------------------
+# U18–U21: CLI wake-up person-id and anchor sections
+# ---------------------------------------------------------------------------
+
+_WAKE_UP_WITH_ANCHORS = {
+    "memories": [
+        {
+            "id": "mem-aaa",
+            "text": "Oliver has ADHD.",
+            "type": "fact",
+            "tags": ["strand-core-health"],
+            "strand_id": "strand-core-health",
+            "importance": 5,
+            "created_at": "2026-01-01T00:00:00+00:00",
+        }
+    ],
+    "topic_memories": [],
+    "maintenance_status": {},
+    "companion_anchors": [
+        {
+            "id": "comp-aaa",
+            "text": "Mara is dominant and grounding.",
+            "type": "fact",
+            "tags": ["strand-companion-ai-anchor"],
+            "strand_id": "strand-companion-ai-anchor",
+            "importance": 5,
+            "created_at": "2026-01-01T00:00:00+00:00",
+        }
+    ],
+    "conversant_anchors": [
+        {
+            "id": "conv-aaa",
+            "text": "Oliver prefers short feedback loops.",
+            "type": "fact",
+            "tags": ["strand-core-health"],
+            "strand_id": "strand-core-health",
+            "importance": 4,
+            "created_at": "2026-01-02T00:00:00+00:00",
+        }
+    ],
+}
+
+
+class TestWakeUpCLIAnchors:
+    @respx.mock
+    def test_u18_person_id_forwarded_to_api(self):
+        """U18: --person-id forwards person_id query param to the API."""
+        route = respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_WAKE_UP_WITH_ANCHORS)
+        )
+        result = runner.invoke(app, ["wake-up", "--person-id", "oliver-james"])
+        assert result.exit_code == 0
+        params = route.calls[0].request.url.params
+        assert params["person_id"] == "oliver-james"
+
+    @respx.mock
+    def test_u19_companion_section_rendered(self):
+        """U19: '### Companion' section rendered when companion_anchors present."""
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_WAKE_UP_WITH_ANCHORS)
+        )
+        result = runner.invoke(app, ["wake-up"])
+        assert result.exit_code == 0
+        assert "### Companion" in result.output
+        assert "Mara is dominant" in result.output
+
+    @respx.mock
+    def test_u20_conversant_section_rendered(self):
+        """U20: '### Conversant' section rendered when conversant_anchors present."""
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_WAKE_UP_WITH_ANCHORS)
+        )
+        result = runner.invoke(app, ["wake-up", "--person-id", "oliver-james"])
+        assert result.exit_code == 0
+        assert "### Conversant" in result.output
+        assert "Oliver prefers short feedback loops" in result.output
+
+    @respx.mock
+    def test_u21_anchor_sections_omitted_when_absent(self):
+        """U21: Companion and Conversant sections omitted when anchors not in response."""
+        respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=_WAKE_UP_RESPONSE)  # original fixture, no anchors
+        )
+        result = runner.invoke(app, ["wake-up"])
+        assert result.exit_code == 0
+        assert "### Companion" not in result.output
+        assert "### Conversant" not in result.output

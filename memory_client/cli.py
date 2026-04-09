@@ -391,11 +391,14 @@ def status() -> None:
 def wake_up(
     topic: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic to focus the session on"),
     limit: int = typer.Option(20, "--limit", "-n", min=1, max=100, help="Max memories to return"),
+    person_id: Optional[str] = typer.Option(
+        None, "--person-id", help="Person ID for conversant anchors"
+    ),
 ) -> None:
     """Print a memory briefing for session start."""
     try:
         with _make_client() as client:
-            core, topic_memories, _maintenance_status = client.wake_up_split(limit=limit, topic=topic)
+            result = client.wake_up_split(limit=limit, topic=topic, person_id=person_id)
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)
@@ -422,13 +425,25 @@ def wake_up(
                     f"  [{imp}] [bold]{mem['type']}[/bold]{timestamp_label} — {mem['text']}"
                 )
 
+    core = result.get("memories", [])
+    topic_memories = result.get("topic_memories", [])
+    companion_anchors = result.get("companion_anchors")
+    conversant_anchors = result.get("conversant_anchors")
+
     console.print("\n[bold cyan]### Core context[/bold cyan]")
     _render_section(core)
 
-    # Render topic section only when topic was provided AND there are topic-only results
     if topic and topic_memories:
         console.print("\n[bold cyan]### Relevant to today[/bold cyan]")
         _render_section(topic_memories)
+
+    if companion_anchors:
+        console.print("\n[bold cyan]### Companion[/bold cyan]")
+        _render_section(companion_anchors)
+
+    if conversant_anchors:
+        console.print("\n[bold cyan]### Conversant[/bold cyan]")
+        _render_section(conversant_anchors)
 
 
 @app.command("close-session")
