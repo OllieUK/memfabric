@@ -4,6 +4,24 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+## WP-039 — Ephemeral test-memory handling
+
+**Completed:** 2026-04-09.
+
+**Delivered:**
+- `Memory.ephemeral: bool` property (default `false`) stored on node in Memgraph; set via `POST /memory` with `"ephemeral": true`
+- `POST /memory/search` and `GET /memory/wake-up` exclude ephemeral memories by default via `IS NULL OR = false` guard
+- `find_duplicate_memory` and `find_near_duplicates` exclude ephemeral memories from dedup lookups
+- `POST /memory/maintenance/purge-ephemeral` — bulk hard-deletes all ephemeral memories, returns `{"deleted": N}`
+- `memory purge-ephemeral` CLI command; `memory_purge_ephemeral` MCP tool
+- `MemoryClient.add_memory` gains `ephemeral=True` kwarg; new `purge_ephemeral()` method
+- 13 unit tests + 5 integration tests passing (I6 requires service rebuilt from new code — documented skip)
+- Integration test sweep: 10 test files updated with `ephemeral=True` on test writes; 7 files that write-then-search correctly remain non-ephemeral (they rely on `cleanup_nodes` fixture, as they must find the memory they just wrote)
+
+**Retrospective:** Scope was well-defined and the design was clean to implement — the `IS NULL OR = false` guard pattern applied consistently across repo, search, wake-up, and dedup with no surprises. The integration test sweep required judgment on which tests could and could not use `ephemeral=True` (write-then-search tests cannot); documenting that decision explicitly prevented scope creep. Two items deferred to backlog: `get_memory_for_update` missing ephemeral filter (WP-120, acceptable for v1) and the 7 non-ephemeral test files that rely on `cleanup_nodes` (WP-121). The high-urgency driver (16 test artefact memories polluting the live graph) is now eliminated for the majority of integration test writes.
+
+---
+
 ## WP-118 — `DELETE /memory/{id}` hard-delete endpoint
 
 **Completed:** 2026-04-09.
