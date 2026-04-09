@@ -115,7 +115,7 @@ def add_memory(
         min_strength=importance_floor_factor * (req.importance / 5.0),
         last_reinforced_at=now,
         decay_rate=decay_rate,
-        ephemeral=getattr(req, "ephemeral", False),
+        ephemeral=req.ephemeral,
     )
 
     # Step 2 — Upsert Project + ABOUT edge
