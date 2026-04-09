@@ -184,3 +184,106 @@ def _write_cluster_annotations(
         if rec:
             count += rec['updated']
     return count
+
+
+# ── Report ────────────────────────────────────────────────────────────────────
+
+_FRAMEWORK_PREFIX_MAP = {
+    'iso27001':          'ISO 27001',
+    'nist-csf':          'NIST CSF',
+    'cobit':             'COBIT 2019',
+    'attack-enterprise': 'ATT&CK',
+    'sp800-53r5':        'SP 800-53',
+}
+
+
+def _framework_label(node_id: str) -> str:
+    """Map a Framework node id to a short human-readable label."""
+    for prefix, label in _FRAMEWORK_PREFIX_MAP.items():
+        if node_id.startswith(prefix):
+            return label
+    return node_id.split('.')[0]
+
+
+def _generate_summary_report(
+    nodes: list[dict[str, Any]],
+    top_bridge: list[dict[str, Any]],
+) -> str:
+    """Generate a human-readable convergence zone summary report."""
+    from collections import Counter, defaultdict
+
+    lines = ['', 'WP-107 Cross-Framework Cluster Analysis', '=' * 50, '']
+
+    # ── Louvain communities ──────────────────────────────────────────────────
+    communities: dict[int, list[dict]] = defaultdict(list)
+    for n in nodes:
+        cid = n.get('louvain_community_id')
+        if cid is not None:
+            communities[cid].append(n)
+
+    lines.append(f'Graph-Based Communities (Louvain) — {len(communities)} communities')
+    lines.append('─' * 50)
+    for cid in sorted(communities, key=lambda k: -len(communities[k]))[:20]:
+        members = communities[cid]
+        fw_counts = Counter(_framework_label(n['id']) for n in members)
+        total = len(members)
+        fw_summary = ', '.join(
+            f'{fw} ({round(100 * cnt / total)}%)'
+            for fw, cnt in fw_counts.most_common(4)
+        )
+        lines.append(f'  Community {cid}: {total} nodes — {fw_summary}')
+    lines.append('')
+
+    # ── Embedding clusters ───────────────────────────────────────────────────
+    emb_clusters: dict[int, list[dict]] = defaultdict(list)
+    for n in nodes:
+        cid = n.get('embedding_cluster_id')
+        if cid is not None:
+            emb_clusters[cid].append(n)
+
+    lines.append(f'Embedding-Based Clusters (k-means) — {len(emb_clusters)} clusters')
+    lines.append('─' * 50)
+    for cid in sorted(emb_clusters, key=lambda k: -len(emb_clusters[k]))[:20]:
+        members = emb_clusters[cid]
+        fw_counts = Counter(_framework_label(n['id']) for n in members)
+        total = len(members)
+        fw_summary = ', '.join(
+            f'{fw} ({round(100 * cnt / total)}%)'
+            for fw, cnt in fw_counts.most_common(4)
+        )
+        lines.append(f'  Cluster {cid}: {total} nodes — {fw_summary}')
+    lines.append('')
+
+    # ── Convergence zones ────────────────────────────────────────────────────
+    convergence: dict[tuple, list[dict]] = defaultdict(list)
+    for n in nodes:
+        lc = n.get('louvain_community_id')
+        ec = n.get('embedding_cluster_id')
+        if lc is not None and ec is not None:
+            convergence[(lc, ec)].append(n)
+
+    top_zones = sorted(convergence.items(), key=lambda kv: -len(kv[1]))[:10]
+    lines.append(f'Convergence Zones (Louvain ∩ k-means) — top {len(top_zones)} of {len(convergence)}')
+    lines.append('─' * 50)
+    for (lc, ec), members in top_zones:
+        fw_counts = Counter(_framework_label(n['id']) for n in members)
+        sample_titles = ', '.join(n['title'] for n in members[:3] if n.get('title'))
+        lines.append(
+            f'  Zone L{lc}/K{ec}: {len(members)} nodes — '
+            + ', '.join(f'{fw}({cnt})' for fw, cnt in fw_counts.most_common(3))
+        )
+        if sample_titles:
+            lines.append(f'    e.g. {sample_titles}')
+    lines.append('')
+
+    # ── Bridge nodes ─────────────────────────────────────────────────────────
+    if top_bridge:
+        lines.append('Top Bridge Nodes (Betweenness Centrality)')
+        lines.append('─' * 50)
+        for i, node in enumerate(top_bridge[:20], 1):
+            score = node.get('betweenness_centrality', 0)
+            title = node.get('title', '')
+            lines.append(f'  {i:2}. {node["id"]}  betweenness={score:.4f}  {title}')
+        lines.append('')
+
+    return '\n'.join(lines)

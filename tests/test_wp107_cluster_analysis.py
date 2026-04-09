@@ -243,3 +243,72 @@ class TestWriteBackIntegration:
                 assert rec['louvain'] == ann['louvain_community_id']
                 assert rec['emb_cluster'] == ann['embedding_cluster_id']
                 assert abs(rec['betweenness'] - ann['betweenness_centrality']) < 1e-6
+
+
+class TestGenerateSummaryReport:
+    def _make_nodes(self):
+        return [
+            {
+                'id': 'iso27001.A.5.1',
+                'title': 'Policies for IS',
+                'level': 'clause',
+                'domain': None,
+                'louvain_community_id': 0,
+                'embedding_cluster_id': 0,
+            },
+            {
+                'id': 'nist-csf.GV.OC-01',
+                'title': 'Mission understanding',
+                'level': 'subcategory',
+                'domain': None,
+                'louvain_community_id': 0,
+                'embedding_cluster_id': 0,
+            },
+            {
+                'id': 'attack-enterprise.T1566',
+                'title': 'Phishing',
+                'level': 'technique',
+                'domain': 'enterprise',
+                'louvain_community_id': 1,
+                'embedding_cluster_id': 1,
+            },
+        ]
+
+    def test_report_is_non_empty_string(self):
+        mod = _import_script()
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
+        assert isinstance(report, str)
+        assert len(report) > 0
+
+    def test_report_contains_community_section(self):
+        mod = _import_script()
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
+        assert 'Community' in report or 'community' in report
+
+    def test_report_includes_iso_framework_label(self):
+        mod = _import_script()
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
+        # iso27001 prefix must be mapped to a recognisable label
+        assert 'ISO 27001' in report or 'iso27001' in report.lower()
+
+    def test_report_includes_attack_framework_label(self):
+        mod = _import_script()
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
+        assert 'ATT&CK' in report or 'attack' in report.lower()
+
+    def test_report_includes_bridge_nodes_when_provided(self):
+        mod = _import_script()
+        bridge = [{'id': 'sp800-53r5.AC-1', 'title': 'Access Control Policy', 'betweenness_centrality': 0.9}]
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=bridge)
+        assert 'sp800-53r5.AC-1' in report
+
+    def test_report_omits_bridge_section_when_empty(self):
+        mod = _import_script()
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
+        # Bridge section only printed when top_bridge is non-empty
+        assert 'sp800-53r5.AC-1' not in report
+
+    def test_report_includes_convergence_zone_section(self):
+        mod = _import_script()
+        report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
+        assert 'Convergence' in report or 'convergence' in report
