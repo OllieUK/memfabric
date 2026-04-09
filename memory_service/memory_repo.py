@@ -1844,6 +1844,7 @@ def find_duplicate_memory(
         MATCH (m:Memory)
         WHERE toLower(m.fact) = toLower($fact)
           AND (m.status IS NULL OR m.status = 'active')
+          AND (m.ephemeral IS NULL OR m.ephemeral = false)
         RETURN m.id AS id
         LIMIT 1
         """,
@@ -1860,6 +1861,7 @@ def find_duplicate_memory(
         YIELD node, distance
         WITH node, distance
         WHERE (node.status IS NULL OR node.status = 'active')
+          AND (node.ephemeral IS NULL OR node.ephemeral = false)
           AND distance <= $threshold
         RETURN node.id AS id
         LIMIT 1

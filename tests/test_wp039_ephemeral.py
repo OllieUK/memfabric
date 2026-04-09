@@ -3,7 +3,7 @@
 # Unit tests for WP-039: ephemeral memory support — repo layer.
 # All tests here are pure unit tests (no live Memgraph required).
 
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import memory_service.memory_repo as memory_repo
 from memory_service.memory_repo import purge_ephemeral_memories
