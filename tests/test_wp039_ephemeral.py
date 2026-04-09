@@ -228,3 +228,205 @@ def test_cli_purge_ephemeral_exits_nonzero_on_error():
     result = runner.invoke(app, ["purge-ephemeral"])
 
     assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# Integration tests (require live Memgraph + FastAPI)
+# ---------------------------------------------------------------------------
+
+import subprocess
+import sys
+import uuid
+
+import pytest
+
+from tests.conftest import TEST_TAG, cleanup_nodes, node_exists
+
+
+@pytest.mark.integration
+class TestEphemeralIntegration:
+
+    def test_i1_post_memory_ephemeral_stores_flag(self, client, test_driver):
+        """I1: POST /memory with ephemeral:true stores node with ephemeral=True in Memgraph."""
+        memory_id = None
+        try:
+            response = client.post("/memory", json={
+                "fact": f"WP-039 ephemeral I1 {uuid.uuid4()}",
+                "ephemeral": True,
+                "tags": [TEST_TAG],
+                "type": "fact",
+                "agent_id": "test-wp039",
+            })
+            assert response.status_code == 200
+            memory_id = response.json()["memory_id"]
+
+            with test_driver.session() as session:
+                result = session.run(
+                    "MATCH (m:Memory {id: $id}) RETURN m.ephemeral AS ephemeral",
+                    id=memory_id,
+                )
+                record = result.single()
+            assert record is not None
+            assert record["ephemeral"] is True
+        finally:
+            if memory_id:
+                cleanup_nodes(test_driver, memory_id)
+
+    def test_i2_ephemeral_excluded_from_search(self, client, test_driver):
+        """I2: Ephemeral memory is excluded from POST /memory/search results."""
+        unique_term = f"zephyrquark{uuid.uuid4().hex[:8]}"
+        ephemeral_id = None
+        normal_id = None
+        try:
+            r_eph = client.post("/memory", json={
+                "fact": f"WP-039 I2 ephemeral {unique_term}",
+                "ephemeral": True,
+                "tags": [TEST_TAG],
+                "type": "fact",
+                "agent_id": "test-wp039",
+            })
+            assert r_eph.status_code == 200
+            ephemeral_id = r_eph.json()["memory_id"]
+
+            r_norm = client.post("/memory", json={
+                "fact": f"WP-039 I2 normal {unique_term}",
+                "ephemeral": False,
+                "tags": [TEST_TAG],
+                "type": "fact",
+                "agent_id": "test-wp039",
+            })
+            assert r_norm.status_code == 200
+            normal_id = r_norm.json()["memory_id"]
+
+            search = client.post("/memory/search", json={"query": unique_term, "limit": 20})
+            assert search.status_code == 200
+            result_ids = [m["id"] for m in search.json()["memories"]]
+
+            assert normal_id in result_ids
+            assert ephemeral_id not in result_ids
+        finally:
+            if ephemeral_id:
+                cleanup_nodes(test_driver, ephemeral_id)
+            if normal_id:
+                cleanup_nodes(test_driver, normal_id)
+
+    def test_i3_ephemeral_excluded_from_wake_up(self, client, test_driver):
+        """I3: Ephemeral memory is excluded from GET /memory/wake-up results."""
+        memory_id = None
+        try:
+            response = client.post("/memory", json={
+                "fact": f"WP-039 I3 ephemeral wake-up test {uuid.uuid4()}",
+                "ephemeral": True,
+                "importance": 5,
+                "tags": [TEST_TAG],
+                "type": "fact",
+                "agent_id": "test-wp039",
+            })
+            assert response.status_code == 200
+            memory_id = response.json()["memory_id"]
+
+            wake = client.get("/memory/wake-up?limit=50")
+            assert wake.status_code == 200
+            returned_ids = [m["id"] for m in wake.json()["memories"]]
+            assert memory_id not in returned_ids
+        finally:
+            if memory_id:
+                cleanup_nodes(test_driver, memory_id)
+
+    def test_i4_purge_ephemeral_deletes_ephemeral_keeps_normal(self, client, test_driver):
+        """I4: purge-ephemeral deletes ephemeral nodes and returns correct count; normal node survives."""
+        ephemeral_ids = []
+        normal_id = None
+        try:
+            for i in range(3):
+                r = client.post("/memory", json={
+                    "fact": f"WP-039 I4 ephemeral node {i} {uuid.uuid4()}",
+                    "ephemeral": True,
+                    "tags": [TEST_TAG],
+                    "type": "fact",
+                    "agent_id": "test-wp039",
+                })
+                assert r.status_code == 200
+                ephemeral_ids.append(r.json()["memory_id"])
+
+            r_norm = client.post("/memory", json={
+                "fact": f"WP-039 I4 normal node {uuid.uuid4()}",
+                "ephemeral": False,
+                "tags": [TEST_TAG],
+                "type": "fact",
+                "agent_id": "test-wp039",
+            })
+            assert r_norm.status_code == 200
+            normal_id = r_norm.json()["memory_id"]
+
+            purge = client.post("/memory/maintenance/purge-ephemeral")
+            assert purge.status_code == 200
+            deleted = purge.json()["deleted"]
+            assert deleted >= 3
+
+            for eid in ephemeral_ids:
+                assert not node_exists(test_driver, "Memory", eid)
+            ephemeral_ids = []
+
+            assert node_exists(test_driver, "Memory", normal_id)
+        finally:
+            for eid in ephemeral_ids:
+                cleanup_nodes(test_driver, eid)
+            if normal_id:
+                cleanup_nodes(test_driver, normal_id)
+
+    def test_i5_purge_ephemeral_with_none_returns_zero(self, client, test_driver):
+        """I5: purge-ephemeral returns 0 when no ephemeral nodes exist."""
+        # Clear any lingering ephemeral nodes first
+        client.post("/memory/maintenance/purge-ephemeral")
+
+        purge = client.post("/memory/maintenance/purge-ephemeral")
+        assert purge.status_code == 200
+        assert purge.json()["deleted"] == 0
+
+    def test_i6_cli_purge_ephemeral_against_live_service(self, client, test_driver):
+        """I6: CLI memory purge-ephemeral deletes ephemeral memories and exits 0.
+
+        Skips if the live service at localhost:8000 does not yet expose the
+        purge-ephemeral endpoint (e.g. running a pre-WP-039 build).
+        """
+        import re
+        import httpx as _httpx
+
+        # Probe whether the live service supports the endpoint.
+        try:
+            probe = _httpx.post("http://localhost:8000/memory/maintenance/purge-ephemeral", timeout=5)
+            if probe.status_code == 404:
+                pytest.skip("Live service at :8000 does not have purge-ephemeral — skipping CLI smoke test")
+        except _httpx.ConnectError:
+            pytest.skip("Live service at :8000 not reachable")
+
+        ephemeral_ids = []
+        try:
+            for i in range(2):
+                r = client.post("/memory", json={
+                    "fact": f"WP-039 I6 CLI ephemeral {i} {uuid.uuid4()}",
+                    "ephemeral": True,
+                    "tags": [TEST_TAG],
+                    "type": "fact",
+                    "agent_id": "test-wp039",
+                })
+                assert r.status_code == 200
+                ephemeral_ids.append(r.json()["memory_id"])
+
+            result = subprocess.run(
+                [sys.executable, "-m", "memory_client.cli", "purge-ephemeral"],
+                capture_output=True,
+                text=True,
+                cwd="/home/oliver/projects/graph-memory-fabric/.worktrees/wp-039-ephemeral",
+            )
+            assert result.returncode == 0
+            # Output should contain a non-negative integer (the count)
+            numbers = re.findall(r"\d+", result.stdout)
+            assert numbers, f"Expected a number in CLI output, got: {result.stdout!r}"
+            deleted_count = int(numbers[0])
+            assert deleted_count >= 2
+            ephemeral_ids = []  # purged
+        finally:
+            for eid in ephemeral_ids:
+                cleanup_nodes(test_driver, eid)
