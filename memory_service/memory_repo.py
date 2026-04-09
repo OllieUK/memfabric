@@ -95,7 +95,8 @@ def add_memory(
             reinforcement_count: 0,
             last_reinforced_at: $last_reinforced_at,
             decay_rate: $decay_rate,
-            status: 'active'
+            status: 'active',
+            ephemeral: $ephemeral
         })
         CREATE (m)-[:PRODUCED_BY]->(a)
         """,
@@ -114,6 +115,7 @@ def add_memory(
         min_strength=importance_floor_factor * (req.importance / 5.0),
         last_reinforced_at=now,
         decay_rate=decay_rate,
+        ephemeral=getattr(req, "ephemeral", False),
     )
 
     # Step 2 — Upsert Project + ABOUT edge
@@ -233,6 +235,7 @@ CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
 YIELD node AS m, distance
 WITH m, distance
 WHERE (m.status IS NULL OR m.status = 'active')
+AND   (m.ephemeral IS NULL OR m.ephemeral = false)
 AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
 AND   ($min_importance IS NULL OR m.importance >= $min_importance)
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
@@ -261,6 +264,7 @@ _PERSON_SEARCH_QUERY_TEMPLATE = """\
 MATCH (m:Memory)-[:ABOUT]->(per:Person)
 WHERE per.id IN $person_ids
 AND   (m.status IS NULL OR m.status = 'active')
+AND   (m.ephemeral IS NULL OR m.ephemeral = false)
 AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
 AND   ($min_importance IS NULL OR m.importance >= $min_importance)
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
@@ -462,6 +466,7 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
         """
         MATCH (m:Memory)
         WHERE (m.status IS NULL OR m.status = 'active')
+          AND (m.ephemeral IS NULL OR m.ephemeral = false)
         OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
         WITH DISTINCT m, collect(s.id)[0] AS strand_id
         RETURN m.id AS id, m.text AS text, m.type AS type,
@@ -489,6 +494,7 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
         YIELD node AS m, distance
         WITH m, distance
         WHERE (m.status IS NULL OR m.status = 'active')
+          AND (m.ephemeral IS NULL OR m.ephemeral = false)
         OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
         WITH DISTINCT m, collect(s.id)[0] AS strand_id, min(distance) AS dist
         RETURN m.id AS id, m.text AS text, m.type AS type,
@@ -502,6 +508,27 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
     topic = [_record_to_memory_dict(r) for r in topic_result if r["id"] not in core_ids]
 
     return {"core": core, "topic": topic}
+
+
+def purge_ephemeral_memories(session) -> int:
+    """Hard-delete all ephemeral Memory nodes. Returns count deleted.
+
+    Uses the DETACH DELETE gotcha pattern: count first, delete second.
+    DETACH DELETE does not support RETURN in Memgraph, so the count is
+    fetched in a separate query before deletion.
+
+    Warning: deletes ALL ephemeral memories globally. Not safe for concurrent
+    test sessions against the same Memgraph instance.
+    """
+    count_result = session.run(
+        "MATCH (m:Memory) WHERE m.ephemeral = true RETURN count(m) AS n"
+    )
+    count = count_result.single()["n"]
+    if count > 0:
+        session.run(
+            "MATCH (m:Memory) WHERE m.ephemeral = true DETACH DELETE m"
+        )
+    return count
 
 
 def list_strands(session) -> list:
