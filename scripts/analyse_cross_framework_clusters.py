@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
@@ -188,6 +189,8 @@ def _write_cluster_annotations(
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
+_REPORT_TOP_N = 20  # max items per section in the summary report
+
 _FRAMEWORK_PREFIX_MAP = {
     'iso27001':          'ISO 27001',
     'nist-csf':          'NIST CSF',
@@ -202,7 +205,13 @@ def _framework_label(node_id: str) -> str:
     for prefix, label in _FRAMEWORK_PREFIX_MAP.items():
         if node_id.startswith(prefix):
             return label
-    return node_id.split('.')[0]
+    fallback = node_id.split('.')[0]
+    print(
+        f'WARNING: _framework_label: unrecognised prefix in id {node_id!r}; '
+        f'using fallback {fallback!r}',
+        file=sys.stderr,
+    )
+    return fallback
 
 
 def _generate_summary_report(
@@ -210,8 +219,6 @@ def _generate_summary_report(
     top_bridge: list[dict[str, Any]],
 ) -> str:
     """Generate a human-readable convergence zone summary report."""
-    from collections import Counter, defaultdict
-
     lines = ['', 'WP-107 Cross-Framework Cluster Analysis', '=' * 50, '']
 
     # ── Louvain communities ──────────────────────────────────────────────────
@@ -223,7 +230,7 @@ def _generate_summary_report(
 
     lines.append(f'Graph-Based Communities (Louvain) — {len(communities)} communities')
     lines.append('─' * 50)
-    for cid in sorted(communities, key=lambda k: -len(communities[k]))[:20]:
+    for cid in sorted(communities, key=lambda k: -len(communities[k]))[:_REPORT_TOP_N]:
         members = communities[cid]
         fw_counts = Counter(_framework_label(n['id']) for n in members)
         total = len(members)
@@ -243,7 +250,7 @@ def _generate_summary_report(
 
     lines.append(f'Embedding-Based Clusters (k-means) — {len(emb_clusters)} clusters')
     lines.append('─' * 50)
-    for cid in sorted(emb_clusters, key=lambda k: -len(emb_clusters[k]))[:20]:
+    for cid in sorted(emb_clusters, key=lambda k: -len(emb_clusters[k]))[:_REPORT_TOP_N]:
         members = emb_clusters[cid]
         fw_counts = Counter(_framework_label(n['id']) for n in members)
         total = len(members)
@@ -280,7 +287,7 @@ def _generate_summary_report(
     if top_bridge:
         lines.append('Top Bridge Nodes (Betweenness Centrality)')
         lines.append('─' * 50)
-        for i, node in enumerate(top_bridge[:20], 1):
+        for i, node in enumerate(top_bridge[:_REPORT_TOP_N], 1):
             score = node.get('betweenness_centrality', 0)
             title = node.get('title', '')
             lines.append(f'  {i:2}. {node["id"]}  betweenness={score:.4f}  {title}')

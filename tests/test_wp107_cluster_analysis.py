@@ -277,8 +277,7 @@ class TestGenerateSummaryReport:
     def test_report_is_non_empty_string(self):
         mod = _import_script()
         report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
-        assert isinstance(report, str)
-        assert len(report) > 0
+        assert 'WP-107 Cross-Framework Cluster Analysis' in report
 
     def test_report_contains_community_section(self):
         mod = _import_script()
@@ -288,13 +287,12 @@ class TestGenerateSummaryReport:
     def test_report_includes_iso_framework_label(self):
         mod = _import_script()
         report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
-        # iso27001 prefix must be mapped to a recognisable label
-        assert 'ISO 27001' in report or 'iso27001' in report.lower()
+        assert 'ISO 27001' in report
 
     def test_report_includes_attack_framework_label(self):
         mod = _import_script()
         report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
-        assert 'ATT&CK' in report or 'attack' in report.lower()
+        assert 'ATT&CK' in report
 
     def test_report_includes_bridge_nodes_when_provided(self):
         mod = _import_script()
@@ -305,8 +303,8 @@ class TestGenerateSummaryReport:
     def test_report_omits_bridge_section_when_empty(self):
         mod = _import_script()
         report = mod._generate_summary_report(self._make_nodes(), top_bridge=[])
-        # Bridge section only printed when top_bridge is non-empty
-        assert 'sp800-53r5.AC-1' not in report
+        # Bridge section heading must be absent when no bridge nodes supplied
+        assert 'Bridge' not in report
 
     def test_report_includes_convergence_zone_section(self):
         mod = _import_script()
