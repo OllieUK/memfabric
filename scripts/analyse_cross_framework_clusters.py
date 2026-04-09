@@ -83,3 +83,92 @@ def _find_optimal_k(
             file=sys.stderr,
         )
     return best_k
+
+
+# ── Graph fetch / MAGE ────────────────────────────────────────────────────────
+
+def _fetch_framework_embeddings(session) -> list[dict[str, Any]]:
+    """Fetch all Framework nodes that have an embedding property."""
+    result = session.run(
+        'MATCH (f:Framework) '
+        'WHERE f.embedding IS NOT NULL '
+        'RETURN f.id AS id, f.level AS level, f.domain AS domain, '
+        '       f.external_id AS external_id, f.title AS title, '
+        '       f.embedding AS embedding'
+    )
+    return [dict(r) for r in result]
+
+
+def _run_louvain_on_framework_subgraph(session) -> list[dict[str, Any]]:
+    """Run MAGE community detection on the INFORMS+MITIGATES Framework subgraph.
+
+    Uses community_detection.get_subgraph with explicit node/relationship lists
+    gathered from the Framework subgraph. Falls back to whole-graph call filtered
+    to Framework nodes if the subgraph call fails.
+    """
+    try:
+        result = session.run(
+            'MATCH (f:Framework)-[r:INFORMS|MITIGATES]-(:Framework) '
+            'WITH collect(DISTINCT f) AS nodes, collect(DISTINCT r) AS rels '
+            'CALL community_detection.get_subgraph(nodes, rels) '
+            'YIELD node, community_id '
+            'RETURN node.id AS id, community_id'
+        )
+        rows = [dict(r) for r in result]
+        if rows:
+            return rows
+    except Exception:
+        pass
+
+    result = session.run(
+        'CALL community_detection.get() YIELD node, community_id '
+        'WITH node, community_id WHERE node:Framework '
+        'RETURN node.id AS id, community_id'
+    )
+    return [dict(r) for r in result]
+
+
+def _run_betweenness_on_framework_subgraph(
+    session, top_n: int = 20
+) -> list[dict[str, Any]]:
+    """Run MAGE betweenness centrality on the INFORMS+MITIGATES subgraph.
+
+    Collects Framework subgraph nodes/rels, runs betweenness_centrality.get
+    via whole-graph call filtered to Framework nodes (the procedure does not
+    support subgraph projection). Returns top_n nodes by score.
+    """
+    result = session.run(
+        'CALL betweenness_centrality.get() YIELD node, betweenness_centrality '
+        'WITH node, betweenness_centrality WHERE node:Framework '
+        'RETURN node.id AS id, '
+        '       toFloat(betweenness_centrality) AS betweenness_centrality, '
+        '       node.title AS title '
+        'ORDER BY betweenness_centrality DESC '
+        'LIMIT $top_n',
+        top_n=top_n,
+    )
+    return [dict(r) for r in result]
+
+
+def _write_cluster_annotations(
+    session, annotations: list[dict[str, Any]]
+) -> int:
+    """Write louvain_community_id, embedding_cluster_id, betweenness_centrality
+    back to each Framework node. Returns count of nodes updated."""
+    now = datetime.now(timezone.utc).isoformat()
+    count = 0
+    for ann in annotations:
+        session.run(
+            'MATCH (f:Framework {id: $id}) '
+            'SET f.louvain_community_id = $louvain, '
+            '    f.embedding_cluster_id = $emb_cluster, '
+            '    f.betweenness_centrality = $betweenness, '
+            '    f.cluster_updated_at = $now',
+            id=ann['id'],
+            louvain=ann.get('louvain_community_id'),
+            emb_cluster=ann.get('embedding_cluster_id'),
+            betweenness=ann.get('betweenness_centrality'),
+            now=now,
+        )
+        count += 1
+    return count

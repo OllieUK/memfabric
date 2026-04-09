@@ -98,3 +98,143 @@ class TestFindOptimalK:
         assert k == 1  # clamped to k_max = n-1 = 1, then k_min clamped to 1
         captured = capsys.readouterr()
         assert 'WARNING' in captured.err
+
+
+# ── Integration fixtures ─────────────────────────────────────────────────────
+
+_TEST_PREFIX = 'test-wp107-'
+
+
+@pytest.fixture(scope='session')
+def test_driver():
+    from neo4j import GraphDatabase as _GDB
+    driver = _GDB.driver('bolt://localhost:7687', auth=('', ''))
+    try:
+        with driver.session() as s:
+            s.run('RETURN 1')
+    except Exception:
+        pytest.skip('Memgraph not reachable')
+    yield driver
+    driver.close()
+
+
+@pytest.fixture(scope='session')
+def seeded_framework_graph(test_driver):
+    """Seed 9 Framework nodes in 3 groups with known embeddings and INFORMS edges."""
+    dim = 384
+    groups = {
+        'access': [f'{_TEST_PREFIX}access-{i}' for i in range(3)],
+        'audit':  [f'{_TEST_PREFIX}audit-{i}' for i in range(3)],
+        'risk':   [f'{_TEST_PREFIX}risk-{i}' for i in range(3)],
+    }
+    group_vecs = {
+        'access': ([1.0] + [0.0] * (dim - 1)),
+        'audit':  ([0.0, 1.0] + [0.0] * (dim - 2)),
+        'risk':   ([0.0, 0.0, 1.0] + [0.0] * (dim - 3)),
+    }
+    with test_driver.session() as s:
+        for group, ids in groups.items():
+            vec = group_vecs[group]
+            for node_id in ids:
+                s.run(
+                    'MERGE (f:Framework {id: $id}) '
+                    'SET f.title = $title, f.level = $level, '
+                    'f.embedding = $emb, f.domain = $domain',
+                    id=node_id,
+                    title=f'{group} {node_id}',
+                    level='clause',
+                    emb=vec,
+                    domain='test',
+                )
+        for group, ids in groups.items():
+            for i in range(len(ids) - 1):
+                s.run(
+                    'MATCH (a:Framework {id: $a}), (b:Framework {id: $b}) '
+                    'MERGE (a)-[:INFORMS]->(b)',
+                    a=ids[i],
+                    b=ids[i + 1],
+                )
+    yield groups
+    with test_driver.session() as s:
+        s.run(
+            'MATCH (f:Framework) WHERE f.id STARTS WITH $prefix DETACH DELETE f',
+            prefix=_TEST_PREFIX,
+        )
+
+
+# ── Integration tests ─────────────────────────────────────────────────────────
+
+@pytest.mark.integration
+class TestFetchFrameworkEmbeddings:
+    def test_returns_seeded_nodes(self, seeded_framework_graph, test_driver):
+        mod = _import_script()
+        with test_driver.session() as s:
+            nodes = mod._fetch_framework_embeddings(s)
+        seeded_ids = {nid for ids in seeded_framework_graph.values() for nid in ids}
+        fetched_ids = {n['id'] for n in nodes}
+        assert seeded_ids.issubset(fetched_ids)
+
+    def test_all_returned_nodes_have_embedding(self, seeded_framework_graph, test_driver):
+        mod = _import_script()
+        with test_driver.session() as s:
+            nodes = mod._fetch_framework_embeddings(s)
+        for n in nodes:
+            assert n['embedding'] is not None
+            assert len(n['embedding']) > 0
+
+
+@pytest.mark.integration
+class TestMageLouvainIntegration:
+    def test_louvain_returns_community_ids_for_seeded_nodes(self, seeded_framework_graph, test_driver):
+        mod = _import_script()
+        with test_driver.session() as s:
+            communities = mod._run_louvain_on_framework_subgraph(s)
+        seeded_ids = {nid for ids in seeded_framework_graph.values() for nid in ids}
+        found_ids = {r['id'] for r in communities}
+        assert seeded_ids.issubset(found_ids), f'Missing: {seeded_ids - found_ids}'
+
+    def test_louvain_assigns_integer_community_ids(self, seeded_framework_graph, test_driver):
+        mod = _import_script()
+        with test_driver.session() as s:
+            communities = mod._run_louvain_on_framework_subgraph(s)
+        for row in communities:
+            assert isinstance(row['community_id'], int)
+
+
+@pytest.mark.integration
+class TestBetweennessIntegration:
+    def test_betweenness_returns_scores(self, seeded_framework_graph, test_driver):
+        mod = _import_script()
+        with test_driver.session() as s:
+            results = mod._run_betweenness_on_framework_subgraph(s, top_n=5)
+        assert len(results) > 0
+        for r in results:
+            assert 'id' in r
+            assert 'betweenness_centrality' in r
+            assert isinstance(r['betweenness_centrality'], float)
+
+
+@pytest.mark.integration
+class TestWriteBackIntegration:
+    def test_write_annotations_persists_cluster_id(self, seeded_framework_graph, test_driver):
+        mod = _import_script()
+        sample_ids = [ids[0] for ids in seeded_framework_graph.values()]
+        annotations = [
+            {
+                'id': nid,
+                'louvain_community_id': i,
+                'embedding_cluster_id': i,
+                'betweenness_centrality': 0.1 * i,
+            }
+            for i, nid in enumerate(sample_ids)
+        ]
+        with test_driver.session() as s:
+            count = mod._write_cluster_annotations(s, annotations)
+        assert count == len(sample_ids)
+        with test_driver.session() as s:
+            for ann in annotations:
+                rec = s.run(
+                    'MATCH (f:Framework {id: $id}) RETURN f.louvain_community_id AS cid',
+                    id=ann['id'],
+                ).single()
+                assert rec['cid'] == ann['louvain_community_id']
