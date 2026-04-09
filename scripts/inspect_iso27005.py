@@ -28,11 +28,15 @@ from __future__ import annotations
 
 import argparse
 import re
-from collections import defaultdict
 from pathlib import Path
 
 import pdfplumber
 import yaml
+
+try:
+    from pdf_utils import words_to_lines, line_text
+except ImportError:
+    from scripts.pdf_utils import words_to_lines, line_text
 
 # ---------------------------------------------------------------------------
 # Heading patterns
@@ -122,22 +126,6 @@ def _is_list_item(text: str) -> bool:
 
 def _is_note(text: str) -> bool:
     return bool(NOTE_RE.match(text.strip()))
-
-
-# ---------------------------------------------------------------------------
-# Word-level line reconstruction
-# ---------------------------------------------------------------------------
-
-def _words_to_lines(words: list[dict], y_tolerance: float = 3.0) -> list[list[dict]]:
-    buckets: dict[float, list[dict]] = defaultdict(list)
-    for w in words:
-        mid_y = round((w['top'] + w['bottom']) / 2 / y_tolerance) * y_tolerance
-        buckets[mid_y].append(w)
-    return [sorted(v, key=lambda w: w['x0']) for _, v in sorted(buckets.items())]
-
-
-def _line_text(line_words: list[dict]) -> str:
-    return ' '.join(w['text'] for w in line_words)
 
 
 # ---------------------------------------------------------------------------
@@ -400,8 +388,8 @@ def extract_clauses(pdf_path: str) -> list[dict]:
             if stop:
                 break
             words = page.extract_words(x_tolerance=2, y_tolerance=3)
-            for line_words in _words_to_lines(words):
-                raw = _line_text(line_words)
+            for line_words in words_to_lines(words):
+                raw = line_text(line_words)
                 line = _clean(raw)
                 if not line or _is_skip(line):
                     continue

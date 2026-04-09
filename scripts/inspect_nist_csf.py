@@ -20,10 +20,14 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from collections import defaultdict
 from pathlib import Path
 
 import yaml
+
+try:
+    from pdf_utils import words_to_lines, line_text
+except ImportError:
+    from scripts.pdf_utils import words_to_lines, line_text
 
 # ---------------------------------------------------------------------------
 # ID helpers
@@ -57,22 +61,6 @@ def _clean(text: str) -> str:
     text = re.sub(r'-\s+', '', text)                           # soft-hyphen wraps
     text = re.sub(r' {2,}', ' ', text)
     return text.strip()
-
-
-# ---------------------------------------------------------------------------
-# PDF word-level line reconstruction
-# ---------------------------------------------------------------------------
-
-def _words_to_lines(words: list[dict], y_tolerance: float = 3.0) -> list[list[dict]]:
-    buckets: dict[float, list[dict]] = defaultdict(list)
-    for w in words:
-        mid_y = round((w['top'] + w['bottom']) / 2 / y_tolerance) * y_tolerance
-        buckets[mid_y].append(w)
-    return [sorted(v, key=lambda w: w['x0']) for _, v in sorted(buckets.items())]
-
-
-def _line_text(line_words: list[dict]) -> str:
-    return ' '.join(w['text'] for w in line_words)
 
 
 # ---------------------------------------------------------------------------
@@ -122,8 +110,8 @@ def extract_function_descriptions_from_pdf(pdf_path: str) -> dict[str, str]:
         for pg_idx in [7, 8]:
             page = pdf.pages[pg_idx]
             words = page.extract_words(x_tolerance=2, y_tolerance=3)
-            for line_words in _words_to_lines(words):
-                raw = _line_text(line_words)
+            for line_words in words_to_lines(words):
+                raw = line_text(line_words)
                 line = _clean(raw)
                 if not line:
                     continue

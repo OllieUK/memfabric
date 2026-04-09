@@ -7,8 +7,6 @@
 
 ---
 
----
-
 ## Prioritised Backlog
 
 > Items ordered as a dependency-safe executable sequence informed by `Priority score`.
@@ -22,8 +20,7 @@
 |-------|---------|-----|-------|-------|--------|----------------|------------|-------|
 | 1 | R2 | WP-127 | `files_modified` and `files_read` properties on Memory nodes | M | L | 3.0 | — | Add file provenance as first-class list properties on Memory nodes. Enables file-scoped retrieval: "what do I know about changes to memory_repo.py?" Prerequisite for WP-126 (observer hook writes these properties automatically). See detail below. |
 | 2 | R2 | WP-129 | SessionStart context injection hook | M | L | 3.0 | — | Hook script that calls GET /memory/wake-up on session start and injects a compact digest into context automatically — making continuity unconditional rather than discipline-dependent. See detail below. |
-| 3 | R2 | WP-108 | Threat report ingestion and cluster validation | H | M | 1.7 | WP-107 ✅ | Load authoritative threat reports as ThreatReport → Threat → MAPPED_TO_TECHNIQUE → ATT&CK nodes. Validate WP-107 clusters against observed threat patterns. Activates ThreatReport, Threat, IDENTIFIES, TARGETS, JEOPARDISES node/edge types from ADR-002. **Available reports** (at `C:\Users\olive\OneDrive\Dokumente\CyberSec\Standards Frameworks\Threat Reports`): Verizon DBIR 2025, Cloudflare Threat Report 2026, ENISA Threat Landscape 2025, BSI IT-Sicherheitslage (TLP:GREEN), Microsoft Digital Defense Report 2025, Mandiant M-Trends 2026. |
-| 4 | R2 | WP-132 | Cross-framework INFORMS edges for ISO 22301, ISO 27005, DIN SPEC 14027 | H | M | 1.7 | WP-109 ✅, WP-110 ✅ | Run embedding similarity between ISO 22301, ISO 27005, and DIN SPEC 14027 nodes against existing ISO 27001 / NIST CSF / COBIT / SP 800-53 nodes using `create_cross_framework_informs.py`. Expected strong signal: ISO 27005 → NIST GV.RM; ISO 22301 → NIST RC; DIN SPEC 14027 → ISO 22301 (physical/operational resilience overlap). Use calibrated 0.55 threshold with histogram review per pair. DIN SPEC 14027 content is German — the multilingual embedding model handles this natively. |
+| 3 | R2 | WP-132 | Cross-framework INFORMS edges for ISO 22301, ISO 27005, DIN SPEC 14027 | H | M | 1.7 | WP-109 ✅, WP-110 ✅ | Run embedding similarity between ISO 22301, ISO 27005, and DIN SPEC 14027 nodes against existing ISO 27001 / NIST CSF / COBIT / SP 800-53 nodes using `create_cross_framework_informs.py`. Expected strong signal: ISO 27005 → NIST GV.RM; ISO 22301 → NIST RC; DIN SPEC 14027 → ISO 22301 (physical/operational resilience overlap). Use calibrated 0.55 threshold with histogram review per pair. DIN SPEC 14027 content is German — the multilingual embedding model handles this natively. |
 | 5 | R2 | WP-126 | PostToolUse observer hook for automatic memory capture | H | M | 1.7 | WP-127 | Lightweight PostToolUse hook script that fires after file writes/edits and significant bash commands, posting structured observation memories to the service automatically. Zero-friction capture — no model discipline required. Stores observations with files_modified/files_read provenance into the graph with full embeddings and decay. See detail below. |
 | 7 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | M | M | 1.0 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
 | 8 | R2 | WP-096 | API authentication (bearer tokens / API keys) | M | M | 1.0 | — | FastAPI middleware to authenticate all requests via bearer token or `X-API-Key` header. Enables safe external exposure of the service. See detail below. |
@@ -36,6 +33,8 @@
 | 15 | R2 | WP-023 | Extract `get_session` context manager for 503 handling | L | L | 1.0 | WP-029 ✅ | `try/with driver.session()/except ServiceUnavailable→503` copy-pasted across all endpoints in `main.py` AND all 23 handlers in `knowledge_routes.py`. WP-102 added inline guards to all knowledge handlers (correct behaviour). This WP extracts to a reusable context manager for DRY — still desirable, still open. |
 | 16 | R2 | WP-020 | UNWIND for person/strand/related_ids writes | L | L | 1.0 | WP-004 ✅ | Replace per-item `session.run()` loops in `add_memory` with UNWIND queries. Add `related_ids` max-length cap (e.g. 20). |
 | 17 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
+| 18 | R2 | WP-135 | Shared `ApiSettings` base class for ingest scripts | L | L | 1.0 | — | `CTISettings`, `SeedSettings`, `ETLSettings`, `IngestSettings`, `LoadSettings` etc. are all identical two-field pydantic-settings classes. Extract a single `ApiSettings(BaseSettings)` to `scripts/script_utils.py` and have all HTTP-only scripts import it. WP-108 /simplify finding. |
+| 19 | R2 | WP-136 | Optional `embedding` field on `ThreatCreate` to avoid double encode | L | L | 1.0 | WP-108 ✅ | `POST /knowledge/search/threats` and `POST /knowledge/threats` each call `get_embedding` on the same string. Adding an optional `embedding: list[float] | None` to `ThreatCreate` lets callers (e.g. `extract_cti_threats.py`) pass the vector already computed during dedup search, halving encode calls when the embedding cache is cold. WP-108 efficiency review finding. |
 | 18 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
 | 19 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
 | 20 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
@@ -1215,6 +1214,25 @@ This is blocking correct ISO 27001 loading and will cause confusion for any down
 - Cross-framework INFORMS edges deferred to WP-132
 
 **Retrospective:** Two-sided PDF layout (recto/verso x0 shift) required per-page baseline normalisation. NFD-decomposed characters in German (ü, ä, ö) required NFC normalisation in the loader for `" soll "` / `" muss "` keyword matching.
+
+---
+
+### WP-108 — Threat report ingestion and cluster validation ✅
+
+> **Completed 2026-04-09.**
+
+- `ThreatReport`, `Threat`, `Asset` node types added to knowledge layer per ADR-002
+- 15 new API endpoints: CRUD for ThreatReport/Threat/Asset, IDENTIFIES/MAPPED_TO_TECHNIQUE/TARGETS edges, vector search, traversal queries
+- `threat_embedding_idx` (384-dim, cosine) created in Memgraph
+- `scripts/extract_cti_threats.py`: fully automated CTI extraction pipeline — PDF → `pdfplumber.extract_words()` → sentence split → `CTIReportParser` (behaviour verb + ATT&CK keyword detection) → embedding dedup → Threat/IDENTIFIES/MAPPED_TO_TECHNIQUE writes
+- `scripts/ingest_all_threat_reports.py`: orchestration for 6 reports (Verizon DBIR 2025, Cloudflare 2026, ENISA ETL 2025, BSI Lagebericht, Microsoft DDR 2025, Mandiant M-Trends 2026)
+- `scripts/seed_assets.py` + `data/threats/assets.yaml`: 4 universal Asset reference nodes (IT/OT/IoT/IT-OT-integration)
+- `scripts/validate_threat_clusters.py`: cluster coherence analysis — top threats by report coverage, ATT&CK coverage, unmitigated technique gaps
+- `scripts/pdf_utils.py`: extracted shared `words_to_lines`/`line_text` helpers (previously duplicated across 6 inspect scripts)
+- 45 tests: 38 unit + 7 integration, all passing
+- New backlog items surfaced: WP-135 (shared ApiSettings), WP-136 (optional embedding passthrough on ThreatCreate)
+
+**Retrospective:** Fully automated extraction approach (keyword→ATT&CK + embedding dedup) worked well — no manual YAML curation required. The `@field_validator` on `AssetCreate` caused a 422 vs 400 inconsistency caught by integration tests; resolved by updating the test to expect 422 (semantically correct — Pydantic fires before the route handler). The `/simplify` pass surfaced six copies of `words_to_lines`/`line_text` across inspect scripts — extracted to `pdf_utils.py` as the highest-value fix.
 
 ---
 

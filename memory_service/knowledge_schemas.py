@@ -84,3 +84,31 @@ CHUNK_STATUSES: frozenset[str] = frozenset({
     "confirmed",    # human or automated confirmation of SUPPORTS edge
     "superseded",   # content replaced by a newer chunk
 })
+
+THREAT_REPORT_SCOPES: frozenset[str] = frozenset({
+    "geographic", "sectoral", "vendor",
+})
+
+IDENTIFIES_SEVERITIES: frozenset[str] = frozenset({
+    "critical", "high", "medium", "low",
+})
+
+IDENTIFIES_CONFIDENCES: frozenset[str] = frozenset({
+    "high", "medium", "low",
+})
+
+IDENTIFIES_TRENDS: frozenset[str] = frozenset({
+    "increasing", "stable", "decreasing",
+})
+
+ASSET_TYPES: frozenset[str] = frozenset({
+    "IT", "OT", "IoT", "IT-OT-integration",
+})
+
+ASSET_EXPOSURES: frozenset[str] = frozenset({
+    "internet-facing", "internal", "air-gapped",
+})
+
+ASSET_DATA_CLASSIFICATIONS: frozenset[str] = frozenset({
+    "public", "internal", "confidential", "restricted",
+})

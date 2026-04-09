@@ -679,7 +679,7 @@ def trace_down(session, control_id: str, org_id: str | None) -> dict | None:
         OPTIONAL MATCH (ch:Chunk)-[sup:SUPPORTS]->(c)
         OPTIONAL MATCH (d:Document)-[:HAS_CHUNK]->(ch)
         OPTIONAL MATCH (m:Memory)-[r:ABOUT_CONTROL]->(c)
-          WHERE r.relationship_type IN ["evidence", "gap"]
+          WHERE r.relationship_type IN ['evidence', 'gap']
             AND ($org_id IS NULL OR r.org_id = $org_id OR r.org_id IS NULL)
         RETURN
           $control_id AS control_id,
@@ -788,6 +788,317 @@ def attribute_coverage(session, attribute_id: str) -> dict | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# ThreatReport
+# ---------------------------------------------------------------------------
+
+
+def upsert_threat_report(session, req, now: str) -> dict:
+    """MERGE ThreatReport on id; SET all properties ON CREATE."""
+    result = session.run(
+        """
+        MERGE (tr:ThreatReport {id: $id})
+        ON CREATE SET
+            tr.title = $title, tr.publisher = $publisher,
+            tr.published_at = $published_at, tr.valid_from = $valid_from,
+            tr.valid_until = $valid_until, tr.scope = $scope,
+            tr.perspective_notes = $perspective_notes, tr.created_at = $created_at
+        RETURN tr.id AS id, tr.title AS title, tr.publisher AS publisher,
+               tr.published_at AS published_at, tr.valid_from AS valid_from,
+               tr.valid_until AS valid_until, tr.scope AS scope,
+               tr.perspective_notes AS perspective_notes, tr.created_at AS created_at
+        """,
+        id=req.id,
+        title=req.title,
+        publisher=req.publisher,
+        published_at=req.published_at,
+        valid_from=req.valid_from,
+        valid_until=req.valid_until,
+        scope=req.scope,
+        perspective_notes=req.perspective_notes,
+        created_at=now,
+    )
+    return dict(result.single())
+
+
+def get_threat_report(session, threat_report_id: str) -> dict | None:
+    result = session.run(
+        """
+        MATCH (tr:ThreatReport {id: $threat_report_id})
+        RETURN tr.id AS id, tr.title AS title, tr.publisher AS publisher,
+               tr.published_at AS published_at, tr.valid_from AS valid_from,
+               tr.valid_until AS valid_until, tr.scope AS scope,
+               tr.perspective_notes AS perspective_notes, tr.created_at AS created_at
+        """,
+        threat_report_id=threat_report_id,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+def list_threat_reports(session) -> list[dict]:
+    """Return all ThreatReport nodes ordered by title."""
+    result = session.run(
+        """
+        MATCH (tr:ThreatReport)
+        RETURN tr.id AS id, tr.title AS title, tr.publisher AS publisher,
+               tr.published_at AS published_at, tr.valid_from AS valid_from,
+               tr.valid_until AS valid_until, tr.scope AS scope,
+               tr.perspective_notes AS perspective_notes, tr.created_at AS created_at
+        ORDER BY tr.title ASC
+        """
+    )
+    return [dict(r) for r in result]
+
+
+# ---------------------------------------------------------------------------
+# Threat
+# ---------------------------------------------------------------------------
+
+
+def upsert_threat(session, req, embedding: list[float], now: str) -> dict:
+    """MERGE Threat on id; SET all properties ON CREATE."""
+    result = session.run(
+        """
+        MERGE (t:Threat {id: $id})
+        ON CREATE SET t.text = $text, t.tags = $tags,
+                      t.embedding = $embedding, t.created_at = $created_at
+        RETURN t.id AS id, t.text AS text, t.tags AS tags, t.created_at AS created_at
+        """,
+        id=req.id,
+        text=req.text,
+        tags=req.tags or [],
+        embedding=embedding,
+        created_at=now,
+    )
+    return dict(result.single())
+
+
+def get_threat(session, threat_id: str) -> dict | None:
+    result = session.run(
+        """
+        MATCH (t:Threat {id: $threat_id})
+        RETURN t.id AS id, t.text AS text, t.tags AS tags, t.created_at AS created_at
+        """,
+        threat_id=threat_id,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+def list_threats(session) -> list[dict]:
+    """Return all Threat nodes ordered by text."""
+    result = session.run(
+        """
+        MATCH (t:Threat)
+        RETURN t.id AS id, t.text AS text, t.tags AS tags, t.created_at AS created_at
+        ORDER BY t.text ASC
+        """
+    )
+    return [dict(r) for r in result]
+
+
+def search_threats(session, embedding: list[float], limit: int) -> list[dict]:
+    """Vector search over threat_embedding_idx."""
+    result = session.run(
+        """
+        CALL vector_search.search("threat_embedding_idx", $limit, $embedding)
+        YIELD node AS t, distance
+        RETURN t.id AS id, t.text AS text, t.tags AS tags,
+               t.created_at AS created_at, distance
+        ORDER BY distance ASC
+        """,
+        embedding=embedding,
+        limit=limit,
+    )
+    return [dict(r) for r in result]
+
+
+# ---------------------------------------------------------------------------
+# Asset
+# ---------------------------------------------------------------------------
+
+
+def upsert_asset(session, req, now: str) -> dict:
+    """MERGE Asset on id; SET all properties ON CREATE."""
+    result = session.run(
+        """
+        MERGE (a:Asset {id: $id})
+        ON CREATE SET
+            a.title = $title, a.asset_type = $asset_type,
+            a.exposure = $exposure, a.data_classification = $data_classification,
+            a.created_at = $created_at
+        RETURN a.id AS id, a.title AS title, a.asset_type AS asset_type,
+               a.exposure AS exposure, a.data_classification AS data_classification,
+               a.created_at AS created_at
+        """,
+        id=req.id,
+        title=req.title,
+        asset_type=req.asset_type,
+        exposure=req.exposure,
+        data_classification=req.data_classification,
+        created_at=now,
+    )
+    return dict(result.single())
+
+
+def get_asset(session, asset_id: str) -> dict | None:
+    result = session.run(
+        """
+        MATCH (a:Asset {id: $asset_id})
+        RETURN a.id AS id, a.title AS title, a.asset_type AS asset_type,
+               a.exposure AS exposure, a.data_classification AS data_classification,
+               a.created_at AS created_at
+        """,
+        asset_id=asset_id,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+def list_assets(session) -> list[dict]:
+    """Return all Asset nodes ordered by title."""
+    result = session.run(
+        """
+        MATCH (a:Asset)
+        RETURN a.id AS id, a.title AS title, a.asset_type AS asset_type,
+               a.exposure AS exposure, a.data_classification AS data_classification,
+               a.created_at AS created_at
+        ORDER BY a.title ASC
+        """
+    )
+    return [dict(r) for r in result]
+
+
+# ---------------------------------------------------------------------------
+# IDENTIFIES edge (ThreatReport → Threat)
+# ---------------------------------------------------------------------------
+
+
+def create_identifies_edge(
+    session,
+    threat_report_id: str,
+    threat_id: str,
+    severity: str,
+    confidence: str,
+    trend: str,
+    source_terminology: str | None,
+    now: str,
+) -> dict | None:
+    """MERGE IDENTIFIES edge ThreatReport→Threat. Returns edge details or None if either node missing."""
+    result = session.run(
+        """
+        MATCH (tr:ThreatReport {id: $tr_id}), (t:Threat {id: $t_id})
+        MERGE (tr)-[r:IDENTIFIES]->(t)
+        ON CREATE SET r.severity = $severity, r.confidence = $confidence,
+                      r.trend = $trend, r.source_terminology = $source_terminology,
+                      r.created_at = $created_at
+        ON MATCH SET  r.severity = $severity, r.confidence = $confidence,
+                      r.trend = $trend, r.source_terminology = $source_terminology
+        RETURN tr.id AS threat_report_id, t.id AS threat_id,
+               r.severity AS severity, r.confidence AS confidence,
+               r.trend AS trend, r.source_terminology AS source_terminology,
+               r.created_at AS created_at
+        """,
+        tr_id=threat_report_id,
+        t_id=threat_id,
+        severity=severity,
+        confidence=confidence,
+        trend=trend,
+        source_terminology=source_terminology,
+        created_at=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+# ---------------------------------------------------------------------------
+# MAPPED_TO_TECHNIQUE edge (Threat → Framework)
+# ---------------------------------------------------------------------------
+
+
+def create_mapped_to_technique_edge(session, threat_id: str, framework_id: str, now: str) -> dict | None:
+    """MERGE MAPPED_TO_TECHNIQUE edge Threat→Framework. Returns edge details or None if either node missing."""
+    result = session.run(
+        """
+        MATCH (t:Threat {id: $threat_id}), (f:Framework {id: $framework_id})
+        MERGE (t)-[r:MAPPED_TO_TECHNIQUE]->(f)
+        ON CREATE SET r.created_at = $created_at
+        RETURN t.id AS threat_id, f.id AS framework_id, r.created_at AS created_at
+        """,
+        threat_id=threat_id,
+        framework_id=framework_id,
+        created_at=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+# ---------------------------------------------------------------------------
+# TARGETS edge (Threat → Asset)
+# ---------------------------------------------------------------------------
+
+
+def create_targets_edge(session, threat_id: str, asset_id: str, now: str) -> dict | None:
+    """MERGE TARGETS edge Threat→Asset. Returns edge details or None if either node missing."""
+    result = session.run(
+        """
+        MATCH (t:Threat {id: $threat_id}), (a:Asset {id: $asset_id})
+        MERGE (t)-[r:TARGETS]->(a)
+        ON CREATE SET r.created_at = $created_at
+        RETURN t.id AS threat_id, a.id AS asset_id, r.created_at AS created_at
+        """,
+        threat_id=threat_id,
+        asset_id=asset_id,
+        created_at=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+# ---------------------------------------------------------------------------
+# Traversal helpers
+# ---------------------------------------------------------------------------
+
+
+def list_threat_reports_for_threat(session, threat_id: str) -> list[dict]:
+    """Return all ThreatReports with an IDENTIFIES edge to the given Threat,
+    including edge properties severity, confidence, trend.
+    """
+    result = session.run(
+        """
+        MATCH (tr:ThreatReport)-[r:IDENTIFIES]->(t:Threat {id: $threat_id})
+        RETURN tr.id AS id, tr.title AS title, tr.publisher AS publisher,
+               tr.published_at AS published_at, tr.valid_from AS valid_from,
+               tr.valid_until AS valid_until, tr.scope AS scope,
+               tr.perspective_notes AS perspective_notes, tr.created_at AS created_at,
+               r.severity AS severity, r.confidence AS confidence, r.trend AS trend
+        ORDER BY tr.title ASC
+        """,
+        threat_id=threat_id,
+    )
+    return [dict(r) for r in result]
+
+
+def list_threats_for_report(session, report_id: str) -> list[dict]:
+    """Return all Threats identified by the given ThreatReport, including edge severity."""
+    result = session.run(
+        """
+        MATCH (tr:ThreatReport {id: $report_id})-[r:IDENTIFIES]->(t:Threat)
+        RETURN t.id AS id, t.text AS text, t.tags AS tags, t.created_at AS created_at,
+               r.severity AS severity
+        ORDER BY t.text ASC
+        """,
+        report_id=report_id,
+    )
+    return [dict(r) for r in result]
+
+
+# ---------------------------------------------------------------------------
+# Gap analysis (existing)
+# ---------------------------------------------------------------------------
+
+
 def gap_analysis(session, control_ids: list[str], org_id: str | None) -> dict:
     """Three-way reconciliation: {covered, partial, uncovered}.
 
@@ -808,7 +1119,7 @@ def gap_analysis(session, control_ids: list[str], org_id: str | None) -> dict:
         MATCH (c:Control {id: cid})
         OPTIONAL MATCH (ch:Chunk)-[:SUPPORTS]->(c)
         OPTIONAL MATCH (m:Memory)-[r:ABOUT_CONTROL]->(c)
-          WHERE r.relationship_type = "evidence"
+          WHERE r.relationship_type = 'evidence'
             AND ($org_id IS NULL OR r.org_id = $org_id OR r.org_id IS NULL)
         RETURN
           c.id AS control_id,

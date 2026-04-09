@@ -11,7 +11,7 @@ from typing import Optional, List, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from neo4j.exceptions import ServiceUnavailable
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from memory_service import knowledge_repo
 from memory_service.config import settings
@@ -21,6 +21,13 @@ from memory_service.knowledge_schemas import (
     NORMATIVE_MODALITIES,
     CHUNK_STATUSES,
     DOCUMENT_POLICY_LEVELS,
+    THREAT_REPORT_SCOPES,
+    IDENTIFIES_SEVERITIES,
+    IDENTIFIES_CONFIDENCES,
+    IDENTIFIES_TRENDS,
+    ASSET_TYPES,
+    ASSET_EXPOSURES,
+    ASSET_DATA_CLASSIFICATIONS,
 )
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -328,6 +335,148 @@ class GapAnalysisResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# ThreatReport / Threat / Asset Pydantic models
+# ---------------------------------------------------------------------------
+
+
+class ThreatReportCreate(BaseModel):
+    id: str
+    title: str
+    publisher: str
+    published_at: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    scope: Optional[str] = None
+    perspective_notes: Optional[str] = None
+
+
+class ThreatReportResponse(BaseModel):
+    id: str
+    title: str
+    publisher: str
+    published_at: Optional[str]
+    valid_from: Optional[str]
+    valid_until: Optional[str]
+    scope: Optional[str]
+    perspective_notes: Optional[str]
+    created_at: str
+
+
+class ThreatCreate(BaseModel):
+    id: str
+    text: str
+    tags: Optional[List[str]] = None
+
+
+class ThreatResponse(BaseModel):
+    id: str
+    text: str
+    tags: Optional[List[str]]
+    created_at: str
+
+
+class AssetCreate(BaseModel):
+    id: str
+    title: str
+    asset_type: str
+    exposure: Optional[str] = None
+    data_classification: Optional[str] = None
+
+    @field_validator("asset_type")
+    @classmethod
+    def validate_asset_type(cls, v: str) -> str:
+        if v not in ASSET_TYPES:
+            raise ValueError(f"asset_type must be one of {sorted(ASSET_TYPES)}")
+        return v
+
+
+class AssetResponse(BaseModel):
+    id: str
+    title: str
+    asset_type: str
+    exposure: Optional[str]
+    data_classification: Optional[str]
+    created_at: str
+
+
+class IdentifiesCreate(BaseModel):
+    threat_report_id: str
+    threat_id: str
+    severity: str
+    confidence: str
+    trend: str
+    source_terminology: Optional[str] = None
+
+
+class IdentifiesResponse(BaseModel):
+    threat_report_id: str
+    threat_id: str
+    severity: str
+    confidence: str
+    trend: str
+    source_terminology: Optional[str]
+    created_at: str
+
+
+class MappedToTechniqueCreate(BaseModel):
+    threat_id: str
+    framework_id: str
+
+
+class MappedToTechniqueResponse(BaseModel):
+    threat_id: str
+    framework_id: str
+    created_at: str
+
+
+class TargetsCreate(BaseModel):
+    threat_id: str
+    asset_id: str
+
+
+class TargetsResponse(BaseModel):
+    threat_id: str
+    asset_id: str
+    created_at: str
+
+
+class ThreatSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+
+
+class ThreatHit(BaseModel):
+    id: str
+    text: str
+    tags: Optional[List[str]]
+    created_at: str
+    distance: float
+
+
+class ThreatReportWithEdge(BaseModel):
+    id: str
+    title: str
+    publisher: str
+    published_at: Optional[str]
+    valid_from: Optional[str]
+    valid_until: Optional[str]
+    scope: Optional[str]
+    perspective_notes: Optional[str]
+    created_at: str
+    severity: Optional[str]
+    confidence: Optional[str]
+    trend: Optional[str]
+
+
+class ThreatWithSeverity(BaseModel):
+    id: str
+    text: str
+    tags: Optional[List[str]]
+    created_at: str
+    severity: Optional[str]
+
+
+# ---------------------------------------------------------------------------
 # Framework endpoints
 # ---------------------------------------------------------------------------
 
@@ -546,8 +695,6 @@ async def create_supports(req: SupportsCreate, request: Request) -> SupportsResp
             )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
-    if record is None:
-        raise HTTPException(status_code=404, detail="Chunk or Framework not found")
     return SupportsResponse(**record)
 
 
@@ -725,3 +872,219 @@ async def gap_analysis(req: GapAnalysisRequest, request: Request) -> GapAnalysis
         partial=[ControlGapEntry(**e) for e in result["partial"]],
         uncovered=[ControlGapEntry(**e) for e in result["uncovered"]],
     )
+
+
+# ---------------------------------------------------------------------------
+# ThreatReport endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/threat-reports", response_model=ThreatReportResponse)
+async def upsert_threat_report(req: ThreatReportCreate, request: Request) -> ThreatReportResponse:
+    if req.scope and req.scope not in THREAT_REPORT_SCOPES:
+        raise HTTPException(400, f"Invalid scope: {req.scope}. Must be one of: {sorted(THREAT_REPORT_SCOPES)}")
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_threat_report(session, req, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ThreatReportResponse(**record)
+
+
+@router.get("/threat-reports/{id}", response_model=ThreatReportResponse)
+async def get_threat_report(id: str, request: Request) -> ThreatReportResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_threat_report(session, threat_report_id=id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"ThreatReport '{id}' not found")
+    return ThreatReportResponse(**record)
+
+
+@router.get("/threat-reports", response_model=List[ThreatReportResponse])
+async def list_threat_reports(request: Request) -> List[ThreatReportResponse]:
+    try:
+        with request.app.state.driver.session() as session:
+            records = knowledge_repo.list_threat_reports(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [ThreatReportResponse(**r) for r in records]
+
+
+# ---------------------------------------------------------------------------
+# Threat endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/threats", response_model=ThreatResponse)
+async def upsert_threat(req: ThreatCreate, request: Request) -> ThreatResponse:
+    embedding = get_embedding(req.text, model_name=settings.knowledge_embedding_model)
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_threat(session, req, embedding, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ThreatResponse(**record)
+
+
+@router.get("/threats/{id}", response_model=ThreatResponse)
+async def get_threat(id: str, request: Request) -> ThreatResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_threat(session, threat_id=id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Threat '{id}' not found")
+    return ThreatResponse(**record)
+
+
+@router.get("/threats", response_model=List[ThreatResponse])
+async def list_threats(request: Request) -> List[ThreatResponse]:
+    try:
+        with request.app.state.driver.session() as session:
+            records = knowledge_repo.list_threats(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [ThreatResponse(**r) for r in records]
+
+
+@router.post("/search/threats", response_model=List[ThreatHit])
+async def search_threats(req: ThreatSearchRequest, request: Request) -> List[ThreatHit]:
+    query_vec = get_embedding(req.query, model_name=settings.knowledge_embedding_model)
+    try:
+        with request.app.state.driver.session() as session:
+            hits = knowledge_repo.search_threats(session, query_vec, req.limit)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [ThreatHit(**h) for h in hits]
+
+
+# ---------------------------------------------------------------------------
+# Asset endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/assets", response_model=AssetResponse)
+async def upsert_asset(req: AssetCreate, request: Request) -> AssetResponse:
+    if req.exposure and req.exposure not in ASSET_EXPOSURES:
+        raise HTTPException(400, f"Invalid exposure: {req.exposure}. Must be one of: {sorted(ASSET_EXPOSURES)}")
+    if req.data_classification and req.data_classification not in ASSET_DATA_CLASSIFICATIONS:
+        raise HTTPException(400, f"Invalid data_classification: {req.data_classification}. Must be one of: {sorted(ASSET_DATA_CLASSIFICATIONS)}")
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.upsert_asset(session, req, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return AssetResponse(**record)
+
+
+@router.get("/assets/{id}", response_model=AssetResponse)
+async def get_asset(id: str, request: Request) -> AssetResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_asset(session, asset_id=id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Asset '{id}' not found")
+    return AssetResponse(**record)
+
+
+@router.get("/assets", response_model=List[AssetResponse])
+async def list_assets(request: Request) -> List[AssetResponse]:
+    try:
+        with request.app.state.driver.session() as session:
+            records = knowledge_repo.list_assets(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [AssetResponse(**r) for r in records]
+
+
+# ---------------------------------------------------------------------------
+# Edge endpoints: IDENTIFIES, MAPPED_TO_TECHNIQUE, TARGETS
+# ---------------------------------------------------------------------------
+
+
+@router.post("/identifies", response_model=IdentifiesResponse)
+async def create_identifies(req: IdentifiesCreate, request: Request) -> IdentifiesResponse:
+    if req.severity not in IDENTIFIES_SEVERITIES:
+        raise HTTPException(400, f"Invalid severity: {req.severity}. Must be one of: {sorted(IDENTIFIES_SEVERITIES)}")
+    if req.confidence not in IDENTIFIES_CONFIDENCES:
+        raise HTTPException(400, f"Invalid confidence: {req.confidence}. Must be one of: {sorted(IDENTIFIES_CONFIDENCES)}")
+    if req.trend not in IDENTIFIES_TRENDS:
+        raise HTTPException(400, f"Invalid trend: {req.trend}. Must be one of: {sorted(IDENTIFIES_TRENDS)}")
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_identifies_edge(
+                session,
+                req.threat_report_id,
+                req.threat_id,
+                req.severity,
+                req.confidence,
+                req.trend,
+                req.source_terminology,
+                now,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="ThreatReport or Threat node not found")
+    return IdentifiesResponse(**record)
+
+
+@router.post("/mapped-to-technique", response_model=MappedToTechniqueResponse)
+async def create_mapped_to_technique(req: MappedToTechniqueCreate, request: Request) -> MappedToTechniqueResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_mapped_to_technique_edge(session, req.threat_id, req.framework_id, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Threat or Framework node not found")
+    return MappedToTechniqueResponse(**record)
+
+
+@router.post("/targets", response_model=TargetsResponse)
+async def create_targets(req: TargetsCreate, request: Request) -> TargetsResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_targets_edge(session, req.threat_id, req.asset_id, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Threat or Asset node not found")
+    return TargetsResponse(**record)
+
+
+# ---------------------------------------------------------------------------
+# Traversal endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/threats/{id}/reports", response_model=List[ThreatReportWithEdge])
+async def list_threat_reports_for_threat(id: str, request: Request) -> List[ThreatReportWithEdge]:
+    try:
+        with request.app.state.driver.session() as session:
+            records = knowledge_repo.list_threat_reports_for_threat(session, id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [ThreatReportWithEdge(**r) for r in records]
+
+
+@router.get("/threat-reports/{id}/threats", response_model=List[ThreatWithSeverity])
+async def list_threats_for_report(id: str, request: Request) -> List[ThreatWithSeverity]:
+    try:
+        with request.app.state.driver.session() as session:
+            records = knowledge_repo.list_threats_for_report(session, id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [ThreatWithSeverity(**r) for r in records]

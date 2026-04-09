@@ -25,6 +25,9 @@ KNOWLEDGE_CONSTRAINTS = [
     ("BusinessAttribute", "id"),
     ("Organisation", "id"),
     ("Jurisdiction", "code"),   # primary key is 'code', not 'id'
+    ("Threat", "id"),
+    ("ThreatReport", "id"),
+    ("Asset", "id"),
 ]
 
 
@@ -229,6 +232,25 @@ def main() -> int:
 
             print("Validating vector index: chunk_embedding_idx ...")
             if not validate_vector_index(session, "chunk_embedding_idx", "Chunk", "embedding"):
+                success = False
+
+            # --- threat_embedding_idx ---
+            print("\nCreating vector index: threat_embedding_idx ...")
+            try:
+                create_vector_index(
+                    session,
+                    index_name="threat_embedding_idx",
+                    label="Threat",
+                    prop="embedding",
+                    dim=dim,
+                    capacity=settings.threat_index_capacity,
+                )
+            except Exception as exc:
+                print(f"  [FAIL] threat_embedding_idx: {exc}")
+                success = False
+
+            print("Validating vector index: threat_embedding_idx ...")
+            if not validate_vector_index(session, "threat_embedding_idx", "Threat", "embedding"):
                 success = False
 
             # --- Existing mem_embedding_idx capacity advisory ---

@@ -40,11 +40,15 @@ from __future__ import annotations
 
 import argparse
 import re
-from collections import defaultdict
 from pathlib import Path
 
 import pdfplumber
 import yaml
+
+try:
+    from pdf_utils import words_to_lines, line_text
+except ImportError:
+    from scripts.pdf_utils import words_to_lines, line_text
 
 # ---------------------------------------------------------------------------
 # Heading patterns
@@ -132,22 +136,6 @@ def _is_list_item(text: str) -> bool:
 
 def _is_note(text: str) -> bool:
     return bool(NOTE_RE.match(text.strip()))
-
-
-# ---------------------------------------------------------------------------
-# Word-level line reconstruction
-# ---------------------------------------------------------------------------
-
-def _words_to_lines(words: list[dict], y_tolerance: float = 3.0) -> list[list[dict]]:
-    buckets: dict[float, list[dict]] = defaultdict(list)
-    for w in words:
-        mid_y = round((w['top'] + w['bottom']) / 2 / y_tolerance) * y_tolerance
-        buckets[mid_y].append(w)
-    return [sorted(v, key=lambda w: w['x0']) for _, v in sorted(buckets.items())]
-
-
-def _line_text(line_words: list[dict]) -> str:
-    return ' '.join(w['text'] for w in line_words)
 
 
 # ---------------------------------------------------------------------------
@@ -459,8 +447,8 @@ def extract_clauses(pdf_path: str) -> list[dict]:
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages[6:16]:
             words = page.extract_words(x_tolerance=2, y_tolerance=3)
-            for line_words in _words_to_lines(words):
-                raw = _line_text(line_words)
+            for line_words in words_to_lines(words):
+                raw = line_text(line_words)
                 line = _clean(raw)
                 if not line or _is_skip(line):
                     continue
@@ -523,14 +511,14 @@ def extract_annex_a(pdf_path: str) -> list[dict]:
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages[16:24]:
             words = page.extract_words(x_tolerance=2, y_tolerance=3)
-            for line_words in _words_to_lines(words):
+            for line_words in words_to_lines(words):
                 # Split words into left-column (heading/id) and right-column (body)
                 left_words = [w for w in line_words if w['x0'] < BODY_COL_X0]
                 right_words = [w for w in line_words if w['x0'] >= BODY_COL_X0]
 
                 # Process left-column content
                 if left_words:
-                    raw_left = _line_text(left_words)
+                    raw_left = line_text(left_words)
                     left = _clean(raw_left)
                     if left and not ANNEX_CONTROL_SEP.match(left) and not SECTION_HEADER_RE.match(left) and not _is_skip(left):
                         m = ANNEX_CTRL_RE.match(left)
@@ -550,7 +538,7 @@ def extract_annex_a(pdf_path: str) -> list[dict]:
 
                 # Process right-column content (always body text)
                 if right_words and current_id is not None:
-                    raw_right = _line_text(right_words)
+                    raw_right = line_text(right_words)
                     right = _clean(raw_right)
                     if right and not ANNEX_CONTROL_SEP.match(right) and not _is_skip(right):
                         if not heading_done:

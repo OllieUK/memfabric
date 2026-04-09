@@ -1,0 +1,13 @@
+assets:
+  - id: asset-it
+    title: "Information Technology Systems"
+    asset_type: IT
+  - id: asset-ot
+    title: "Operational Technology Systems"
+    asset_type: OT
+  - id: asset-iot
+    title: "Internet of Things Devices"
+    asset_type: IoT
+  - id: asset-it-ot-integration
+    title: "IT-OT Integration Points"
+    asset_type: IT-OT-integration
