@@ -115,6 +115,7 @@ class AddMemoryRequest(BaseModel):
     doc_ids: List[str] = []
     control_relationship_type: Optional[Literal["context", "evidence", "gap"]] = None
     org_id: Optional[str] = None
+    ephemeral: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -705,6 +706,20 @@ async def maintenance_log(request: Request) -> MaintenanceLogResponse:
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return MaintenanceLogResponse(entries=[MaintenanceLogEntry(**e) for e in entries])
+
+
+class PurgeEphemeralResponse(BaseModel):
+    deleted: int
+
+
+@app.post("/memory/maintenance/purge-ephemeral", response_model=PurgeEphemeralResponse)
+async def purge_ephemeral(request: Request) -> PurgeEphemeralResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            deleted = memory_repo.purge_ephemeral_memories(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return PurgeEphemeralResponse(deleted=deleted)
 
 
 class OperationLogEntry(BaseModel):

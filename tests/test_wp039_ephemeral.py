@@ -3,10 +3,11 @@
 # Unit tests for WP-039: ephemeral memory support — repo layer.
 # All tests here are pure unit tests (no live Memgraph required).
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import memory_service.memory_repo as memory_repo
 from memory_service.memory_repo import purge_ephemeral_memories
+from memory_service.main import AddMemoryRequest
 
 
 # ---------------------------------------------------------------------------
@@ -76,3 +77,54 @@ def test_search_query_template_has_ephemeral_filter():
 
 def test_person_search_query_template_has_ephemeral_filter():
     assert "m.ephemeral" in memory_repo._PERSON_SEARCH_QUERY_TEMPLATE
+
+
+# ---------------------------------------------------------------------------
+# U3: AddMemoryRequest.ephemeral defaults to False
+# ---------------------------------------------------------------------------
+
+def test_add_memory_request_ephemeral_defaults_false():
+    req = AddMemoryRequest(fact="x", type="fact", agent_id="test")
+    assert req.ephemeral is False
+
+
+# ---------------------------------------------------------------------------
+# U4: AddMemoryRequest.ephemeral accepts True
+# ---------------------------------------------------------------------------
+
+def test_add_memory_request_ephemeral_accepts_true():
+    req = AddMemoryRequest(fact="x", type="fact", agent_id="test", ephemeral=True)
+    assert req.ephemeral is True
+
+
+# ---------------------------------------------------------------------------
+# U5: FastAPI handler passes ephemeral=True into repo
+# ---------------------------------------------------------------------------
+
+def test_add_memory_endpoint_passes_ephemeral_to_repo(client):
+    with patch("memory_service.memory_repo.add_memory") as mock_add, \
+         patch("memory_service.memory_repo.find_duplicate_memory", return_value=None):
+        response = client.post(
+            "/memory",
+            json={
+                "fact": "test",
+                "type": "fact",
+                "agent_id": "test",
+                "ephemeral": True,
+            }
+        )
+        assert response.status_code == 200
+        assert mock_add.called
+        call_req = mock_add.call_args[0][1]
+        assert call_req.ephemeral is True
+
+
+# ---------------------------------------------------------------------------
+# U6: POST /memory/maintenance/purge-ephemeral returns {deleted: N}
+# ---------------------------------------------------------------------------
+
+def test_purge_ephemeral_endpoint_returns_deleted_count(client):
+    with patch("memory_service.memory_repo.purge_ephemeral_memories", return_value=7):
+        response = client.post("/memory/maintenance/purge-ephemeral")
+        assert response.status_code == 200
+        assert response.json() == {"deleted": 7}
