@@ -718,6 +718,11 @@ def restore_memory(session, memory_id: str) -> None:
 
 
 def delete_memory(session, memory_id: str) -> None:
+    """Permanently remove a Memory node and all its edges via DETACH DELETE.
+
+    Status-agnostic: active, archived, and merged memories are all deleted.
+    Raises ValueError if the memory is not found.
+    """
     result = session.run(
         "MATCH (m:Memory {id: $id}) RETURN m.id AS id",
         id=memory_id,

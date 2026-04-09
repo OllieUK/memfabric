@@ -246,6 +246,7 @@ class MemoryClient:
         return response.json()
 
     def delete_memory(self, memory_id: str) -> None:
+        """DELETE /memory/{id}. Returns None on 204."""
         response = self._http.delete(f"/memory/{memory_id}")
         response.raise_for_status()
 

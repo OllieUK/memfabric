@@ -935,7 +935,7 @@ async def delete_memory(memory_id: str, request: Request) -> Response:
                 "ran_at": now,
             })
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail="Memory not found") from exc
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return Response(status_code=204)

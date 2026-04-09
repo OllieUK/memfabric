@@ -163,13 +163,13 @@ class TestDeleteRoute:
         mock_driver, mock_session = make_mock_driver()
         app.state.driver = mock_driver
 
-        with patch.object(memory_repo, "delete_memory", side_effect=ValueError("not found")), \
+        with patch.object(memory_repo, "delete_memory", side_effect=ValueError("Memory 'missing-uuid' not found")), \
              patch.object(memory_repo, "append_operation_log", return_value=None):
             with TestClient(app) as c:
                 response = c.delete("/memory/missing-uuid")
 
         assert response.status_code == 404
-        assert response.json()["detail"] == "Memory not found"
+        assert "not found" in response.json()["detail"].lower()
 
 
 # ---------------------------------------------------------------------------
