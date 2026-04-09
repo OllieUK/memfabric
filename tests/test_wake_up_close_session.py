@@ -116,29 +116,95 @@ class TestWakeUpClient:
 
 
 # ---------------------------------------------------------------------------
-# U13: MemoryClient.wake_up_split()
+# U13–U14: MemoryClient.wake_up_split()
 # ---------------------------------------------------------------------------
 
 
 class TestWakeUpSplitClient:
     @respx.mock
-    def test_returns_core_and_topic_lists(self):
+    def test_returns_full_response_dict(self):
+        """U13: wake_up_split returns the full API response dict."""
+        response_data = {
+            "memories": [
+                {
+                    "id": "mem-aaa",
+                    "text": "core memory",
+                    "type": "fact",
+                    "tags": [],
+                    "strand_id": "strand-core-health",
+                    "importance": 5,
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                }
+            ],
+            "topic_memories": [
+                {
+                    "id": "mem-bbb",
+                    "text": "topic memory",
+                    "type": "fact",
+                    "tags": [],
+                    "strand_id": "strand-companion-gmf",
+                    "importance": 3,
+                    "created_at": "2026-01-02T00:00:00+00:00",
+                }
+            ],
+            "maintenance_status": {
+                "short_rest_overdue": False,
+                "long_rest_overdue": False,
+                "short_rest_days_ago": None,
+                "long_rest_days_ago": None,
+                "recommended_action": None,
+            },
+        }
         respx.get(f"{BASE}/memory/wake-up").mock(
-            return_value=httpx.Response(200, json={
-                "memories": [{"id": "mem-aaa", "text": "core memory", "type": "fact",
-                               "tags": [], "strand_id": "strand-core-health",
-                               "importance": 5, "created_at": "2026-01-01T00:00:00+00:00"}],
-                "topic_memories": [{"id": "mem-bbb", "text": "topic memory", "type": "fact",
-                                    "tags": [], "strand_id": "strand-companion-gmf",
-                                    "importance": 3, "created_at": "2026-01-02T00:00:00+00:00"}],
-            })
+            return_value=httpx.Response(200, json=response_data)
         )
         with MemoryClient(base_url=BASE) as client:
-            core, topic, _maintenance_status = client.wake_up_split(limit=10, topic="graph memory")
-        assert len(core) == 1
-        assert core[0]["id"] == "mem-aaa"
-        assert len(topic) == 1
-        assert topic[0]["id"] == "mem-bbb"
+            result = client.wake_up_split(limit=10, topic="graph memory")
+        assert isinstance(result, dict)
+        assert result["memories"][0]["id"] == "mem-aaa"
+        assert result["topic_memories"][0]["id"] == "mem-bbb"
+        assert "maintenance_status" in result
+
+    @respx.mock
+    def test_returns_companion_and_conversant_anchors_when_present(self):
+        """U14: wake_up_split returns companion/conversant anchors when the API includes them."""
+        response_data = {
+            "memories": [],
+            "topic_memories": [],
+            "maintenance_status": {},
+            "companion_anchors": [
+                {
+                    "id": "comp-1",
+                    "text": "Mara is dominant",
+                    "type": "fact",
+                    "tags": [],
+                    "strand_id": "strand-companion-ai-anchor",
+                    "importance": 5,
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                }
+            ],
+            "conversant_anchors": [
+                {
+                    "id": "conv-1",
+                    "text": "Oliver has ADHD",
+                    "type": "fact",
+                    "tags": [],
+                    "strand_id": "strand-core-health",
+                    "importance": 4,
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                }
+            ],
+        }
+        route = respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json=response_data)
+        )
+        with MemoryClient(base_url=BASE) as client:
+            result = client.wake_up_split(person_id="oliver-james")
+        assert result.get("companion_anchors") is not None
+        assert result["companion_anchors"][0]["id"] == "comp-1"
+        assert result.get("conversant_anchors") is not None
+        assert result["conversant_anchors"][0]["id"] == "conv-1"
+        assert route.calls[0].request.url.params["person_id"] == "oliver-james"
 
 
 # ---------------------------------------------------------------------------

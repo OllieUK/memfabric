@@ -120,21 +120,31 @@ class MemoryClient:
         return response.json()["memories"]
 
     def wake_up_split(
-        self, *, limit: int = 20, topic: str | None = None
-    ) -> tuple[list[dict], list[dict], dict]:
-        """GET /memory/wake-up. Returns (core_memories, topic_memories, maintenance_status) tuple.
+        self,
+        *,
+        limit: int = 20,
+        topic: str | None = None,
+        person_id: str | None = None,
+        companion_anchor_limit: int | None = None,
+        conversant_anchor_limit: int | None = None,
+    ) -> dict:
+        """GET /memory/wake-up. Returns the full response dict.
 
-        core_memories: importance-ranked list (always populated if DB has memories)
-        topic_memories: topic-only results (empty when no topic provided)
-        maintenance_status: structured overdue info dict
+        Keys always present: memories, topic_memories, maintenance_status
+        Keys present when populated: companion_anchors, conversant_anchors
         """
         params: dict = {"limit": limit}
         if topic is not None:
             params["topic"] = topic
+        if person_id is not None:
+            params["person_id"] = person_id
+        if companion_anchor_limit is not None:
+            params["companion_anchor_limit"] = companion_anchor_limit
+        if conversant_anchor_limit is not None:
+            params["conversant_anchor_limit"] = conversant_anchor_limit
         response = self._http.get("/memory/wake-up", params=params)
         response.raise_for_status()
-        data = response.json()
-        return data["memories"], data.get("topic_memories", []), data.get("maintenance_status", {})
+        return response.json()
 
     def list_strands(self) -> list[dict]:
         """GET /strands. Returns list of strand dicts with id, name, description, category."""

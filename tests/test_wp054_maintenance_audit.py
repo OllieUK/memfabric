@@ -426,7 +426,7 @@ class TestMaintenanceStatus:
 
 class TestMemoryClientUpdates:
     def test_wake_up_split_returns_maintenance_status(self):
-        """wake_up_split returns (core, topic, maintenance_status) 3-tuple."""
+        """wake_up_split returns the full API response dict."""
         from unittest.mock import patch, MagicMock
         from memory_client.client import MemoryClient
 
@@ -449,10 +449,10 @@ class TestMemoryClientUpdates:
             with patch.object(client._http, "get", return_value=mock_response):
                 result = client.wake_up_split(limit=20)
 
-        assert len(result) == 3
-        core, topic, status = result
-        assert len(core) == 1
-        assert topic == []
+        assert isinstance(result, dict)
+        assert len(result["memories"]) == 1
+        assert result["topic_memories"] == []
+        status = result["maintenance_status"]
         assert status["short_rest_overdue"] is True
         assert status["recommended_action"] is not None
 
@@ -494,17 +494,17 @@ class TestMcpUpdates:
         mock_client = MagicMock()
         mock_client.__enter__ = lambda s: mock_client
         mock_client.__exit__ = MagicMock(return_value=False)
-        mock_client.wake_up_split.return_value = (
-            [],  # core
-            [],  # topic
-            {
+        mock_client.wake_up_split.return_value = {
+            "memories": [],
+            "topic_memories": [],
+            "maintenance_status": {
                 "short_rest_overdue": True,
                 "long_rest_overdue": True,
                 "short_rest_days_ago": 3.0,
                 "long_rest_days_ago": 3.0,
                 "recommended_action": "both short-rest and long-rest are overdue — run `memory long-rest` (covers both)",
             },
-        )
+        }
 
         with patch("mcp_server.server.MemoryClient", return_value=mock_client):
             from mcp_server.server import memory_wake_up
@@ -520,17 +520,17 @@ class TestMcpUpdates:
         mock_client = MagicMock()
         mock_client.__enter__ = lambda s: mock_client
         mock_client.__exit__ = MagicMock(return_value=False)
-        mock_client.wake_up_split.return_value = (
-            [],
-            [],
-            {
+        mock_client.wake_up_split.return_value = {
+            "memories": [],
+            "topic_memories": [],
+            "maintenance_status": {
                 "short_rest_overdue": False,
                 "long_rest_overdue": False,
                 "short_rest_days_ago": 0.5,
                 "long_rest_days_ago": 0.5,
                 "recommended_action": None,
             },
-        )
+        }
 
         with patch("mcp_server.server.MemoryClient", return_value=mock_client):
             from mcp_server.server import memory_wake_up
