@@ -400,6 +400,7 @@ async def wake_up(
         else settings.wake_up_companion_anchor_limit
     eff_conv_limit = conversant_anchor_limit if conversant_anchor_limit is not None \
         else settings.wake_up_conversant_anchor_limit
+    eff_person_id = person_id if person_id is not None else settings.wake_up_default_person_id
     try:
         with request.app.state.driver.session() as session:
             result = memory_repo.wake_up(
@@ -408,7 +409,7 @@ async def wake_up(
                 topic_embedding=topic_embedding,
                 agent_id=settings.agent_id,
                 companion_anchor_limit=eff_comp_limit,
-                person_id=person_id,
+                person_id=eff_person_id,
                 conversant_anchor_limit=eff_conv_limit,
             )
     except ServiceUnavailable as exc:

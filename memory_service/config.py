@@ -46,8 +46,9 @@ class Settings(BaseSettings):
     memory_dedup_threshold: float = 0.05
     near_duplicate_threshold: float = 0.92
     near_duplicate_limit: int = 20
-    wake_up_companion_anchor_limit: int = 5    # WAKE_UP_COMPANION_ANCHOR_LIMIT
-    wake_up_conversant_anchor_limit: int = 10  # WAKE_UP_CONVERSANT_ANCHOR_LIMIT
+    wake_up_companion_anchor_limit: int = 5           # WAKE_UP_COMPANION_ANCHOR_LIMIT
+    wake_up_conversant_anchor_limit: int = 10         # WAKE_UP_CONVERSANT_ANCHOR_LIMIT
+    wake_up_default_person_id: str | None = None      # WAKE_UP_DEFAULT_PERSON_ID
     knowledge_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
     enable_knowledge_layer: bool = False
 
