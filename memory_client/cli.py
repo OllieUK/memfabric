@@ -531,6 +531,23 @@ def restore_memory(
         raise typer.Exit(1)
 
 
+@app.command("delete")
+def delete_memory(
+    memory_id: str = typer.Argument(..., help="Memory UUID to permanently delete"),
+) -> None:
+    """Permanently delete a memory and all its edges (irreversible)."""
+    try:
+        with _make_client() as client:
+            client.delete_memory(memory_id)
+        console.print(f"Deleted {memory_id[:8]}")
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("find-duplicates")
 def find_duplicates(
     threshold: Optional[float] = typer.Option(None, "--threshold", "-t", help="Similarity threshold (0-1)"),

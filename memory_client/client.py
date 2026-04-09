@@ -245,6 +245,10 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()
 
+    def delete_memory(self, memory_id: str) -> None:
+        response = self._http.delete(f"/memory/{memory_id}")
+        response.raise_for_status()
+
     def run_decay(self) -> dict:
         """POST /memory/maintenance/decay. Returns {nodes_updated, edges_updated}."""
         response = self._http.post("/memory/maintenance/decay")

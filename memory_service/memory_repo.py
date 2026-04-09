@@ -717,6 +717,19 @@ def restore_memory(session, memory_id: str) -> None:
         raise ValueError(f"Memory {memory_id!r} not found or not archived")
 
 
+def delete_memory(session, memory_id: str) -> None:
+    result = session.run(
+        "MATCH (m:Memory {id: $id}) RETURN m.id AS id",
+        id=memory_id,
+    )
+    if result.single() is None:
+        raise ValueError(f"Memory {memory_id!r} not found")
+    session.run(
+        "MATCH (m:Memory {id: $id}) DETACH DELETE m",
+        id=memory_id,
+    )
+
+
 def merge_memory(
     session,
     source_id: str,

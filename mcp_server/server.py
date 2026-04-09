@@ -5,7 +5,7 @@ Exposes tools via FastMCP over STDIO transport:
   memory_list_persons, memory_create_person,
   memory_list_projects, memory_create_project,
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
-  memory_update, memory_archive, memory_restore, memory_merge,
+  memory_update, memory_archive, memory_restore, memory_delete, memory_merge,
   memory_find_duplicates
 """
 from datetime import datetime, timezone
@@ -394,6 +394,18 @@ def memory_restore(memory_id: str) -> dict:
     """Restore an archived memory to active status. Returns {memory_id, status}."""
     with MemoryClient(base_url=settings.api_base_url) as client:
         return client.restore_memory(memory_id)
+
+
+@mcp.tool
+def memory_delete(memory_id: str) -> str:
+    """Permanently delete a memory and all its edges from the graph.
+
+    This is irreversible — use memory_archive if you want a reversible path.
+    Returns a plain-text confirmation string.
+    """
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        client.delete_memory(memory_id)
+    return f"Deleted memory {memory_id}"
 
 
 @mcp.tool

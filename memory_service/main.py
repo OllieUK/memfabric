@@ -10,7 +10,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from typing import List, Literal, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request, Response
 from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, Field, model_validator
 
@@ -921,6 +921,24 @@ async def restore_memory(
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return RestoreMemoryResponse(memory_id=memory_id)
+
+
+@app.delete("/memory/{memory_id}", status_code=204)
+async def delete_memory(memory_id: str, request: Request) -> Response:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            memory_repo.delete_memory(session, memory_id)
+            memory_repo.append_operation_log(session, {
+                "operation": "delete",
+                "memory_id": memory_id,
+                "ran_at": now,
+            })
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Memory not found") from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return Response(status_code=204)
 
 
 class ReinforceRequest(BaseModel):
