@@ -15,7 +15,9 @@ Integration tests (live Memgraph + running FastAPI required):
 import uuid
 import pytest
 
-_AGENT_ID = "claude-code"   # matches settings.agent_id default
+from memory_service.config import settings
+
+_AGENT_ID = settings.agent_id  # use live config — avoids coupling to the "claude-code" default
 _PERSON_ID = "test-person-wp049"
 _ZERO_EMB = [0.0] * 384
 
