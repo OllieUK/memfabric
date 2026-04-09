@@ -9,6 +9,12 @@
 
 ---
 
+## Currently In Progress
+
+| ID | Title | Started |
+|----|-------|---------|
+| WP-107 | Cross-framework cluster analysis | 2026-04-09 |
+
 ## Prioritised Backlog
 
 > Items ordered as a dependency-safe executable sequence informed by `Priority score`.
