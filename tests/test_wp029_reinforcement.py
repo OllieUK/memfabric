@@ -22,6 +22,7 @@ class TestMemoryCreationSeeding:
                 "agent_id": "test-agent",
                 "importance": 4,
                 "tags": ["test"],
+                "ephemeral": True,
             })
             assert resp.status_code == 200
             memory_id = resp.json()["memory_id"]
@@ -50,7 +51,7 @@ class TestMemoryCreationSeeding:
         fact = f"wp029-seed-imp1-{uuid.uuid4()}"
         try:
             resp = client.post("/memory", json={
-                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 1, "tags": ["test"],
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 1, "tags": ["test"], "ephemeral": True,
             })
             assert resp.status_code == 200
             memory_id = resp.json()["memory_id"]
@@ -137,7 +138,7 @@ class TestMaintenanceEndpoints:
     def test_decay_pass_returns_counts(self, client, test_driver):
         """Decay pass returns valid node/edge counts."""
         resp = client.post("/memory", json={
-            "fact": f"wp029-decay-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent", "tags": ["test"],
+            "fact": f"wp029-decay-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent", "tags": ["test"], "ephemeral": True,
         })
         memory_id = resp.json()["memory_id"]
         try:
@@ -174,7 +175,7 @@ class TestExplicitReinforcement:
         fact = f"wp029-reinforce-{uuid.uuid4()}"
         try:
             resp = client.post("/memory", json={
-                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 2, "tags": ["test"],
+                "fact": fact, "type": "fact", "agent_id": "test-agent", "importance": 2, "tags": ["test"], "ephemeral": True,
             })
             memory_id = resp.json()["memory_id"]
             initial_strength = 0.4 * (2 / 5.0)  # 0.16 — WP-048
@@ -205,13 +206,13 @@ class TestExplicitReinforcement:
         m1 = m2 = None
         try:
             r1 = client.post("/memory", json={
-                "fact": f"wp029-hebbian-a-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent", "tags": ["test"],
+                "fact": f"wp029-hebbian-a-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent", "tags": ["test"], "ephemeral": True,
             })
             m1 = r1.json()["memory_id"]
             # Use related_ids to guarantee a RELATED_TO edge exists between m2 and m1
             r2 = client.post("/memory", json={
                 "fact": f"wp029-hebbian-b-{uuid.uuid4()}", "type": "fact", "agent_id": "test-agent",
-                "related_ids": [m1], "tags": ["test"],
+                "related_ids": [m1], "tags": ["test"], "ephemeral": True,
             })
             m2 = r2.json()["memory_id"]
 

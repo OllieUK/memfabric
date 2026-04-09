@@ -94,7 +94,7 @@ class TestInitialMemoryState:
         """New memory importance=5 → strength = 0.4 * 1.0 = 0.4 (not 1.0)."""
         fact = f"wp048-initial-strength-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 5, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 5, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -114,7 +114,7 @@ class TestInitialMemoryState:
         """importance=3, factor=0.4 → strength = 0.24."""
         fact = f"wp048-imp3-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 3, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 3, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -132,7 +132,7 @@ class TestInitialMemoryState:
         """importance=5, floor_factor=0.3 → min_strength = 0.3."""
         fact = f"wp048-min-strength-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 5, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 5, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -150,7 +150,7 @@ class TestInitialMemoryState:
         """importance=1, floor_factor=0.3 → min_strength = 0.06."""
         fact = f"wp048-min-str-imp1-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 1, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 1, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -171,7 +171,7 @@ class TestConsolidationOnFirstReinforcement:
         """After first reinforcement, decay_rate must switch to consolidated rate (0.01)."""
         fact = f"wp048-consolidate-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 3, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 3, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -208,7 +208,7 @@ class TestConsolidationOnFirstReinforcement:
         """Subsequent reinforcements must not change decay_rate again."""
         fact = f"wp048-second-reinforce-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 3, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 3, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -237,7 +237,7 @@ class TestImportanceFloor:
         """importance=5 memory must never drop below min_strength=0.3 after decay."""
         fact = f"wp048-floor-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 5, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 5, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]
@@ -269,7 +269,7 @@ class TestImportanceFloor:
         """importance=1 memory (floor=0.06) can decay close to zero."""
         fact = f"wp048-low-floor-{uuid.uuid4()}"
         resp = client.post("/memory", json={
-            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 1, "tags": ["test"],
+            "fact": fact, "type": "fact", "agent_id": _AGENT_ID, "importance": 1, "tags": ["test"], "ephemeral": True,
         })
         assert resp.status_code == 200
         mid = resp.json()["memory_id"]

@@ -188,6 +188,7 @@ class TestDeleteIntegration:
                 "type": "fact",
                 "agent_id": "test-agent",
                 "tags": [TEST_TAG],
+                "ephemeral": True,
             })
             assert create.status_code == 200
             memory_id = create.json()["memory_id"]
@@ -211,6 +212,7 @@ class TestDeleteIntegration:
                 "type": "fact",
                 "agent_id": "test-agent",
                 "tags": [TEST_TAG],
+                "ephemeral": True,
             })
             r_b = client.post("/memory", json={
                 "fact": "WP-118 edge test B",
@@ -218,6 +220,7 @@ class TestDeleteIntegration:
                 "agent_id": "test-agent",
                 "tags": [TEST_TAG],
                 "related_ids": [],
+                "ephemeral": True,
             })
             assert r_a.status_code == 200
             assert r_b.status_code == 200
@@ -265,6 +268,7 @@ class TestDeleteIntegration:
                 "type": "fact",
                 "agent_id": "test-agent",
                 "tags": [TEST_TAG],
+                "ephemeral": True,
             })
             assert create.status_code == 200
             memory_id = create.json()["memory_id"]
@@ -291,6 +295,7 @@ class TestDeleteIntegration:
                 "type": "fact",
                 "agent_id": "test-agent",
                 "tags": [TEST_TAG],
+                "ephemeral": True,
             })
             assert create.status_code == 200
             memory_id = create.json()["memory_id"]
@@ -316,6 +321,7 @@ class TestDeleteIntegration:
                 "type": "fact",
                 "agent_id": "test-agent",
                 "tags": [TEST_TAG],
+                "ephemeral": True,
             })
             assert create.status_code == 200
             memory_id = create.json()["memory_id"]

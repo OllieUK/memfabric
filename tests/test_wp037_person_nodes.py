@@ -49,6 +49,7 @@ def _add_memory_body(fact: str, person_ids: list = None) -> dict:
         "agent_id": _AGENT_ID,
         "importance": 1,
         "tags": ["test"],
+        "ephemeral": True,
     }
     if person_ids is not None:
         body["person_ids"] = person_ids

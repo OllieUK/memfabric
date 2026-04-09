@@ -319,6 +319,7 @@ class TestProjectIntegration:
                 "project_id": _PROJECT_ID_A,
                 "importance": 1,
                 "tags": ["test"],
+                "ephemeral": True,
             })
             assert r.status_code == 200
             memory_id = r.json()["memory_id"]
