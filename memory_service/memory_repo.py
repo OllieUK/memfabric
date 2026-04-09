@@ -452,14 +452,23 @@ def _record_to_memory_dict(record) -> dict:
     }
 
 
-def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
-    """Return memories for session start as two separate lists.
+def wake_up(
+    session,
+    limit: int,
+    topic_embedding: list | None = None,
+    agent_id: str | None = None,
+    companion_anchor_limit: int = 5,
+    person_id: str | None = None,
+    conversant_anchor_limit: int = 10,
+) -> dict:
+    """Return memories for session start as separate lists.
 
     Returns:
         dict with keys:
-          "core"  — importance-ranked list, up to `limit` items
-          "topic" — topic-only items (not in core), up to `limit` items;
-                    empty list when topic_embedding is None
+          "core"              — importance-ranked list, up to `limit` items
+          "topic"             — topic-only items (not in core); empty when no topic_embedding
+          "companion_anchors" — memories ABOUT node with id=agent_id; None when absent/empty
+          "conversant_anchors"— memories ABOUT node with id=person_id; None when absent/empty
         Each item dict: id, text, type, tags, importance, created_at, strand_id
     """
     result = session.run(
@@ -484,30 +493,80 @@ def wake_up(session, limit: int, topic_embedding: list | None = None) -> dict:
     core = [_record_to_memory_dict(r) for r in result]
 
     if topic_embedding is None:
-        return {"core": core, "topic": []}
+        topic = []
+    else:
+        core_ids = {item["id"] for item in core}
+        topic_result = session.run(
+            """
+            CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
+            YIELD node AS m, distance
+            WITH m, distance
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH DISTINCT m, collect(s.id)[0] AS strand_id, min(distance) AS dist
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_id
+            ORDER BY dist ASC
+            """,
+            limit=limit,
+            query_vec=topic_embedding,
+        )
+        topic = [_record_to_memory_dict(r) for r in topic_result if r["id"] not in core_ids]
 
-    core_ids = {item["id"] for item in core}
+    # Companion anchors — memories ABOUT the calling agent's identity node
+    companion_anchors = None
+    if agent_id is not None:
+        comp_result = session.run(
+            """
+            MATCH (m:Memory)-[:ABOUT]->(n)
+            WHERE n.id = $agent_id
+              AND (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH DISTINCT m, collect(s.id)[0] AS strand_id
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_id
+            ORDER BY m.importance DESC, coalesce(m.strength, 0.0) DESC
+            LIMIT $limit
+            """,
+            agent_id=agent_id,
+            limit=companion_anchor_limit,
+        )
+        items = [_record_to_memory_dict(r) for r in comp_result]
+        companion_anchors = items if items else None
 
-    topic_result = session.run(
-        """
-        CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
-        YIELD node AS m, distance
-        WITH m, distance
-        WHERE (m.status IS NULL OR m.status = 'active')
-          AND (m.ephemeral IS NULL OR m.ephemeral = false)
-        OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-        WITH DISTINCT m, collect(s.id)[0] AS strand_id, min(distance) AS dist
-        RETURN m.id AS id, m.text AS text, m.type AS type,
-               m.tags AS tags, m.importance AS importance,
-               m.created_at AS created_at, strand_id
-        ORDER BY dist ASC
-        """,
-        limit=limit,
-        query_vec=topic_embedding,
-    )
-    topic = [_record_to_memory_dict(r) for r in topic_result if r["id"] not in core_ids]
+    # Conversant anchors — memories ABOUT the person currently being addressed
+    conversant_anchors = None
+    if person_id is not None:
+        conv_result = session.run(
+            """
+            MATCH (m:Memory)-[:ABOUT]->(p)
+            WHERE p.id = $person_id
+              AND (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH DISTINCT m, collect(s.id)[0] AS strand_id
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_id
+            ORDER BY m.importance DESC, m.created_at DESC
+            LIMIT $limit
+            """,
+            person_id=person_id,
+            limit=conversant_anchor_limit,
+        )
+        items = [_record_to_memory_dict(r) for r in conv_result]
+        conversant_anchors = items if items else None
 
-    return {"core": core, "topic": topic}
+    return {
+        "core": core,
+        "topic": topic,
+        "companion_anchors": companion_anchors,
+        "conversant_anchors": conversant_anchors,
+    }
 
 
 def purge_ephemeral_memories(session) -> int:

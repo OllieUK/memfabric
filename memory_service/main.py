@@ -372,9 +372,11 @@ def _compute_maintenance_status(
 
 
 class WakeUpResponse(BaseModel):
-    memories: List[WakeUpMemoryItem]          # core (importance-ranked)
-    topic_memories: List[WakeUpMemoryItem]    # topic-only; empty when no --topic
+    memories: List[WakeUpMemoryItem]                              # core (importance-ranked)
+    topic_memories: List[WakeUpMemoryItem]                        # topic-only; empty when no --topic
     maintenance_status: MaintenanceStatus
+    companion_anchors: Optional[List[WakeUpMemoryItem]] = None    # identity anchors for calling agent
+    conversant_anchors: Optional[List[WakeUpMemoryItem]] = None   # person-specific context
 
 
 @app.get("/memory/wake-up", response_model=WakeUpResponse)
@@ -382,6 +384,9 @@ async def wake_up(
     request: Request,
     limit: int = Query(default=20, ge=1, le=100),
     topic: Optional[str] = Query(default=None),
+    person_id: Optional[str] = Query(default=None),
+    companion_anchor_limit: Optional[int] = Query(default=None, ge=1, le=100),
+    conversant_anchor_limit: Optional[int] = Query(default=None, ge=1, le=100),
 ) -> WakeUpResponse:
     # NOTE: wake-up intentionally does NOT call recall_increment.
     # Wake-up is passive context priming, not active recall. Strengthening nodes here
@@ -391,9 +396,21 @@ async def wake_up(
     # (companion-driven, for memories that genuinely shaped the session).
     # Do NOT add recall_increment here without revisiting this design decision.
     topic_embedding = get_embedding(topic) if topic else None
+    eff_comp_limit = companion_anchor_limit if companion_anchor_limit is not None \
+        else settings.wake_up_companion_anchor_limit
+    eff_conv_limit = conversant_anchor_limit if conversant_anchor_limit is not None \
+        else settings.wake_up_conversant_anchor_limit
     try:
         with request.app.state.driver.session() as session:
-            result = memory_repo.wake_up(session, limit=limit, topic_embedding=topic_embedding)
+            result = memory_repo.wake_up(
+                session,
+                limit=limit,
+                topic_embedding=topic_embedding,
+                agent_id=settings.agent_id,
+                companion_anchor_limit=eff_comp_limit,
+                person_id=person_id,
+                conversant_anchor_limit=eff_conv_limit,
+            )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
 
@@ -419,10 +436,21 @@ async def wake_up(
     except Exception:
         pass  # best-effort; never surface maintenance errors to wake-up
 
+    companion_items = (
+        [WakeUpMemoryItem(**r) for r in result["companion_anchors"]]
+        if result.get("companion_anchors") else None
+    )
+    conversant_items = (
+        [WakeUpMemoryItem(**r) for r in result["conversant_anchors"]]
+        if result.get("conversant_anchors") else None
+    )
+
     return WakeUpResponse(
         memories=[WakeUpMemoryItem(**r) for r in result["core"]],
         topic_memories=[WakeUpMemoryItem(**r) for r in result["topic"]],
         maintenance_status=MaintenanceStatus(**maintenance_status_data),
+        companion_anchors=companion_items,
+        conversant_anchors=conversant_items,
     )
 
 
