@@ -192,7 +192,7 @@ def _write_cluster_annotations(
 _REPORT_TOP_N = 20  # max items per section in the summary report
 
 _FRAMEWORK_PREFIX_MAP = {
-    'iso27001':          'ISO 27001',
+    'iso-27001-2022':    'ISO 27001',
     'nist-csf':          'NIST CSF',
     'cobit':             'COBIT 2019',
     'attack-enterprise': 'ATT&CK',

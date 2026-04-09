@@ -249,7 +249,7 @@ class TestGenerateSummaryReport:
     def _make_nodes(self):
         return [
             {
-                'id': 'iso27001.A.5.1',
+                'id': 'iso-27001-2022.A.5.1',
                 'title': 'Policies for IS',
                 'level': 'clause',
                 'domain': None,
