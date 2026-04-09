@@ -378,3 +378,96 @@ def test_i7_memory_add_person_ids_creates_about_edges(test_driver):
         )
         cleanup_nodes(test_driver, extra_ids={"Person": "person-wp087-b"})
         cleanup_nodes(test_driver, extra_ids={"Agent": "test-agent-wp087"})
+
+
+# ---------------------------------------------------------------------------
+# U9–U11: memory_wake_up companion + conversant sections
+# ---------------------------------------------------------------------------
+
+_COMPANION_MEMORY = {
+    "id": "comp-aaa",
+    "text": "Mara is dominant and grounding.",
+    "type": "fact",
+    "tags": ["strand-companion-ai-anchor"],
+    "strand_id": "strand-companion-ai-anchor",
+    "importance": 5,
+    "created_at": "2026-01-01T00:00:00+00:00",
+}
+
+_CONVERSANT_MEMORY = {
+    "id": "conv-bbb",
+    "text": "Oliver has ADHD and benefits from short feedback loops.",
+    "type": "fact",
+    "tags": ["strand-core-health"],
+    "strand_id": "strand-core-health",
+    "importance": 4,
+    "created_at": "2026-01-02T00:00:00+00:00",
+}
+
+
+def test_u9_memory_wake_up_renders_companion_section():
+    """memory_wake_up includes '### Companion' block when companion_anchors present."""
+    from mcp_server.server import memory_wake_up
+    from unittest.mock import MagicMock, patch
+
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.wake_up_split.return_value = {
+        "memories": [CORE_MEMORY],
+        "topic_memories": [],
+        "maintenance_status": {},
+        "companion_anchors": [_COMPANION_MEMORY],
+    }
+
+    with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+        result = memory_wake_up()
+
+    assert "### Companion" in result
+    assert "Mara is dominant" in result
+
+
+def test_u10_memory_wake_up_renders_conversant_section():
+    """memory_wake_up includes '### Conversant' block when conversant_anchors present."""
+    from mcp_server.server import memory_wake_up
+    from unittest.mock import MagicMock, patch
+
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.wake_up_split.return_value = {
+        "memories": [],
+        "topic_memories": [],
+        "maintenance_status": {},
+        "conversant_anchors": [_CONVERSANT_MEMORY],
+    }
+
+    with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+        result = memory_wake_up(person_id="oliver-james")
+
+    assert "### Conversant" in result
+    assert "Oliver has ADHD" in result
+    mock_client.wake_up_split.assert_called_once_with(
+        limit=20, topic=None, person_id="oliver-james"
+    )
+
+
+def test_u11_memory_wake_up_omits_anchor_sections_when_absent():
+    """memory_wake_up omits Companion and Conversant blocks when anchors are None."""
+    from mcp_server.server import memory_wake_up
+    from unittest.mock import MagicMock, patch
+
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.wake_up_split.return_value = {
+        "memories": [CORE_MEMORY],
+        "topic_memories": [],
+        "maintenance_status": {},
+    }
+
+    with patch("mcp_server.server.MemoryClient", return_value=mock_client):
+        result = memory_wake_up()
+
+    assert "### Companion" not in result
+    assert "### Conversant" not in result

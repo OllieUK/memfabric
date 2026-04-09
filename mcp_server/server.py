@@ -116,15 +116,17 @@ def memory_search(
 def memory_wake_up(
     topic: str | None = None,
     limit: int = 20,
+    person_id: str | None = None,
 ) -> str:
     """Return the session wake-up briefing as plain text. Read fully before responding to the user."""
     with MemoryClient(base_url=settings.api_base_url) as client:
-        core, topic_memories, maintenance_status = client.wake_up_split(limit=limit, topic=topic)
+        result = client.wake_up_split(limit=limit, topic=topic, person_id=person_id)
 
     lines = []
 
     # Maintenance alert — shown prominently at the top when action needed
-    action = maintenance_status.get("recommended_action") if maintenance_status else None
+    maintenance_status = result.get("maintenance_status") or {}
+    action = maintenance_status.get("recommended_action")
     if action:
         lines += [
             "## ⚠ Maintenance required",
@@ -135,11 +137,21 @@ def memory_wake_up(
 
     heading = f"## Memory briefing — {topic if topic else 'general session'}"
     lines += [heading, "", "### Core context", ""]
-    lines.extend(_render_section(core))
+    lines.extend(_render_section(result.get("memories", [])))
 
-    if topic and topic_memories:
+    if topic and result.get("topic_memories"):
         lines += ["", "### Relevant to today", ""]
-        lines.extend(_render_section(topic_memories))
+        lines.extend(_render_section(result["topic_memories"]))
+
+    companion_anchors = result.get("companion_anchors")
+    if companion_anchors:
+        lines += ["", "### Companion", ""]
+        lines.extend(_render_section(companion_anchors))
+
+    conversant_anchors = result.get("conversant_anchors")
+    if conversant_anchors:
+        lines += ["", "### Conversant", ""]
+        lines.extend(_render_section(conversant_anchors))
 
     return "\n".join(lines)
 
