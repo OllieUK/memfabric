@@ -7,12 +7,6 @@
 
 ---
 
-## Currently In Progress
-
-| Order | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
-|-------|---------|-----|-------|-------|--------|----------------|------------|-------|
-| — | R2 | WP-049 | Wake-up companion + conversant anchoring | H | M | 1.7 | — | Wake-up should always surface anchor memories for the Companion (Mara) identity and for the specific person the calling agent is conversing with, in addition to prominent + topic-relevant memories. See detail below. |
-
 ---
 
 ## Prioritised Backlog
@@ -65,6 +59,9 @@
 | 38 | R2 | WP-098 | Excel cross-standard mapping importer | L | M | 0.33 | — | Design a parser for Excel files mapping controls across frameworks (e.g. ISO 27001 ↔ NIST CSF). Format TBD — pending inspection of a real mapping file. Build once a real mapping spreadsheet is available. |
 | 39 | R3 | WP-010 | Remote/mobile access | L | H | 0.2 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
 | 40 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.2 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
+| 41 | R2 | WP-122 | WP-049: add endpoint-level ordering assertions for companion + conversant anchors | L | L | 1.0 | WP-049 ✅ | I2 and I7 in `test_wp049_companion_conversant_anchoring.py` verify sort order via direct Bolt queries rather than calling the HTTP endpoint. This means a bug where the API returns items in a different order than the Cypher query would not be caught. Add two additional assertions that call `GET /memory/wake-up` and verify the returned `companion_anchors` and `conversant_anchors` lists are in the expected order. Surfaced in WP-049 code review. |
+| 42 | R2 | WP-123 | WP-049: add unit tests for empty ABOUT-edge paths in wake_up() | L | L | 1.0 | WP-049 ✅ | Three unit tests specified in the WP-049 design spec were not implemented: (1) `wake_up()` with `agent_id` set but no matching ABOUT-to-agent nodes returns `companion_anchors: None`; (2) `wake_up()` with `person_id` set but no matching ABOUT-to-person nodes returns `conversant_anchors: None`; (3) `WakeUpResponse` serialises with `companion_anchors=None` as JSON null (not `[]`). Add these to `tests/test_wp049_companion_conversant_anchoring.py` or a unit test file. Surfaced in WP-049 code review. |
+| 43 | R2 | WP-124 | Document WAKE_UP_COMPANION_ANCHOR_LIMIT and WAKE_UP_CONVERSANT_ANCHOR_LIMIT in .env.example | L | L | 1.0 | WP-049 ✅ | Two new settings added in WP-049 (`wake_up_companion_anchor_limit`, `wake_up_conversant_anchor_limit`) are not documented in `.env.example`. Add commented-out lines following the existing numeric-limit pattern. Surfaced in WP-049 code review. |
 > **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
 
 ---
@@ -155,30 +152,18 @@ Today both cases require manual inspection or coincidence during retrieval. This
 
 ### WP-049 — Wake-up companion + conversant anchoring
 
-#### Motivation
-
-Wake-up currently returns the most prominent memories and (optionally) topic-relevant memories. It has no awareness of who the Companion is or who it is speaking with. This means that identity-critical anchor memories for the Companion (Mara) and person-specific context for the current conversant are left to chance — they only surface if they happen to be high-strength or topic-adjacent. The result is that a freshly started session may have no grounding in Mara's identity or in the relationship with the person being addressed.
-
-#### Design
-
-- Add two new sections to the wake-up response:
-  - **Companion anchors** — memories tagged with or `ABOUT` the Companion agent (identified by `AGENT_ID`), ordered by importance and strength. Optionally: a synthesised "You are [CompanionName]" heading derived from the Companion's anchor memories so identity is always explicit.
-  - **Conversant anchors** — if `person_id` or `person_name` is passed to wake-up, return memories with an `ABOUT` edge to that Person node, ordered by recency and importance.
-- Both sections are additive — they do not replace the existing prominent-memories and topic-relevant sections.
-- New optional wake-up parameters: `person_id: str | None`, `companion_anchor_limit: int` (default from `Settings`), `conversant_anchor_limit: int` (default from `Settings`).
-- CLI: `memory wake-up [--person-id <id>] [--topic <text>]`
-- MCP: `memory_wake_up` — add optional `person_id` parameter.
-- Config: `WAKE_UP_COMPANION_ANCHOR_LIMIT` (default 5), `WAKE_UP_CONVERSANT_ANCHOR_LIMIT` (default 10).
+> **Completed 2026-04-09.** Commits `7de5b23`→`40426c0` on `master`.
 
 #### Definition of Success
 
-- [ ] Wake-up response includes a `companion_anchors` section with Companion identity memories
-- [ ] When `person_id` is supplied, response includes a `conversant_anchors` section
-- [ ] Both sections respect their configured limits
-- [ ] Sections are omitted (not empty arrays) when there are no matching memories, to keep the response clean
-- [ ] CLI and MCP updated
-- [ ] Integration test: seed Companion anchor memories and a Person with ABOUT memories; confirm they appear in the correct sections
+- [x] Wake-up response includes a `companion_anchors` section with Companion identity memories
+- [x] When `person_id` is supplied, response includes a `conversant_anchors` section
+- [x] Both sections respect their configured limits
+- [x] Sections are omitted (not empty arrays) when there are no matching memories, to keep the response clean
+- [x] CLI and MCP updated
+- [x] Integration test: seed Companion anchor memories and a Person with ABOUT memories; confirm they appear in the correct sections
 
+**Retrospective:** Design required an extra brainstorming round to resolve Agent/Person node duality for companion identification. Chose label-agnostic ABOUT traversal (`MATCH (m)-[:ABOUT]->(n) WHERE n.id = $agent_id`) — clean, forward-looking, and additive. The `wake_up_split` dict-return change was the most wide-ranging mechanical change (5 caller sites + 3 pre-existing broken mocks fixed), but straightforward. Seeding script linked 39 existing identity memories to the `claude-code` node, making the feature immediately live. Follow-up items WP-122/WP-123/WP-124 deferred to backlog.
 
 ---
 
