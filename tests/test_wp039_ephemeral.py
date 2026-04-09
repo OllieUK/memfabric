@@ -1,11 +1,15 @@
 # tests/test_wp039_ephemeral.py
 #
-# Unit tests for WP-039: ephemeral memory support — repo layer.
+# Unit tests for WP-039: ephemeral memory support — repo layer and client layer.
 # All tests here are pure unit tests (no live Memgraph required).
 
 from unittest.mock import MagicMock, patch
 
+import httpx
+import respx
+
 import memory_service.memory_repo as memory_repo
+from memory_client.client import MemoryClient
 from memory_service.memory_repo import purge_ephemeral_memories
 from memory_service.main import AddMemoryRequest
 
@@ -128,3 +132,57 @@ def test_purge_ephemeral_endpoint_returns_deleted_count(client):
         response = client.post("/memory/maintenance/purge-ephemeral")
         assert response.status_code == 200
         assert response.json() == {"deleted": 7}
+
+
+# ---------------------------------------------------------------------------
+# U7: MemoryClient.purge_ephemeral sends POST and returns dict
+# ---------------------------------------------------------------------------
+
+BASE = "http://localhost:8000"
+
+
+class TestPurgeEphemeralClient:
+    @respx.mock
+    def test_purge_ephemeral_returns_dict_with_deleted(self):
+        respx.post(f"{BASE}/memory/maintenance/purge-ephemeral").mock(
+            return_value=httpx.Response(200, json={"deleted": 4})
+        )
+        with MemoryClient(base_url=BASE) as client:
+            result = client.purge_ephemeral()
+        assert result == {"deleted": 4}
+
+
+# ---------------------------------------------------------------------------
+# U8: MemoryClient.add_memory sends ephemeral=True in body
+# ---------------------------------------------------------------------------
+
+
+class TestAddMemoryEphemeralClient:
+    @respx.mock
+    def test_add_memory_sends_ephemeral_true_in_body(self):
+        route = respx.post(f"{BASE}/memory").mock(
+            return_value=httpx.Response(200, json={"memory_id": "test-id", "deduplicated": False, "strand_ids": []})
+        )
+        with MemoryClient(base_url=BASE) as client:
+            client.add_memory(fact="test", type="fact", agent_id="test-agent", ephemeral=True)
+        assert route.call_count == 1
+        request_body = route.calls[0].request.content
+        # Decode the JSON body
+        import json
+        body = json.loads(request_body)
+        assert "ephemeral" in body
+        assert body["ephemeral"] is True
+
+    @respx.mock
+    def test_add_memory_sends_ephemeral_false_by_default(self):
+        route = respx.post(f"{BASE}/memory").mock(
+            return_value=httpx.Response(200, json={"memory_id": "test-id", "deduplicated": False, "strand_ids": []})
+        )
+        with MemoryClient(base_url=BASE) as client:
+            client.add_memory(fact="test", type="fact", agent_id="test-agent")
+        assert route.call_count == 1
+        request_body = route.calls[0].request.content
+        import json
+        body = json.loads(request_body)
+        assert "ephemeral" in body
+        assert body["ephemeral"] is False

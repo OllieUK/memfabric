@@ -35,6 +35,7 @@ class MemoryClient:
         doc_ids: list[str] | None = None,
         control_relationship_type: str | None = None,
         org_id: str | None = None,
+        ephemeral: bool = False,
     ) -> dict:
         """POST /memory. Returns dict with memory_id, deduplicated, and strand_ids."""
         body: dict = {
@@ -45,6 +46,7 @@ class MemoryClient:
             "importance": importance,
             "person_ids": person_ids or [],
             "strand_ids": strand_ids or [],
+            "ephemeral": ephemeral,
         }
         if so_what is not None:
             body["so_what"] = so_what
@@ -279,6 +281,12 @@ class MemoryClient:
         if prune:
             params["prune"] = "true"
         response = self._http.post("/memory/maintenance/long-rest", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    def purge_ephemeral(self) -> dict:
+        """POST /memory/maintenance/purge-ephemeral. Returns {"deleted": int}."""
+        response = self._http.post("/memory/maintenance/purge-ephemeral")
         response.raise_for_status()
         return response.json()
 
