@@ -561,6 +561,19 @@ def wake_up(
         items = [_record_to_memory_dict(r) for r in conv_result]
         conversant_anchors = items if items else None
 
+    # Deduplicate across sections — priority: core > companion_anchors > conversant_anchors.
+    # A memory already present in a higher-priority section is dropped from lower ones.
+    # This mirrors marabot's deduplicate_cross_file() logic, simplified for three sections.
+    seen_ids: set[str] = {m["id"] for m in core}
+    seen_ids.update(m["id"] for m in topic)
+    if companion_anchors is not None:
+        companion_anchors = [m for m in companion_anchors if m["id"] not in seen_ids]
+        seen_ids.update(m["id"] for m in companion_anchors)
+        companion_anchors = companion_anchors if companion_anchors else None
+    if conversant_anchors is not None:
+        conversant_anchors = [m for m in conversant_anchors if m["id"] not in seen_ids]
+        conversant_anchors = conversant_anchors if conversant_anchors else None
+
     return {
         "core": core,
         "topic": topic,
