@@ -1,0 +1,2288 @@
+- id: '4'
+  heading: Context of the organization
+  type: clause
+  suggested_control_id: iso-22301-2019.4
+  notes: ''
+  text: ''
+- id: '4.1'
+  heading: Understanding the organization and its context
+  type: clause
+  suggested_control_id: iso-22301-2019.4.1
+  notes: ''
+  text: 'The organization shall determine external and internal issues that are relevant to its purpose and that affect its
+    ability to achieve the intended outcome(s) of its BCMS.
+
+    NOTE These issues will be influenced by the organization’s overall objectives, its products and services and the amount
+    and type of risk that it may or may not take.'
+- id: '4.2'
+  heading: Understanding the needs and expectations of interested parties
+  type: clause
+  suggested_control_id: iso-22301-2019.4.2
+  notes: ''
+  text: ''
+- id: 4.2.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.4.2.1
+  notes: ''
+  text: 'When establishing its BCMS, the organization shall determine:
+
+    a) the interested parties that are relevant to the BCMS;
+
+    b) the relevant requirements of these interested parties.'
+  statements:
+  - id: iso-22301-2019.4.2.1.a
+    label: a)
+    body: When establishing its BCMS, the organization shall determine the interested parties that are relevant to the BCMS.
+    notes: ''
+  - id: iso-22301-2019.4.2.1.b
+    label: b)
+    body: When establishing its BCMS, the organization shall determine the relevant requirements of these interested parties.
+    notes: ''
+- id: 4.2.2
+  heading: Legal and regulatory requirements
+  type: clause
+  suggested_control_id: iso-22301-2019.4.2.2
+  notes: ''
+  text: 'The organization shall:
+
+    a) implement and maintain a process to identify, have access to, and assess the applicable legal and regulatory requirements
+    related to the continuity of its products and services, activities and resources;
+
+    b) ensure that these applicable legal, regulatory and other requirements are taken into account in implementing and maintaining
+    its BCMS;
+
+    c) document this information and keep it up to date.'
+  statements:
+  - id: iso-22301-2019.4.2.2.a
+    label: a)
+    body: The organization shall implement and maintain a process to identify, have access to, and assess the applicable legal
+      and regulatory requirements related to the continuity of its products and services, activities and resources.
+    notes: ''
+  - id: iso-22301-2019.4.2.2.b
+    label: b)
+    body: The organization shall ensure that these applicable legal, regulatory and other requirements are taken into account
+      in implementing and maintaining its BCMS.
+    notes: ''
+  - id: iso-22301-2019.4.2.2.c
+    label: c)
+    body: The organization shall document this information and keep it up to date.
+    notes: ''
+- id: '4.3'
+  heading: Determining the scope of the business continuity management system
+  type: clause
+  suggested_control_id: iso-22301-2019.4.3
+  notes: ''
+  text: ''
+- id: 4.3.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.4.3.1
+  notes: ''
+  text: 'The organization shall determine the boundaries and applicability of the BCMSto establish its scope. When determining
+    this scope, the organization shall consider:
+
+    a) the external and internal issues referred to in 4.1;
+
+    b) the requirements referred to in 4.2;
+
+    c) its mission, goals, and internal and external obligations. Copyright International Organization for Standardization
+    Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction
+    or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved
+    The scope shall be available as documented information.'
+  statements:
+  - id: iso-22301-2019.4.3.1.a
+    label: a)
+    body: The organization shall determine the boundaries and applicability of the BCMSto establish its scope. When determining
+      this scope, the organization shall consider the external and internal issues referred to in 4.1.
+    notes: ''
+  - id: iso-22301-2019.4.3.1.b
+    label: b)
+    body: The organization shall determine the boundaries and applicability of the BCMSto establish its scope. When determining
+      this scope, the organization shall consider the requirements referred to in 4.2.
+    notes: ''
+  - id: iso-22301-2019.4.3.1.c
+    label: c)
+    body: The organization shall determine the boundaries and applicability of the BCMSto establish its scope. When determining
+      this scope, the organization shall consider its mission, goals, and internal and external obligations.
+    notes: ''
+- id: 4.3.2
+  heading: Scope of the business continuity management system
+  type: clause
+  suggested_control_id: iso-22301-2019.4.3.2
+  notes: ''
+  text: 'The organization shall:
+
+    a) establish the parts of the organization to be included in the BCMS, taking into account its location(s), size, nature
+    and complexity;
+
+    b) identify products and services to be included in the BCMS. When defining the scope, the organization shall document
+    and explain exclusions. They shall not affect the organization’s ability and responsibility to provide business continuity,
+    as determined by the business impact analysis or risk assessment and applicable legal or regulatory requirements.'
+  statements:
+  - id: iso-22301-2019.4.3.2.a
+    label: a)
+    body: The organization shall establish the parts of the organization to be included in the BCMS, taking into account its
+      location(s), size, nature and complexity.
+    notes: ''
+  - id: iso-22301-2019.4.3.2.b
+    label: b)
+    body: The organization shall identify products and services to be included in the BCMS.
+    notes: ''
+- id: '4.4'
+  heading: Business continuity management system
+  type: clause
+  suggested_control_id: iso-22301-2019.4.4
+  notes: ''
+  text: The organization shall establish, implement, maintain and continually improve a BCMS, including the processes needed
+    and their interactions, in accordance with the requirements of this document.
+- id: '5'
+  heading: Leadership
+  type: clause
+  suggested_control_id: iso-22301-2019.5
+  notes: ''
+  text: ''
+- id: '5.1'
+  heading: Leadership and commitment
+  type: clause
+  suggested_control_id: iso-22301-2019.5.1
+  notes: ''
+  text: 'Top management shall demonstrate leadership and commitment with respect to the BCMSby:
+
+    a) ensuring that the business continuity policy and business continuity objectives are established and are compatible
+    with the strategic direction of the organization;
+
+    b) ensuring the integration of the BCMSrequirements into the organization’s business processes;
+
+    c) ensuring that the resources needed for the BCMSare available;
+
+    d) communicating the importance of effective business continuity and of conforming to the BCMS requirements;
+
+    e) ensuring that the BCMSachieves its intended outcome(s);
+
+    f) directing and supporting persons to contribute to the effectiveness of the BCMS;
+
+    g) promoting continual improvement;
+
+    h) supporting other relevant managerial roles to demonstrate their leadership and commitment as it applies to their areas
+    of responsibility.
+
+    NOTE Reference to “business” in this document can be interpreted broadly to mean those activities that are core to the
+    purposes of the organization’s existence.'
+  statements:
+  - id: iso-22301-2019.5.1.a
+    label: a)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby ensuring that the business
+      continuity policy and business continuity objectives are established and are compatible with the strategic direction
+      of the organization.
+    notes: ''
+  - id: iso-22301-2019.5.1.b
+    label: b)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby ensuring the integration of
+      the BCMSrequirements into the organization’s business processes.
+    notes: ''
+  - id: iso-22301-2019.5.1.c
+    label: c)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby ensuring that the resources
+      needed for the BCMSare available.
+    notes: ''
+  - id: iso-22301-2019.5.1.d
+    label: d)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby communicating the importance
+      of effective business continuity and of conforming to the BCMS requirements.
+    notes: ''
+  - id: iso-22301-2019.5.1.e
+    label: e)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby ensuring that the BCMSachieves
+      its intended outcome(s).
+    notes: ''
+  - id: iso-22301-2019.5.1.f
+    label: f)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby directing and supporting persons
+      to contribute to the effectiveness of the BCMS.
+    notes: ''
+  - id: iso-22301-2019.5.1.g
+    label: g)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby promoting continual improvement.
+    notes: ''
+  - id: iso-22301-2019.5.1.h
+    label: h)
+    body: Top management shall demonstrate leadership and commitment with respect to the BCMSby supporting other relevant
+      managerial roles to demonstrate their leadership and commitment as it applies to their areas of responsibility.
+    notes: ''
+- id: '5.2'
+  heading: Policy
+  type: clause
+  suggested_control_id: iso-22301-2019.5.2
+  notes: ''
+  text: ''
+- id: 5.2.1
+  heading: Establishing the business continuity policy
+  type: clause
+  suggested_control_id: iso-22301-2019.5.2.1
+  notes: ''
+  text: 'Top management shall establish a business continuity policy that:
+
+    a) is appropriate to the purpose of the organization;
+
+    b) provides a framework for setting business continuity objectives;
+
+    c) includes a commitment to satisfy applicable requirements; Copyright International Organization for Standardization
+    Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction
+    or networking permitted without license from IHS Not for Resale, 04/20/2020 21:43:33 MDT
+
+    d) includes a commitment to continual improvement of the BCMS.'
+  statements:
+  - id: iso-22301-2019.5.2.1.block-1
+    label: block-1
+    body: Top management shall establish a business continuity policy that.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.5.2.1.block-1.a
+      label: a)
+      body: Top management shall establish a business continuity policy that is appropriate to the purpose of the organization.
+      notes: ''
+    - id: iso-22301-2019.5.2.1.block-1.b
+      label: b)
+      body: Top management shall establish a business continuity policy that provides a framework for setting business continuity
+        objectives.
+      notes: ''
+    - id: iso-22301-2019.5.2.1.block-1.c
+      label: c)
+      body: Top management shall establish a business continuity policy that includes a commitment to satisfy applicable requirements.
+      notes: ''
+  - id: iso-22301-2019.5.2.1.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not
+      for Resale, 04/20/2020 21:43:33 MDT.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.5.2.1.block-2.d
+      label: d)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Includes a commitment to continual improvement of the BCMS.
+      notes: ''
+- id: 5.2.2
+  heading: Communicating the business continuity policy
+  type: clause
+  suggested_control_id: iso-22301-2019.5.2.2
+  notes: ''
+  text: 'The business continuity policy shall:
+
+    a) be available as documented information;
+
+    b) be communicated within the organization;
+
+    c) be available to interested parties, as appropriate.'
+  statements:
+  - id: iso-22301-2019.5.2.2.a
+    label: a)
+    body: The business continuity policy shall be available as documented information.
+    notes: ''
+  - id: iso-22301-2019.5.2.2.b
+    label: b)
+    body: The business continuity policy shall be communicated within the organization.
+    notes: ''
+  - id: iso-22301-2019.5.2.2.c
+    label: c)
+    body: The business continuity policy shall be available to interested parties, as appropriate.
+    notes: ''
+- id: '5.3'
+  heading: Roles, responsibilities and authorities
+  type: clause
+  suggested_control_id: iso-22301-2019.5.3
+  notes: ''
+  text: 'Top management shall ensure that the responsibilities and authorities for relevant roles are assigned and communicated
+    within the organization. Top management shall assign the responsibility and authority for:
+
+    a) ensuring that the BCMSconforms to the requirements of this document;
+
+    b) reporting on the performance of the BCMSto top management.'
+  statements:
+  - id: iso-22301-2019.5.3.a
+    label: a)
+    body: Top management shall ensure that the responsibilities and authorities for relevant roles are assigned and communicated
+      within the organization. Top management shall assign the responsibility and authority for ensuring that the BCMSconforms
+      to the requirements of this document.
+    notes: ''
+  - id: iso-22301-2019.5.3.b
+    label: b)
+    body: Top management shall ensure that the responsibilities and authorities for relevant roles are assigned and communicated
+      within the organization. Top management shall assign the responsibility and authority for reporting on the performance
+      of the BCMSto top management.
+    notes: ''
+- id: '6'
+  heading: Planning
+  type: clause
+  suggested_control_id: iso-22301-2019.6
+  notes: ''
+  text: ''
+- id: '6.1'
+  heading: Actions to address risks and opportunities
+  type: clause
+  suggested_control_id: iso-22301-2019.6.1
+  notes: ''
+  text: ''
+- id: 6.1.1
+  heading: Determining risks and opportunities
+  type: clause
+  suggested_control_id: iso-22301-2019.6.1.1
+  notes: ''
+  text: 'When planning for the BCMS, the organization shall consider the issues referred to in 4.1 and the requirements referred
+    to in 4.2 and determine the risks and opportunities that need to be addressed to:
+
+    a) give assurance that the BCMScan achieve its intended outcome(s);
+
+    b) prevent, or reduce, undesired effects;
+
+    c) achieve continual improvement.'
+  statements:
+  - id: iso-22301-2019.6.1.1.a
+    label: a)
+    body: When planning for the BCMS, the organization shall consider the issues referred to in 4.1 and the requirements referred
+      to in 4.2 and determine the risks and opportunities that need to be addressed to give assurance that the BCMScan achieve
+      its intended outcome(s).
+    notes: ''
+  - id: iso-22301-2019.6.1.1.b
+    label: b)
+    body: When planning for the BCMS, the organization shall consider the issues referred to in 4.1 and the requirements referred
+      to in 4.2 and determine the risks and opportunities that need to be addressed to prevent, or reduce, undesired effects.
+    notes: ''
+  - id: iso-22301-2019.6.1.1.c
+    label: c)
+    body: When planning for the BCMS, the organization shall consider the issues referred to in 4.1 and the requirements referred
+      to in 4.2 and determine the risks and opportunities that need to be addressed to achieve continual improvement.
+    notes: ''
+- id: 6.1.2
+  heading: Addressing risks and opportunities
+  type: clause
+  suggested_control_id: iso-22301-2019.6.1.2
+  notes: ''
+  text: 'The organization shall plan:
+
+    a) actions to address these risks and opportunities;
+
+    b) how to:
+
+    1) integrate and implement the actions into its BCMSprocesses (see 8.1);
+
+    2) evaluate the effectiveness of these actions (see 9.1).
+
+    NOTE Risks and opportunities relate to the effectiveness of the management system. Risks related to disruption of the
+    business are addressed in 8.2.'
+  statements:
+  - id: iso-22301-2019.6.1.2.a
+    label: a)
+    body: The organization shall plan actions to address these risks and opportunities.
+    notes: ''
+  - id: iso-22301-2019.6.1.2.b
+    label: b)
+    body: The organization shall plan how to.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.6.1.2.b.1
+      label: 1)
+      body: The organization shall plan how to integrate and implement the actions into its BCMSprocesses (see 8.1).
+      notes: ''
+    - id: iso-22301-2019.6.1.2.b.2
+      label: 2)
+      body: The organization shall plan how to evaluate the effectiveness of these actions (see 9.1).
+      notes: ''
+- id: '6.2'
+  heading: Business continuity objectives and planning to achieve them
+  type: clause
+  suggested_control_id: iso-22301-2019.6.2
+  notes: ''
+  text: ''
+- id: 6.2.1
+  heading: Establishing business continuity objectives
+  type: clause
+  suggested_control_id: iso-22301-2019.6.2.1
+  notes: ''
+  text: 'The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+    Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol,
+    Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle
+    rfroimg hIHtSs reserved The business continuity objectives shall:
+
+    a) be consistent with the business continuity policy;
+
+    b) be measurable (if practicable);
+
+    c) take into account applicable requirements (see 4.1 and 4.2);
+
+    d) be monitored;
+
+    e) be communicated;
+
+    f) be updated as appropriate. The organization shall retain documented information on the business continuity objectives.'
+  statements:
+  - id: iso-22301-2019.6.2.1.a
+    label: a)
+    body: The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+      Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+      User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0
+      w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The business continuity objectives shall be consistent with the business
+      continuity policy.
+    notes: ''
+  - id: iso-22301-2019.6.2.1.b
+    label: b)
+    body: The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+      Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+      User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0
+      w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The business continuity objectives shall be measurable (if practicable).
+    notes: ''
+  - id: iso-22301-2019.6.2.1.c
+    label: c)
+    body: The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+      Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+      User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0
+      w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The business continuity objectives shall take into account applicable requirements
+      (see 4.1 and 4.2).
+    notes: ''
+  - id: iso-22301-2019.6.2.1.d
+    label: d)
+    body: The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+      Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+      User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0
+      w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The business continuity objectives shall be monitored.
+    notes: ''
+  - id: iso-22301-2019.6.2.1.e
+    label: e)
+    body: The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+      Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+      User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0
+      w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The business continuity objectives shall be communicated.
+    notes: ''
+  - id: iso-22301-2019.6.2.1.f
+    label: f)
+    body: The organization shall establish business continuity objectives at relevant functions and levels. Copyright International
+      Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+      User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0
+      w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The business continuity objectives shall be updated as appropriate.
+    notes: ''
+- id: 6.2.2
+  heading: Determining business continuity objectives
+  type: clause
+  suggested_control_id: iso-22301-2019.6.2.2
+  notes: ''
+  text: 'When planning how to achieve its business continuity objectives, the organization shall determine:
+
+    a) what will be done;
+
+    b) what resources will be required;
+
+    c) who will be responsible;
+
+    d) when it will be completed;
+
+    e) how the results will be evaluated.'
+  statements:
+  - id: iso-22301-2019.6.2.2.a
+    label: a)
+    body: When planning how to achieve its business continuity objectives, the organization shall determine what will be done.
+    notes: ''
+  - id: iso-22301-2019.6.2.2.b
+    label: b)
+    body: When planning how to achieve its business continuity objectives, the organization shall determine what resources
+      will be required.
+    notes: ''
+  - id: iso-22301-2019.6.2.2.c
+    label: c)
+    body: When planning how to achieve its business continuity objectives, the organization shall determine who will be responsible.
+    notes: ''
+  - id: iso-22301-2019.6.2.2.d
+    label: d)
+    body: When planning how to achieve its business continuity objectives, the organization shall determine when it will be
+      completed.
+    notes: ''
+  - id: iso-22301-2019.6.2.2.e
+    label: e)
+    body: When planning how to achieve its business continuity objectives, the organization shall determine how the results
+      will be evaluated.
+    notes: ''
+- id: '6.3'
+  heading: Planning changes to the business continuity management system
+  type: clause
+  suggested_control_id: iso-22301-2019.6.3
+  notes: ''
+  text: 'When the organization determines the need for changes to the BCMS, including those identified in Clause 10, the changes
+    shall be carried out in a planned manner. The organization shall consider:
+
+    a) the purpose of the changes and their potential consequences;
+
+    b) the integrity of the BCMS;
+
+    c) the availability of resources;
+
+    d) the allocation or reallocation of responsibilities and authorities.'
+  statements:
+  - id: iso-22301-2019.6.3.a
+    label: a)
+    body: When the organization determines the need for changes to the BCMS, including those identified in Clause 10, the
+      changes shall be carried out in a planned manner. The organization shall consider the purpose of the changes and their
+      potential consequences.
+    notes: ''
+  - id: iso-22301-2019.6.3.b
+    label: b)
+    body: When the organization determines the need for changes to the BCMS, including those identified in Clause 10, the
+      changes shall be carried out in a planned manner. The organization shall consider the integrity of the BCMS.
+    notes: ''
+  - id: iso-22301-2019.6.3.c
+    label: c)
+    body: When the organization determines the need for changes to the BCMS, including those identified in Clause 10, the
+      changes shall be carried out in a planned manner. The organization shall consider the availability of resources.
+    notes: ''
+  - id: iso-22301-2019.6.3.d
+    label: d)
+    body: When the organization determines the need for changes to the BCMS, including those identified in Clause 10, the
+      changes shall be carried out in a planned manner. The organization shall consider the allocation or reallocation of
+      responsibilities and authorities.
+    notes: ''
+- id: '7'
+  heading: Support
+  type: clause
+  suggested_control_id: iso-22301-2019.7
+  notes: ''
+  text: ''
+- id: '7.1'
+  heading: Resources
+  type: clause
+  suggested_control_id: iso-22301-2019.7.1
+  notes: ''
+  text: The organization shall determine and provide the resources needed for the establishment, implementation, maintenance
+    and continual improvement of the BCMS.
+- id: '7.2'
+  heading: Competence
+  type: clause
+  suggested_control_id: iso-22301-2019.7.2
+  notes: ''
+  text: 'The organization shall:
+
+    a) determine the necessary competence of person(s) doing work under its control that affects its business continuity performance;
+
+    b) ensure that these persons are competent on the basis of appropriate education, training, or experience; Copyright International
+    Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol,
+    Siwaporn No reproduction or networking permitted without license from IHS Not for Resale, 04/20/2020 21:43:33 MDT
+
+    c) where applicable, take actions to acquire the necessary competence, and evaluate the effectiveness of the actions taken;
+
+    d) retain appropriate documented information as evidence of competence.
+
+    NOTE Applicable actions can include, for example, the provision of training to, the mentoring of, or the re- assignment
+    of currently employed persons; or the hiring or contracting of competent persons.'
+  statements:
+  - id: iso-22301-2019.7.2.block-1
+    label: block-1
+    body: The organization shall.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.7.2.block-1.a
+      label: a)
+      body: The organization shall determine the necessary competence of person(s) doing work under its control that affects
+        its business continuity performance.
+      notes: ''
+    - id: iso-22301-2019.7.2.block-1.b
+      label: b)
+      body: The organization shall ensure that these persons are competent on the basis of appropriate education, training,
+        or experience.
+      notes: ''
+  - id: iso-22301-2019.7.2.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not
+      for Resale, 04/20/2020 21:43:33 MDT.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.7.2.block-2.c
+      label: c)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Where applicable, take actions to acquire the necessary competence, and evaluate
+        the effectiveness of the actions taken.
+      notes: ''
+    - id: iso-22301-2019.7.2.block-2.d
+      label: d)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Retain appropriate documented information as evidence of competence.
+      notes: ''
+- id: '7.3'
+  heading: Awareness
+  type: clause
+  suggested_control_id: iso-22301-2019.7.3
+  notes: ''
+  text: 'Persons doing work under the organization’s control shall be aware of:
+
+    a) the business continuity policy;
+
+    b) their contribution to the effectiveness of the BCMS, including the benefits of improved business continuity performance;
+
+    c) the implications of not conforming with the BCMSrequirements;
+
+    d) their own role and responsibilities before, during and after disruptions.'
+  statements:
+  - id: iso-22301-2019.7.3.a
+    label: a)
+    body: Persons doing work under the organization’s control shall be aware of the business continuity policy.
+    notes: ''
+  - id: iso-22301-2019.7.3.b
+    label: b)
+    body: Persons doing work under the organization’s control shall be aware of their contribution to the effectiveness of
+      the BCMS, including the benefits of improved business continuity performance.
+    notes: ''
+  - id: iso-22301-2019.7.3.c
+    label: c)
+    body: Persons doing work under the organization’s control shall be aware of the implications of not conforming with the
+      BCMSrequirements.
+    notes: ''
+  - id: iso-22301-2019.7.3.d
+    label: d)
+    body: Persons doing work under the organization’s control shall be aware of their own role and responsibilities before,
+      during and after disruptions.
+    notes: ''
+- id: '7.4'
+  heading: Communication
+  type: clause
+  suggested_control_id: iso-22301-2019.7.4
+  notes: ''
+  text: 'The organization shall determine the internal and external communications relevant to the BCMS, including:
+
+    a) on what it will communicate;
+
+    b) when to communicate;
+
+    c) with whom to communicate;
+
+    d) how to communicate;
+
+    e) who will communicate.'
+  statements:
+  - id: iso-22301-2019.7.4.a
+    label: a)
+    body: The organization shall determine the internal and external communications relevant to the BCMS, including on what
+      it will communicate.
+    notes: ''
+  - id: iso-22301-2019.7.4.b
+    label: b)
+    body: The organization shall determine the internal and external communications relevant to the BCMS, including when to
+      communicate.
+    notes: ''
+  - id: iso-22301-2019.7.4.c
+    label: c)
+    body: The organization shall determine the internal and external communications relevant to the BCMS, including with whom
+      to communicate.
+    notes: ''
+  - id: iso-22301-2019.7.4.d
+    label: d)
+    body: The organization shall determine the internal and external communications relevant to the BCMS, including how to
+      communicate.
+    notes: ''
+  - id: iso-22301-2019.7.4.e
+    label: e)
+    body: The organization shall determine the internal and external communications relevant to the BCMS, including who will
+      communicate.
+    notes: ''
+- id: '7.5'
+  heading: Documented information
+  type: clause
+  suggested_control_id: iso-22301-2019.7.5
+  notes: ''
+  text: ''
+- id: 7.5.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.7.5.1
+  notes: ''
+  text: 'The organization’s BCMSshall include:
+
+    a) documented information required by this document;
+
+    b) documented information determined by the organization as being necessary for the effectiveness of the BCMS.
+
+    NOTE The extent of documented information for a BCMScan differ from one organization to another due to:
+
+    — the size of organization and its type of activities, processes, products and services, and resources;
+
+    — the complexity of processes and their interactions;
+
+    — the competence of persons.'
+  statements:
+  - id: iso-22301-2019.7.5.1.a
+    label: a)
+    body: The organization’s BCMSshall include documented information required by this document.
+    notes: ''
+  - id: iso-22301-2019.7.5.1.b
+    label: b)
+    body: The organization’s BCMSshall include documented information determined by the organization as being necessary for
+      the effectiveness of the BCMS.
+    notes: ''
+  - id: iso-22301-2019.7.5.1.stmt-1
+    label: —
+    body: The organization’s BCMSshall include the size of organization and its type of activities, processes, products and
+      services, and resources.
+    notes: ''
+  - id: iso-22301-2019.7.5.1.stmt-2
+    label: —
+    body: The organization’s BCMSshall include the complexity of processes and their interactions.
+    notes: ''
+  - id: iso-22301-2019.7.5.1.stmt-3
+    label: —
+    body: The organization’s BCMSshall include the competence of persons.
+    notes: ''
+- id: 7.5.2
+  heading: Creating and updating
+  type: clause
+  suggested_control_id: iso-22301-2019.7.5.2
+  notes: ''
+  text: 'When creating and updating documented information the organization shall ensure appropriate:
+
+    a) identification and description (e.g. a title, date, author, or reference number); software version graphics)
+
+    b) format (e.g. language, and media (e.g. paper, electronic); Copyright International Organization for Standardization
+    Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction
+    or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved
+    a c7). 5.3r eviCewon atnrodl opfp droovcualm foern stuedit ainbifloitrym aantdio andequacy. 7.5.3.1 Documented information
+    required by the BCMSand by this document shall be controlled to ensure:
+
+    a) it is available and suitable for use, where and when it is needed; b7).5 .3it. 2is adequately protected (e.g. from
+    loss of confidentiality, improper use, or loss of integrity). For the control of documented information, the organization
+    shall address the following activities, as applicable:
+
+    a) distribution, access, retrieval and use;
+
+    b) storage and preservation, including preservation of legibility;
+
+    c) control of changes (e.g. version control);
+
+    d) retention and disposition. Documented information of external origin determined by the organization to be necessary
+    for the planning and operation of the BCMSshall be identified, as appropriate, and controlled.
+
+    NOTE Access can imply a decision regarding the permission to view the documented information only, or the permission and
+    authority to view and change the documented information.'
+  statements:
+  - id: iso-22301-2019.7.5.2.block-1
+    label: block-1
+    body: When creating and updating documented information the organization shall ensure appropriate.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.7.5.2.block-1.a
+      label: a)
+      body: When creating and updating documented information the organization shall ensure appropriate identification and
+        description (e.g. a title, date, author, or reference number); software version graphics).
+      notes: ''
+    - id: iso-22301-2019.7.5.2.block-1.b
+      label: b)
+      body: When creating and updating documented information the organization shall ensure appropriate format (e.g. language,
+        and media (e.g. paper, electronic).
+      notes: ''
+  - id: iso-22301-2019.7.5.2.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+      pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved a c7). 5.3r eviCewon atnrodl opfp droovcualm foern stuedit
+      ainbifloitrym aantdio andequacy. 7.5.3.1 Documented information required by the BCMSand by this document shall be controlled
+      to ensure.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.7.5.2.block-2.a
+      label: a)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved a c7). 5.3r eviCewon atnrodl opfp droovcualm foern stuedit
+        ainbifloitrym aantdio andequacy. 7.5.3.1 Documented information required by the BCMSand by this document shall be
+        controlled to ensure it is available and suitable for use, where and when it is needed; b7).5 .3it. 2is adequately
+        protected (e.g. from loss of confidentiality, improper use, or loss of integrity).
+      notes: ''
+  - id: iso-22301-2019.7.5.2.block-3
+    label: block-3
+    body: For the control of documented information, the organization shall address the following activities, as applicable.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.7.5.2.block-3.a
+      label: a)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        distribution, access, retrieval and use.
+      notes: ''
+    - id: iso-22301-2019.7.5.2.block-3.b
+      label: b)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        storage and preservation, including preservation of legibility.
+      notes: ''
+    - id: iso-22301-2019.7.5.2.block-3.c
+      label: c)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        control of changes (e.g. version control).
+      notes: ''
+    - id: iso-22301-2019.7.5.2.block-3.d
+      label: d)
+      body: For the control of documented information, the organization shall address the following activities, as applicable
+        retention and disposition.
+      notes: ''
+- id: '8'
+  heading: Operation
+  type: clause
+  suggested_control_id: iso-22301-2019.8
+  notes: ''
+  text: ''
+- id: '8.1'
+  heading: Operational planning and control
+  type: clause
+  suggested_control_id: iso-22301-2019.8.1
+  notes: ''
+  text: 'The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+    actions determined in 6.1, by:
+
+    a) establishing criteria for the processes;
+
+    b) implementing control of the processes in accordance with the criteria;
+
+    c) keeping documented information to the extent necessary to have confidence that the processes have been carried out
+    as planned. The organization shall control planned changes and review the consequences of unintended changes, taking action
+    to mitigate any adverse effects, as necessary. T8h.2e orBguansiiznaetsiosn mshpalal cetn saunrael tyhsaits oauntdso ruirscke
+    da pssroecsessmseesn atnd the supply chain are controlled. i'
+  statements:
+  - id: iso-22301-2019.8.1.a
+    label: a)
+    body: The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+      actions determined in 6.1, by establishing criteria for the processes.
+    notes: ''
+  - id: iso-22301-2019.8.1.b
+    label: b)
+    body: The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+      actions determined in 6.1, by implementing control of the processes in accordance with the criteria.
+    notes: ''
+  - id: iso-22301-2019.8.1.c
+    label: c)
+    body: The organization shall plan, implement and control the processes needed to meet requirements, and to implement the
+      actions determined in 6.1, by keeping documented information to the extent necessary to have confidence that the processes
+      have been carried out as planned.
+    notes: ''
+- id: 8.2.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.8.2.1
+  notes: ''
+  text: 'The organization shall:
+
+    a) implement and maintain systematic processes for analysing the business impact and assessing the risks of disruption;
+
+    b) review the business impact analysis and risk assessment at planned intervals and when there are significant changes
+    within the organization or the context in which it operates.
+
+    NOTE The organization determines the order in which the business impact analysis and risk assessment are conducted. Copyright
+    International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+    User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not for Resale, 04/20/2020
+    21:43:33 MDT'
+  statements:
+  - id: iso-22301-2019.8.2.1.a
+    label: a)
+    body: The organization shall implement and maintain systematic processes for analysing the business impact and assessing
+      the risks of disruption.
+    notes: ''
+  - id: iso-22301-2019.8.2.1.b
+    label: b)
+    body: The organization shall review the business impact analysis and risk assessment at planned intervals and when there
+      are significant changes within the organization or the context in which it operates.
+    notes: ''
+- id: 8.2.2
+  heading: Business impact analysis
+  type: clause
+  suggested_control_id: iso-22301-2019.8.2.2
+  notes: ''
+  text: 'The organization shall use the process for analysing business impacts to determine business continuity priorities
+    and requirements. The process shall:
+
+    a) define the impact types and criteria relevant to the organization’s context;
+
+    b) identify the activities that support the provision of products and services;
+
+    c) use the impact types and criteria for assessing the impacts over time resulting from the disruption of these activities;
+
+    d) identify the time frame within which the impacts of not resuming activities would become unacceptable to the organization;
+
+    NOTE 1 This time frame can be referred to as the "maximum tolerable period of disruption (MTPD)".
+
+    e) set prioritized time frames within the time identified in d) for resuming disrupted activities at a specified minimum
+    acceptable capacity;
+
+    NOTE 2 This time frame can be referred to as the "recovery time objective (RTO)".
+
+    f) use this analysis to identify prioritized activities;
+
+    g) determine which resources are needed to support prioritized activities;
+
+    h) determine the dependencies, including partners and suppliers, and interdependencies of prioritized activities.'
+  statements:
+  - id: iso-22301-2019.8.2.2.a
+    label: a)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall define the impact types and criteria relevant to the organization’s context.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.b
+    label: b)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall identify the activities that support the provision of products and services.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.c
+    label: c)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall use the impact types and criteria for assessing the impacts over time resulting
+      from the disruption of these activities.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.d
+    label: d)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall identify the time frame within which the impacts of not resuming activities would
+      become unacceptable to the organization.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.e
+    label: e)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall set prioritized time frames within the time identified in d) for resuming disrupted
+      activities at a specified minimum acceptable capacity.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.f
+    label: f)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall use this analysis to identify prioritized activities.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.g
+    label: g)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall determine which resources are needed to support prioritized activities.
+    notes: ''
+  - id: iso-22301-2019.8.2.2.h
+    label: h)
+    body: The organization shall use the process for analysing business impacts to determine business continuity priorities
+      and requirements. The process shall determine the dependencies, including partners and suppliers, and interdependencies
+      of prioritized activities.
+    notes: ''
+- id: 8.2.3
+  heading: Risk assessment
+  type: clause
+  suggested_control_id: iso-22301-2019.8.2.3
+  notes: ''
+  text: 'The organization shall implement and maintain a risk assessment process.
+
+    NOTE The process for risk assessment is addressed in ISO 31000. The organization shall:
+
+    a) identify the risks of disruption to the organization’s prioritized activities and to their required resources;
+
+    b) analyse and evaluate the identified risks;
+
+    c) determine which risks require treatment.
+
+    NOTE Risks in this subclause relate to the disruption of business activities. Risks and opportunities related to the effectiveness
+    of the management system are addressed in 6.1.'
+  statements:
+  - id: iso-22301-2019.8.2.3.a
+    label: a)
+    body: The organization shall implement and maintain a risk assessment process. Identify the risks of disruption to the
+      organization’s prioritized activities and to their required resources.
+    notes: ''
+  - id: iso-22301-2019.8.2.3.b
+    label: b)
+    body: The organization shall implement and maintain a risk assessment process. Analyse and evaluate the identified risks.
+    notes: ''
+  - id: iso-22301-2019.8.2.3.c
+    label: c)
+    body: The organization shall implement and maintain a risk assessment process. Determine which risks require treatment.
+    notes: ''
+- id: '8.3'
+  heading: Business continuity strategies and solutions
+  type: clause
+  suggested_control_id: iso-22301-2019.8.3
+  notes: ''
+  text: ''
+- id: 8.3.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.8.3.1
+  notes: ''
+  text: Based on the outputs from the business impact analysis and risk assessment, the organization shall identify and select
+    business continuity strategies that consider options for before, during and after disruption. The business continuity
+    strategies shall be comprised of one or more solutions.
+- id: 8.3.2
+  heading: Identification of strategies and solutions
+  type: clause
+  suggested_control_id: iso-22301-2019.8.3.2
+  notes: ''
+  text: 'Identification shall be based on the extent to which strategies and solutions:
+
+    a) meet the requirements to continue and recover prioritized activities within the identified time frames and agreed capacity;
+    Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC
+    Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+    pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved
+
+    b) protect the organization’s prioritized activities;
+
+    c) reduce the likelihood of disruption;
+
+    d) shorten the period of disruption;
+
+    e) limit the impact of disruption on the organization’s products and services;
+
+    f) provide for the availability of adequate resources.'
+  statements:
+  - id: iso-22301-2019.8.3.2.block-1
+    label: block-1
+    body: Identification shall be based on the extent to which strategies and solutions.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.3.2.block-1.a
+      label: a)
+      body: Identification shall be based on the extent to which strategies and solutions meet the requirements to continue
+        and recover prioritized activities within the identified time frames and agreed capacity.
+      notes: ''
+  - id: iso-22301-2019.8.3.2.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+      pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.3.2.block-2.b
+      label: b)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Protect the organization’s prioritized activities.
+      notes: ''
+    - id: iso-22301-2019.8.3.2.block-2.c
+      label: c)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Reduce the likelihood of disruption.
+      notes: ''
+    - id: iso-22301-2019.8.3.2.block-2.d
+      label: d)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Shorten the period of disruption.
+      notes: ''
+    - id: iso-22301-2019.8.3.2.block-2.e
+      label: e)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Limit the impact of disruption on the organization’s products
+        and services.
+      notes: ''
+    - id: iso-22301-2019.8.3.2.block-2.f
+      label: f)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Provide for the availability of adequate resources.
+      notes: ''
+- id: 8.3.3
+  heading: Selection of strategies and solutions
+  type: clause
+  suggested_control_id: iso-22301-2019.8.3.3
+  notes: ''
+  text: 'Selection shall be based on the extent to which strategies and solutions:
+
+    a) meet the requirements to continue and recover prioritized activities within the identified time frames and agreed capacity;
+
+    b) consider the amount and type of risk the organization may or may not take;
+
+    c) consider associated costs and benefits.'
+  statements:
+  - id: iso-22301-2019.8.3.3.a
+    label: a)
+    body: Selection shall be based on the extent to which strategies and solutions meet the requirements to continue and recover
+      prioritized activities within the identified time frames and agreed capacity.
+    notes: ''
+  - id: iso-22301-2019.8.3.3.b
+    label: b)
+    body: Selection shall be based on the extent to which strategies and solutions consider the amount and type of risk the
+      organization may or may not take.
+    notes: ''
+  - id: iso-22301-2019.8.3.3.c
+    label: c)
+    body: Selection shall be based on the extent to which strategies and solutions consider associated costs and benefits.
+    notes: ''
+- id: 8.3.4
+  heading: Resource requirements
+  type: clause
+  suggested_control_id: iso-22301-2019.8.3.4
+  notes: ''
+  text: 'The organization shall determine the resource requirements to implement the selected business continuity solutions.
+    The types of resources considered shall include, but not be limited to:
+
+    a) people;
+
+    b) information and data;
+
+    c) physical infrastructure such as buildings, workplaces or other facilities and associated utilities;
+
+    d) equipment and consumables;
+
+    e) information and communication technology (ICT) systems;
+
+    f) transportation and logistics;
+
+    g) finance;
+
+    h) partners and suppliers.'
+  statements:
+  - id: iso-22301-2019.8.3.4.a
+    label: a)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to people.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.b
+    label: b)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to information and data.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.c
+    label: c)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to physical infrastructure such as buildings, workplaces
+      or other facilities and associated utilities.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.d
+    label: d)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to equipment and consumables.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.e
+    label: e)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to information and communication technology (ICT)
+      systems.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.f
+    label: f)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to transportation and logistics.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.g
+    label: g)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to finance.
+    notes: ''
+  - id: iso-22301-2019.8.3.4.h
+    label: h)
+    body: The organization shall determine the resource requirements to implement the selected business continuity solutions.
+      The types of resources considered shall include, but not be limited to partners and suppliers.
+    notes: ''
+- id: 8.3.5
+  heading: Implementation of solutions
+  type: clause
+  suggested_control_id: iso-22301-2019.8.3.5
+  notes: ''
+  text: The organization shall implement and maintain selected business continuity solutions so they can be activated when
+    needed.
+- id: '8.4'
+  heading: Business continuity plans and procedures
+  type: clause
+  suggested_control_id: iso-22301-2019.8.4
+  notes: ''
+  text: ''
+- id: 8.4.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.8.4.1
+  notes: ''
+  text: 'The organization shall implement and maintain a response structure that will enable timely warning and communication
+    to relevant interested parties. It shall provide plans and procedures to manage the organization during a disruption.
+    The plans and procedures shall be used when required to activate business continuity solutions.
+
+    NOTE There are different types of procedures that comprise business continuity plans. The organization shall identify
+    and document business continuity plans and procedures based on the output of the selected strategies and solutions. Copyright
+    International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002,
+    User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not for Resale, 04/20/2020
+    21:43:33 MDT The procedures shall:
+
+    a) be specific regarding the immediate steps that are to be taken during a disruption;
+
+    b) be flexible to respond to the changing internal and external conditions of a disruption;
+
+    c) focus on the impact of incidents that potentially lead to disruption;
+
+    d) be effective in minimizing the impact through the implementation of appropriate solutions;
+
+    e) assign roles and responsibilities for tasks within them.'
+  statements:
+  - id: iso-22301-2019.8.4.1.a
+    label: a)
+    body: The organization shall implement and maintain a response structure that will enable timely warning and communication
+      to relevant interested parties. It shall provide plans and procedures to manage the organization during a disruption.
+      The plans and procedures shall be used when required to activate business continuity solutions. Be specific regarding
+      the immediate steps that are to be taken during a disruption.
+    notes: ''
+  - id: iso-22301-2019.8.4.1.b
+    label: b)
+    body: The organization shall implement and maintain a response structure that will enable timely warning and communication
+      to relevant interested parties. It shall provide plans and procedures to manage the organization during a disruption.
+      The plans and procedures shall be used when required to activate business continuity solutions. Be flexible to respond
+      to the changing internal and external conditions of a disruption.
+    notes: ''
+  - id: iso-22301-2019.8.4.1.c
+    label: c)
+    body: The organization shall implement and maintain a response structure that will enable timely warning and communication
+      to relevant interested parties. It shall provide plans and procedures to manage the organization during a disruption.
+      The plans and procedures shall be used when required to activate business continuity solutions. Focus on the impact
+      of incidents that potentially lead to disruption.
+    notes: ''
+  - id: iso-22301-2019.8.4.1.d
+    label: d)
+    body: The organization shall implement and maintain a response structure that will enable timely warning and communication
+      to relevant interested parties. It shall provide plans and procedures to manage the organization during a disruption.
+      The plans and procedures shall be used when required to activate business continuity solutions. Be effective in minimizing
+      the impact through the implementation of appropriate solutions.
+    notes: ''
+  - id: iso-22301-2019.8.4.1.e
+    label: e)
+    body: The organization shall implement and maintain a response structure that will enable timely warning and communication
+      to relevant interested parties. It shall provide plans and procedures to manage the organization during a disruption.
+      The plans and procedures shall be used when required to activate business continuity solutions. Assign roles and responsibilities
+      for tasks within them.
+    notes: ''
+- id: 8.4.2
+  heading: Response structure
+  type: clause
+  suggested_control_id: iso-22301-2019.8.4.2
+  notes: ''
+  text: '8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+    responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+    shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to:
+
+    a) assess the nature and extent of a disruption and its potential impact;
+
+    b) assess the impact against pre-defined thresholds that justify initiation of a formal response;
+
+    c) activate an appropriate business continuity response;
+
+    d) plan actions that need to be undertaken;
+
+    e) establish priorities (using life safety as the first priority);
+
+    f) monitor the effects of the disruption and the organization’s response;
+
+    g) activate the business continuity solutions;
+
+    h) communicate with relevant interested parties, authorities and the media. 8.4.2.4 For each team there shall be:
+
+    a) identified personnel and their alternates with the necessary responsibility, authority and competence to perform their
+    designated role;
+
+    b) documented procedures to guide their actions (see 8.4.4), including those for the activation, operation, coordination
+    and communication of the response.'
+  statements:
+  - id: iso-22301-2019.8.4.2.block-1
+    label: block-1
+    body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+      responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+      shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.2.block-1.a
+      label: a)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to assess the nature and extent of a disruption
+        and its potential impact.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.b
+      label: b)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to assess the impact against pre-defined
+        thresholds that justify initiation of a formal response.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.c
+      label: c)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to activate an appropriate business continuity
+        response.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.d
+      label: d)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to plan actions that need to be undertaken.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.e
+      label: e)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to establish priorities (using life safety
+        as the first priority).
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.f
+      label: f)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to monitor the effects of the disruption
+        and the organization’s response.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.g
+      label: g)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to activate the business continuity solutions.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-1.h
+      label: h)
+      body: 8.4.2.1 The organization shall implement and maintain a structure, identifying one or more teams responsible for
+        responding to disruptions. 8.4.2.2 The roles and responsibilities of each team and the relationships between the teams
+        shall be clearly stated. 8.4.2.3 Collectively, the teams shall be competent to communicate with relevant interested
+        parties, authorities and the media. 8.4.2.4.
+      notes: ''
+  - id: iso-22301-2019.8.4.2.block-2
+    label: block-2
+    body: For each team there shall be.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.2.block-2.a
+      label: a)
+      body: For each team there shall be identified personnel and their alternates with the necessary responsibility, authority
+        and competence to perform their designated role.
+      notes: ''
+    - id: iso-22301-2019.8.4.2.block-2.b
+      label: b)
+      body: For each team there shall be documented procedures to guide their actions (see 8.4.4), including those for the
+        activation, operation, coordination and communication of the response.
+      notes: ''
+- id: 8.4.3
+  heading: Warning and communication
+  type: clause
+  suggested_control_id: iso-22301-2019.8.4.3
+  notes: ''
+  text: '8.4.3.1 The organization shall document and maintain procedures for:
+
+    a) communicating internally and externally to relevant interested parties, including what, when, with whom and how to
+    communicate;
+
+    NOTE The organization can document and maintain procedures for how, and under what circumstances, the organization communicates
+    with employees and their emergency contacts.
+
+    b) receiving, documenting and responding to communications from interested parties, including any national or regional
+    risk advisory system or equivalent;
+
+    c) ensuring the availability of the means of communication during a disruption; Copyright International Organization for
+    Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn
+    No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg
+    hIHtSs reserved
+
+    d) facilitating structured communication with emergency responders;
+
+    e) providing details of the organization’s media response following an incident, including a communications strategy;
+
+    f) recording the details of the disruption, the actions taken and the decisions made. 8.4.3.2 Where applicable, the following
+    shall also be considered and implemented:
+
+    a) alerting interested parties potentially impacted by an actual or impending disruption;
+
+    b) ensuring appropriate coordination and communication between multiple responding organizations. The warning and communication
+    procedures shall be exercised as part of the organization’s exercise programme described in 8.5.'
+  statements:
+  - id: iso-22301-2019.8.4.3.block-1
+    label: block-1
+    body: 8.4.3.1 The organization shall document and maintain procedures for.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.3.block-1.a
+      label: a)
+      body: 8.4.3.1 The organization shall document and maintain procedures for communicating internally and externally to
+        relevant interested parties, including what, when, with whom and how to communicate.
+      notes: ''
+    - id: iso-22301-2019.8.4.3.block-1.b
+      label: b)
+      body: 8.4.3.1 The organization shall document and maintain procedures for receiving, documenting and responding to communications
+        from interested parties, including any national or regional risk advisory system or equivalent.
+      notes: ''
+    - id: iso-22301-2019.8.4.3.block-1.c
+      label: c)
+      body: 8.4.3.1 The organization shall document and maintain procedures for ensuring the availability of the means of
+        communication during a disruption.
+      notes: ''
+  - id: iso-22301-2019.8.4.3.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+      pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.3.block-2.d
+      label: d)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Facilitating structured communication with emergency responders.
+      notes: ''
+    - id: iso-22301-2019.8.4.3.block-2.e
+      label: e)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Providing details of the organization’s media response
+        following an incident, including a communications strategy.
+      notes: ''
+    - id: iso-22301-2019.8.4.3.block-2.f
+      label: f)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Recording the details of the disruption, the actions taken
+        and the decisions made. 8.4.3.2.
+      notes: ''
+  - id: iso-22301-2019.8.4.3.block-3
+    label: block-3
+    body: Where applicable, the following shall also be considered and implemented.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.3.block-3.a
+      label: a)
+      body: Where applicable, the following shall also be considered and implemented alerting interested parties potentially
+        impacted by an actual or impending disruption.
+      notes: ''
+    - id: iso-22301-2019.8.4.3.block-3.b
+      label: b)
+      body: Where applicable, the following shall also be considered and implemented ensuring appropriate coordination and
+        communication between multiple responding organizations.
+      notes: ''
+- id: 8.4.4
+  heading: Business continuity plans
+  type: clause
+  suggested_control_id: iso-22301-2019.8.4.4
+  notes: ''
+  text: '8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business continuity
+    plans shall provide guidance and information to assist teams to respond to a disruption and to assist the organization
+    with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain:
+
+    a) details of the actions that the teams will take in order to:
+
+    1) continue or recover prioritized activities within predetermined time frames;
+
+    2) monitor the impact of the disruption and the organization’s response to it;
+
+    b) reference to the pre-defined threshold(s) and process for activating the response;
+
+    c) procedures to enable the delivery of products and services at agreed capacity;
+
+    d) details to manage the immediate consequences of a disruption giving due regard to:
+
+    1) the welfare of individuals;
+
+    2) the prevention of further loss or unavailability of prioritized activities;
+
+    3) the impact on the environment. 8.4.4.3 Each plan shall include:
+
+    a) the purpose, scope and objectives;
+
+    b) the roles and responsibilities of the team that will implement the plan;
+
+    c) actions to implement the solutions;
+
+    d) supporting information needed to activate (including activation criteria), operate, coordinate and communicate the
+    team’s actions;
+
+    e) internal and external interdependencies;
+
+    f) the resource requirements;
+
+    g) the reporting requirements;
+
+    h) a process for standing down. Each plan shall be usable and available at the time and place at which it is required.
+    Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC
+    Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not for
+    Resale, 04/20/2020 21:43:33 MDT'
+  statements:
+  - id: iso-22301-2019.8.4.4.block-1
+    label: block-1
+    body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business continuity
+      plans shall provide guidance and information to assist teams to respond to a disruption and to assist the organization
+      with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.4.block-1.a
+      label: a)
+      body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business continuity
+        plans shall provide guidance and information to assist teams to respond to a disruption and to assist the organization
+        with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details of the actions
+        that the teams will take in order to.
+      notes: ''
+      statements:
+      - id: iso-22301-2019.8.4.4.block-1.a.1
+        label: 1)
+        body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business
+          continuity plans shall provide guidance and information to assist teams to respond to a disruption and to assist
+          the organization with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details
+          of the actions that the teams will take in order to continue or recover prioritized activities within predetermined
+          time frames.
+        notes: ''
+      - id: iso-22301-2019.8.4.4.block-1.a.2
+        label: 2)
+        body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business
+          continuity plans shall provide guidance and information to assist teams to respond to a disruption and to assist
+          the organization with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details
+          of the actions that the teams will take in order to monitor the impact of the disruption and the organization’s
+          response to it.
+        notes: ''
+    - id: iso-22301-2019.8.4.4.block-1.b
+      label: b)
+      body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business continuity
+        plans shall provide guidance and information to assist teams to respond to a disruption and to assist the organization
+        with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain reference to the pre-defined
+        threshold(s) and process for activating the response.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-1.c
+      label: c)
+      body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business continuity
+        plans shall provide guidance and information to assist teams to respond to a disruption and to assist the organization
+        with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain procedures to enable
+        the delivery of products and services at agreed capacity.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-1.d
+      label: d)
+      body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business continuity
+        plans shall provide guidance and information to assist teams to respond to a disruption and to assist the organization
+        with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details to manage the
+        immediate consequences of a disruption giving due regard to.
+      notes: ''
+      statements:
+      - id: iso-22301-2019.8.4.4.block-1.d.1
+        label: 1)
+        body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business
+          continuity plans shall provide guidance and information to assist teams to respond to a disruption and to assist
+          the organization with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details
+          to manage the immediate consequences of a disruption giving due regard to the welfare of individuals.
+        notes: ''
+      - id: iso-22301-2019.8.4.4.block-1.d.2
+        label: 2)
+        body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business
+          continuity plans shall provide guidance and information to assist teams to respond to a disruption and to assist
+          the organization with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details
+          to manage the immediate consequences of a disruption giving due regard to the prevention of further loss or unavailability
+          of prioritized activities.
+        notes: ''
+      - id: iso-22301-2019.8.4.4.block-1.d.3
+        label: 3)
+        body: 8.4.4.1 The organization shall document and maintain business continuity plans and procedures. The business
+          continuity plans shall provide guidance and information to assist teams to respond to a disruption and to assist
+          the organization with response and recovery. 8.4.4.2 Collectively, the business continuity plans shall contain details
+          to manage the immediate consequences of a disruption giving due regard to the impact on the environment. 8.4.4.3.
+        notes: ''
+  - id: iso-22301-2019.8.4.4.block-2
+    label: block-2
+    body: Each plan shall include.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.8.4.4.block-2.a
+      label: a)
+      body: Each plan shall include the purpose, scope and objectives.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.b
+      label: b)
+      body: Each plan shall include the roles and responsibilities of the team that will implement the plan.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.c
+      label: c)
+      body: Each plan shall include actions to implement the solutions.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.d
+      label: d)
+      body: Each plan shall include supporting information needed to activate (including activation criteria), operate, coordinate
+        and communicate the team’s actions.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.e
+      label: e)
+      body: Each plan shall include internal and external interdependencies.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.f
+      label: f)
+      body: Each plan shall include the resource requirements.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.g
+      label: g)
+      body: Each plan shall include the reporting requirements.
+      notes: ''
+    - id: iso-22301-2019.8.4.4.block-2.h
+      label: h)
+      body: Each plan shall include a process for standing down.
+      notes: ''
+- id: 8.4.5
+  heading: Recovery
+  type: clause
+  suggested_control_id: iso-22301-2019.8.4.5
+  notes: ''
+  text: The organization shall have documented processes to restore and return business activities from the temporary measures
+    adopted during and after a disruption.
+- id: '8.5'
+  heading: Exercise programme
+  type: clause
+  suggested_control_id: iso-22301-2019.8.5
+  notes: ''
+  text: 'The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+    of its business continuity strategies and solutions. The organization shall conduct exercises and tests that:
+
+    a) are consistent with its business continuity objectives;
+
+    b) are based on appropriate scenarios that are well planned with clearly defined aims and objectives;
+
+    c) develop teamwork, competence, confidence and knowledge for those who have roles to perform in relation to disruptions;
+
+    d) taken together over time, validate its business continuity strategies and solutions;
+
+    e) produce formalized post-exercise reports that contain outcomes, recommendations and actions to implement improvements;
+
+    f) are reviewed within the context of promoting continual improvement;
+
+    g) are performed at planned intervals and when there are significant changes within the organization or the context in
+    which it operates. The organization shall act on the results of its exercising and testing to implement changes and improvements.'
+  statements:
+  - id: iso-22301-2019.8.5.a
+    label: a)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that are consistent
+      with its business continuity objectives.
+    notes: ''
+  - id: iso-22301-2019.8.5.b
+    label: b)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that are based
+      on appropriate scenarios that are well planned with clearly defined aims and objectives.
+    notes: ''
+  - id: iso-22301-2019.8.5.c
+    label: c)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that develop
+      teamwork, competence, confidence and knowledge for those who have roles to perform in relation to disruptions.
+    notes: ''
+  - id: iso-22301-2019.8.5.d
+    label: d)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that taken together
+      over time, validate its business continuity strategies and solutions.
+    notes: ''
+  - id: iso-22301-2019.8.5.e
+    label: e)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that produce
+      formalized post-exercise reports that contain outcomes, recommendations and actions to implement improvements.
+    notes: ''
+  - id: iso-22301-2019.8.5.f
+    label: f)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that are reviewed
+      within the context of promoting continual improvement.
+    notes: ''
+  - id: iso-22301-2019.8.5.g
+    label: g)
+    body: The organization shall implement and maintain a programme of exercising and testing to validate over time the effectiveness
+      of its business continuity strategies and solutions. The organization shall conduct exercises and tests that are performed
+      at planned intervals and when there are significant changes within the organization or the context in which it operates.
+    notes: ''
+- id: '8.6'
+  heading: Evaluation of business continuity documentation and capabilities
+  type: clause
+  suggested_control_id: iso-22301-2019.8.6
+  notes: ''
+  text: 'The organization shall:
+
+    a) evaluate the suitability, adequacy and effectiveness of its business impact analysis, risk assessment, strategies,
+    solutions, plans and procedures;
+
+    b) undertake evaluations through reviews, analysis, exercises, tests, post-incident reports and performance evaluations;
+
+    c) conduct evaluations of the business continuity capabilities of relevant partners and suppliers;
+
+    d) evaluate compliance with applicable legal and regulatory requirements, industry best practices, and conformity with
+    its own business continuity policy and objectives;
+
+    e) update documentation and procedures in a timely manner. These evaluations shall be conducted at planned intervals,
+    after an incident or activation, and when significant changes occur.'
+  statements:
+  - id: iso-22301-2019.8.6.a
+    label: a)
+    body: The organization shall evaluate the suitability, adequacy and effectiveness of its business impact analysis, risk
+      assessment, strategies, solutions, plans and procedures.
+    notes: ''
+  - id: iso-22301-2019.8.6.b
+    label: b)
+    body: The organization shall undertake evaluations through reviews, analysis, exercises, tests, post-incident reports
+      and performance evaluations.
+    notes: ''
+  - id: iso-22301-2019.8.6.c
+    label: c)
+    body: The organization shall conduct evaluations of the business continuity capabilities of relevant partners and suppliers.
+    notes: ''
+  - id: iso-22301-2019.8.6.d
+    label: d)
+    body: The organization shall evaluate compliance with applicable legal and regulatory requirements, industry best practices,
+      and conformity with its own business continuity policy and objectives.
+    notes: ''
+  - id: iso-22301-2019.8.6.e
+    label: e)
+    body: The organization shall update documentation and procedures in a timely manner.
+    notes: ''
+- id: '9'
+  heading: Performance evaluation
+  type: clause
+  suggested_control_id: iso-22301-2019.9
+  notes: ''
+  text: ''
+- id: '9.1'
+  heading: Monitoring, measurement, analysis and evaluation
+  type: clause
+  suggested_control_id: iso-22301-2019.9.1
+  notes: ''
+  text: 'The organization shall determine:
+
+    a) what needs to be monitored and measured; Copyright International Organization for Standardization Provided by IHS Markit
+    under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for
+    Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved
+
+    b) the methods for monitoring, measurement, analysis and evaluation, as applicable, to ensure valid results;
+
+    c) when and by whom the monitoring and measuring shall be performed;
+
+    d) when and by whom the results from monitoring and measurement shall be analysed and evaluated. The organization shall
+    retain appropriate documented information as evidence of the results. The organization shall evaluate the BCMSperformance
+    and the effectiveness of the BCMS.'
+  statements:
+  - id: iso-22301-2019.9.1.block-1
+    label: block-1
+    body: The organization shall determine.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.1.block-1.a
+      label: a)
+      body: The organization shall determine what needs to be monitored and measured.
+      notes: ''
+  - id: iso-22301-2019.9.1.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+      pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.1.block-2.b
+      label: b)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved The methods for monitoring, measurement, analysis and
+        evaluation, as applicable, to ensure valid results.
+      notes: ''
+    - id: iso-22301-2019.9.1.block-2.c
+      label: c)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved When and by whom the monitoring and measuring shall be
+        performed.
+      notes: ''
+    - id: iso-22301-2019.9.1.block-2.d
+      label: d)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+        pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved When and by whom the results from monitoring and measurement
+        shall be analysed and evaluated.
+      notes: ''
+- id: '9.2'
+  heading: Internal audit
+  type: clause
+  suggested_control_id: iso-22301-2019.9.2
+  notes: ''
+  text: ''
+- id: 9.2.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.9.2.1
+  notes: ''
+  text: 'The organization shall conduct internal audits at planned intervals to provide information on whether the BCMS:
+
+    a) conforms to:
+
+    1) the organization’s own requirements for its BCMS;
+
+    2) the requirements of this document;
+
+    b) is effectively implemented and maintained.'
+  statements:
+  - id: iso-22301-2019.9.2.1.a
+    label: a)
+    body: The organization shall conduct internal audits at planned intervals to provide information on whether the BCMS conforms
+      to.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.2.1.a.1
+      label: 1)
+      body: The organization shall conduct internal audits at planned intervals to provide information on whether the BCMS
+        conforms to the organization’s own requirements for its BCMS.
+      notes: ''
+    - id: iso-22301-2019.9.2.1.a.2
+      label: 2)
+      body: The organization shall conduct internal audits at planned intervals to provide information on whether the BCMS
+        conforms to the requirements of this document.
+      notes: ''
+  - id: iso-22301-2019.9.2.1.b
+    label: b)
+    body: The organization shall conduct internal audits at planned intervals to provide information on whether the BCMS is
+      effectively implemented and maintained.
+    notes: ''
+- id: 9.2.2
+  heading: Audit programme(s)
+  type: clause
+  suggested_control_id: iso-22301-2019.9.2.2
+  notes: ''
+  text: 'The organization shall:
+
+    a) plan, establish, implement and maintain an audit programme(s) including the frequency, methods, responsibilities, planning
+    requirements and reporting, which shall take into consideration the importance of the processes concerned and the results
+    of previous audits;
+
+    b) define the audit criteria and scope for each audit;
+
+    c) select auditors and conduct audits to ensure objectivity and the impartiality of the audit process;
+
+    d) ensure that the results of the audits are reported to relevant managers;
+
+    e) retain documented information as evidence of the implementation of the audit programme(s) and the audit results;
+
+    f) ensure that any necessary corrective actions are taken without undue delay to eliminate detected nonconformities and
+    their causes;
+
+    g) ensure that follow-up audit actions include the verification of the actions taken and the reporting of verification
+    results.'
+  statements:
+  - id: iso-22301-2019.9.2.2.a
+    label: a)
+    body: The organization shall plan, establish, implement and maintain an audit programme(s) including the frequency, methods,
+      responsibilities, planning requirements and reporting, which shall take into consideration the importance of the processes
+      concerned and the results of previous audits.
+    notes: ''
+  - id: iso-22301-2019.9.2.2.b
+    label: b)
+    body: The organization shall define the audit criteria and scope for each audit.
+    notes: ''
+  - id: iso-22301-2019.9.2.2.c
+    label: c)
+    body: The organization shall select auditors and conduct audits to ensure objectivity and the impartiality of the audit
+      process.
+    notes: ''
+  - id: iso-22301-2019.9.2.2.d
+    label: d)
+    body: The organization shall ensure that the results of the audits are reported to relevant managers.
+    notes: ''
+  - id: iso-22301-2019.9.2.2.e
+    label: e)
+    body: The organization shall retain documented information as evidence of the implementation of the audit programme(s)
+      and the audit results.
+    notes: ''
+  - id: iso-22301-2019.9.2.2.f
+    label: f)
+    body: The organization shall ensure that any necessary corrective actions are taken without undue delay to eliminate detected
+      nonconformities and their causes.
+    notes: ''
+  - id: iso-22301-2019.9.2.2.g
+    label: g)
+    body: The organization shall ensure that follow-up audit actions include the verification of the actions taken and the
+      reporting of verification results.
+    notes: ''
+- id: '9.3'
+  heading: Management review
+  type: clause
+  suggested_control_id: iso-22301-2019.9.3
+  notes: ''
+  text: ''
+- id: 9.3.1
+  heading: General
+  type: clause
+  suggested_control_id: iso-22301-2019.9.3.1
+  notes: ''
+  text: Top management shall review the organization’s BCMS, at planned intervals, to ensure its continuing suitability, adequacy
+    and effectiveness.
+- id: 9.3.2
+  heading: Management review input
+  type: clause
+  suggested_control_id: iso-22301-2019.9.3.2
+  notes: ''
+  text: 'The management review shall include consideration of:
+
+    a) the status of actions from previous management reviews; Copyright International Organization for Standardization Provided
+    by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or
+    networking permitted without license from IHS Not for Resale, 04/20/2020 21:43:33 MDT
+
+    b) changes in external and internal issues that are relevant to the BCMS;
+
+    c) information on the BCMSperformance, including trends in:
+
+    1) nonconformities and corrective actions;
+
+    2) monitoring and measurement evaluation results;
+
+    3) audit results;
+
+    d) feedback from interested parties;
+
+    e) the need for changes to the BCMS, including the policy and objectives;
+
+    f) procedures and resources that could be used in the organization to improve the BCMS’ performance and effectiveness;
+
+    g) information from the business impact analysis and risk assessment;
+
+    h) output from the evaluation of business continuity documentation and capabilities (see 8.6);
+
+    i) risks or issues not adequately addressed in any previous risk assessment;
+
+    j) lessons learned and actions arising from near-misses and disruptions;
+
+    k) opportunities for continual improvement.'
+  statements:
+  - id: iso-22301-2019.9.3.2.block-1
+    label: block-1
+    body: The management review shall include consideration of.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.3.2.block-1.a
+      label: a)
+      body: The management review shall include consideration of the status of actions from previous management reviews.
+      notes: ''
+  - id: iso-22301-2019.9.3.2.block-2
+    label: block-2
+    body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+      PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not
+      for Resale, 04/20/2020 21:43:33 MDT.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.3.2.block-2.b
+      label: b)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Changes in external and internal issues that are relevant to the BCMS.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.c
+      label: c)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Information on the BCMSperformance, including trends in.
+      notes: ''
+      statements:
+      - id: iso-22301-2019.9.3.2.block-2.c.1
+        label: 1)
+        body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+          PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+          Not for Resale, 04/20/2020 21:43:33 MDT Information on the BCMSperformance, including trends in nonconformities
+          and corrective actions.
+        notes: ''
+      - id: iso-22301-2019.9.3.2.block-2.c.2
+        label: 2)
+        body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+          PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+          Not for Resale, 04/20/2020 21:43:33 MDT Information on the BCMSperformance, including trends in monitoring and measurement
+          evaluation results.
+        notes: ''
+      - id: iso-22301-2019.9.3.2.block-2.c.3
+        label: 3)
+        body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+          PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+          Not for Resale, 04/20/2020 21:43:33 MDT Information on the BCMSperformance, including trends in audit results.
+        notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.d
+      label: d)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Feedback from interested parties.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.e
+      label: e)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT The need for changes to the BCMS, including the policy and objectives.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.f
+      label: f)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Procedures and resources that could be used in the organization to improve
+        the BCMS’ performance and effectiveness.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.g
+      label: g)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Information from the business impact analysis and risk assessment.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.h
+      label: h)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Output from the evaluation of business continuity documentation and capabilities
+        (see 8.6).
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.i
+      label: i)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Risks or issues not adequately addressed in any previous risk assessment.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.j
+      label: j)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Lessons learned and actions arising from near-misses and disruptions.
+      notes: ''
+    - id: iso-22301-2019.9.3.2.block-2.k
+      label: k)
+      body: Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+        PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS
+        Not for Resale, 04/20/2020 21:43:33 MDT Opportunities for continual improvement.
+      notes: ''
+- id: 9.3.3
+  heading: Management review outputs
+  type: clause
+  suggested_control_id: iso-22301-2019.9.3.3
+  notes: ''
+  text: '9.3.3.1 The outputs of the management review shall include decisions related to continual improvement opportunities
+    and any need for changes to the BCMSto improve its efficiency and effectiveness, including the following:
+
+    a) variations to the scope of the BCMS;
+
+    b) update of the business impact analysis, risk assessment, business continuity strategies and solutions, and business
+    continuity plans;
+
+    c) modification of procedures and controls to respond to internal or external issues that may impact the BCMS;
+
+    d) how the effectiveness of controls will be measured. 9.3.3.2 The organization shall retain documented information as
+    evidence of the results of management reviews. It shall:
+
+    a) communicate the results of the management review to relevant interested parties;
+
+    b) take appropriate action relating to those results.'
+  statements:
+  - id: iso-22301-2019.9.3.3.block-1
+    label: block-1
+    body: 9.3.3.1 The outputs of the management review shall include decisions related to continual improvement opportunities
+      and any need for changes to the BCMSto improve its efficiency and effectiveness, including the following.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.3.3.block-1.a
+      label: a)
+      body: 9.3.3.1 The outputs of the management review shall include decisions related to continual improvement opportunities
+        and any need for changes to the BCMSto improve its efficiency and effectiveness, including the following variations
+        to the scope of the BCMS.
+      notes: ''
+    - id: iso-22301-2019.9.3.3.block-1.b
+      label: b)
+      body: 9.3.3.1 The outputs of the management review shall include decisions related to continual improvement opportunities
+        and any need for changes to the BCMSto improve its efficiency and effectiveness, including the following update of
+        the business impact analysis, risk assessment, business continuity strategies and solutions, and business continuity
+        plans.
+      notes: ''
+    - id: iso-22301-2019.9.3.3.block-1.c
+      label: c)
+      body: 9.3.3.1 The outputs of the management review shall include decisions related to continual improvement opportunities
+        and any need for changes to the BCMSto improve its efficiency and effectiveness, including the following modification
+        of procedures and controls to respond to internal or external issues that may impact the BCMS.
+      notes: ''
+    - id: iso-22301-2019.9.3.3.block-1.d
+      label: d)
+      body: 9.3.3.1 The outputs of the management review shall include decisions related to continual improvement opportunities
+        and any need for changes to the BCMSto improve its efficiency and effectiveness, including the following how the effectiveness
+        of controls will be measured. 9.3.3.2.
+      notes: ''
+  - id: iso-22301-2019.9.3.3.block-2
+    label: block-2
+    body: The organization shall retain documented information as evidence of the results of management reviews. It shall.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.9.3.3.block-2.a
+      label: a)
+      body: The organization shall retain documented information as evidence of the results of management reviews. It shall
+        communicate the results of the management review to relevant interested parties.
+      notes: ''
+    - id: iso-22301-2019.9.3.3.block-2.b
+      label: b)
+      body: The organization shall retain documented information as evidence of the results of management reviews. It shall
+        take appropriate action relating to those results.
+      notes: ''
+- id: '10'
+  heading: Improvement
+  type: clause
+  suggested_control_id: iso-22301-2019.10
+  notes: ''
+  text: ''
+- id: '10.1'
+  heading: Nonconformity and corrective action
+  type: clause
+  suggested_control_id: iso-22301-2019.10.1
+  notes: ''
+  text: '10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+    the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit under
+    license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale,
+    04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2 When a nonconformity
+    occurs, the organization shall:
+
+    a) react to the nonconformity, and, as applicable:
+
+    1) take action to control and correct it;
+
+    2) deal with the consequences;
+
+    b) evaluate the need for action to eliminate the cause(s) of the nonconformity, in order that it does not recur or occur
+    elsewhere, by:
+
+    1) reviewing the nonconformity;
+
+    2) determining the causes of the nonconformity;
+
+    3) determining if similar nonconformities exist, or can potentially occur;
+
+    c) implement any action needed;
+
+    d) review the effectiveness of any corrective action taken;
+
+    e) make changes to the BCMS, if necessary. Corrective actions shall be appropriate to the effects of the nonconformities
+    encountered. 10.1.3 The organization shall retain documented information as evidence of:
+
+    a) the nature of the nonconformities and any subsequent actions taken;
+
+    b) the results of any corrective action.'
+  statements:
+  - id: iso-22301-2019.10.1.block-1
+    label: block-1
+    body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+      the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit under
+      license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale,
+      04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2 When a nonconformity
+      occurs, the organization shall.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.10.1.block-1.a
+      label: a)
+      body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+        the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+        under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+        for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+        When a nonconformity occurs, the organization shall react to the nonconformity, and, as applicable.
+      notes: ''
+      statements:
+      - id: iso-22301-2019.10.1.block-1.a.1
+        label: 1)
+        body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+          the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+          under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+          for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+          When a nonconformity occurs, the organization shall react to the nonconformity, and, as applicable take action to
+          control and correct it.
+        notes: ''
+      - id: iso-22301-2019.10.1.block-1.a.2
+        label: 2)
+        body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+          the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+          under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+          for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+          When a nonconformity occurs, the organization shall react to the nonconformity, and, as applicable deal with the
+          consequences.
+        notes: ''
+    - id: iso-22301-2019.10.1.block-1.b
+      label: b)
+      body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+        the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+        under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+        for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+        When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the cause(s) of the
+        nonconformity, in order that it does not recur or occur elsewhere, by.
+      notes: ''
+      statements:
+      - id: iso-22301-2019.10.1.block-1.b.1
+        label: 1)
+        body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+          the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+          under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+          for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+          When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the cause(s) of the
+          nonconformity, in order that it does not recur or occur elsewhere, by reviewing the nonconformity.
+        notes: ''
+      - id: iso-22301-2019.10.1.block-1.b.2
+        label: 2)
+        body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+          the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+          under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+          for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+          When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the cause(s) of the
+          nonconformity, in order that it does not recur or occur elsewhere, by determining the causes of the nonconformity.
+        notes: ''
+      - id: iso-22301-2019.10.1.block-1.b.3
+        label: 3)
+        body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+          the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+          under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+          for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+          When a nonconformity occurs, the organization shall evaluate the need for action to eliminate the cause(s) of the
+          nonconformity, in order that it does not recur or occur elsewhere, by determining if similar nonconformities exist,
+          or can potentially occur.
+        notes: ''
+    - id: iso-22301-2019.10.1.block-1.c
+      label: c)
+      body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+        the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+        under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+        for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+        When a nonconformity occurs, the organization shall implement any action needed.
+      notes: ''
+    - id: iso-22301-2019.10.1.block-1.d
+      label: d)
+      body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+        the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+        under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+        for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+        When a nonconformity occurs, the organization shall review the effectiveness of any corrective action taken.
+      notes: ''
+    - id: iso-22301-2019.10.1.block-1.e
+      label: e)
+      body: 10.1.1 The organization shall determine opportunities for improvement and implement necessary actions to achieve
+        the intended outcomes of its BCMS. Copyright International Organization for Standardization Provided by IHS Markit
+        under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not
+        for Resale, 04/20/2020 21:43:33 MDT network©ing pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved 10.1.2
+        When a nonconformity occurs, the organization shall make changes to the BCMS, if necessary.
+      notes: ''
+  - id: iso-22301-2019.10.1.block-2
+    label: block-2
+    body: Corrective actions shall be appropriate to the effects of the nonconformities encountered. 10.1.3 The organization
+      shall retain documented information as evidence of.
+    notes: ''
+    statements:
+    - id: iso-22301-2019.10.1.block-2.a
+      label: a)
+      body: Corrective actions shall be appropriate to the effects of the nonconformities encountered. 10.1.3 The organization
+        shall retain documented information as evidence of the nature of the nonconformities and any subsequent actions taken.
+      notes: ''
+    - id: iso-22301-2019.10.1.block-2.b
+      label: b)
+      body: Corrective actions shall be appropriate to the effects of the nonconformities encountered. 10.1.3 The organization
+        shall retain documented information as evidence of the results of any corrective action.
+      notes: ''
+- id: '10.2'
+  heading: Continual improvement
+  type: clause
+  suggested_control_id: iso-22301-2019.10.2
+  notes: ''
+  text: 'The organization shall continually improve the suitability, adequacy and effectiveness of the BCMS, based on qualitative
+    and quantitative measures. The organization shall consider the results of analysis and evaluation, and the outputs from
+    management review, to determine if there are needs or opportunities, relating to the business, or to the BCMS, that shall
+    be addressed as part of continual improvement.
+
+    NOTE The organization can use the processes of the BCMS, such as leadership, planning and performance evaluation, to achieve
+    improvement. Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT
+    PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or networking permitted without license from IHS Not
+    for Resale, 04/20/2020 21:43:33 MDT Quality management systems — Requirements Environmental management systems — Requirements
+    with guidance for use ISO 9001, Guidelines for auditing management systems ISO 14001, Conformity assessment — Requirements
+    for bodies providing audit and ISO 19011, certification of management systems — Part 6: Competence requirements for auditing
+    and cISeOrt/iIfEicCa/tiToSn o1f7 b0u2s1in6es s continuity management systems Information technology — Service management
+    — Part 1: Service management system requirements ISO/IEC 20000-1, Societal security — Business continuity management systems
+    — Guidance Security and resilience — Organizational resilience — Principles and attributes ISO 22313, Societal security
+    — Business continuity management systems — Guidelines for ISO 22316, business impact analysis (BIA) ISO/TS 22317, Societal
+    security — Business continuity management systems — Guidelines for supply chain continuity ISO/TS 22318, Security and
+    resilience — Business continuity management systems — Guidelines for people aspects of business continuity ISO/TS 22330,
+    Security and resilience — Business continuity management systems — Guidelines for business continuity strategy ISO/TS
+    22331, Information technology — Security techniques — Information security management systems — Requirements ISO/IEC 27001,
+    Information technology — Security techniques — Guidelines for information and communication technology readiness for business
+    continuity ISO/IEC 27031, Specification for security management systems for the supply chain Risk management — Guidelines
+    ISO 28000, Risk management — Risk assessment techniques ISO 31000, Risk management — Vocabulary IEC 31010, ISO Guide 73,
+    Copyright International Organization for Standardization Provided by IHS Markit under license with ANSI Licensee=PTT PLC
+    Bangkok/5970713002, User=Krasaephol, Siwaporn No reproduction or lic Not for Resale, 04/20/2020 21:43:33 MDT network©ing
+    pIeSrmOit te2d0 w1ith9ou t– Aenlsle rfroimg hIHtSs reserved Copyright International Organization for Standardization Provided
+    by IHS Markit under license with ANSI Licensee=PTT PLC Bangkok/5970713002, User=Krasaephol, Siwaporn No p Not for Resale,
+    04/20/2020 21:43:33 MDT reprodu©ctio nI oSr One t2wo0rk1ing9 e–rm Aittelld wriithgohutt lisce rnsees freomr vIHeSd'
