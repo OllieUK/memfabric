@@ -234,7 +234,12 @@ class TestWriteBackIntegration:
         with test_driver.session() as s:
             for ann in annotations:
                 rec = s.run(
-                    'MATCH (f:Framework {id: $id}) RETURN f.louvain_community_id AS cid',
+                    'MATCH (f:Framework {id: $id}) '
+                    'RETURN f.louvain_community_id AS louvain, '
+                    '       f.embedding_cluster_id AS emb_cluster, '
+                    '       f.betweenness_centrality AS betweenness',
                     id=ann['id'],
                 ).single()
-                assert rec['cid'] == ann['louvain_community_id']
+                assert rec['louvain'] == ann['louvain_community_id']
+                assert rec['emb_cluster'] == ann['embedding_cluster_id']
+                assert abs(rec['betweenness'] - ann['betweenness_centrality']) < 1e-6

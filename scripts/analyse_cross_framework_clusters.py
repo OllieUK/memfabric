@@ -100,11 +100,15 @@ def _fetch_framework_embeddings(session) -> list[dict[str, Any]]:
 
 
 def _run_louvain_on_framework_subgraph(session) -> list[dict[str, Any]]:
-    """Run MAGE community detection on the INFORMS+MITIGATES Framework subgraph.
+    """Run MAGE community detection scoped to Framework nodes.
 
-    Uses community_detection.get_subgraph with explicit node/relationship lists
-    gathered from the Framework subgraph. Falls back to whole-graph call filtered
-    to Framework nodes if the subgraph call fails.
+    Primary path: subgraph projection on INFORMS+MITIGATES edges only —
+    communities reflect only inter-framework structural relationships.
+
+    Fallback (if subgraph call fails): whole-graph community detection
+    filtered to Framework-labelled nodes — community assignments may be
+    influenced by non-Framework nodes and edges (e.g. Memory→Framework links).
+    A warning is printed to stderr when the fallback is used.
     """
     try:
         result = session.run(
@@ -117,8 +121,12 @@ def _run_louvain_on_framework_subgraph(session) -> list[dict[str, Any]]:
         rows = [dict(r) for r in result]
         if rows:
             return rows
-    except Exception:
-        pass
+    except Exception as exc:
+        print(
+            f'WARNING: _run_louvain_on_framework_subgraph: subgraph call failed '
+            f'({type(exc).__name__}: {exc}); falling back to whole-graph',
+            file=sys.stderr,
+        )
 
     result = session.run(
         'CALL community_detection.get() YIELD node, community_id '
@@ -131,11 +139,12 @@ def _run_louvain_on_framework_subgraph(session) -> list[dict[str, Any]]:
 def _run_betweenness_on_framework_subgraph(
     session, top_n: int = 20
 ) -> list[dict[str, Any]]:
-    """Run MAGE betweenness centrality on the INFORMS+MITIGATES subgraph.
+    """Run MAGE betweenness centrality, returning top-N Framework nodes.
 
-    Collects Framework subgraph nodes/rels, runs betweenness_centrality.get
-    via whole-graph call filtered to Framework nodes (the procedure does not
-    support subgraph projection). Returns top_n nodes by score.
+    Betweenness scores are computed over the whole graph (all node types and
+    edge types) — not restricted to the Framework subgraph. Scores reflect
+    a Framework node's position in the full graph, not just the
+    INFORMS/MITIGATES subgraph. Results are filtered to Framework nodes only.
     """
     result = session.run(
         'CALL betweenness_centrality.get() YIELD node, betweenness_centrality '
@@ -154,21 +163,24 @@ def _write_cluster_annotations(
     session, annotations: list[dict[str, Any]]
 ) -> int:
     """Write louvain_community_id, embedding_cluster_id, betweenness_centrality
-    back to each Framework node. Returns count of nodes updated."""
+    back to each Framework node. Returns count of nodes actually updated."""
     now = datetime.now(timezone.utc).isoformat()
     count = 0
     for ann in annotations:
-        session.run(
+        result = session.run(
             'MATCH (f:Framework {id: $id}) '
             'SET f.louvain_community_id = $louvain, '
             '    f.embedding_cluster_id = $emb_cluster, '
             '    f.betweenness_centrality = $betweenness, '
-            '    f.cluster_updated_at = $now',
+            '    f.cluster_updated_at = $now '
+            'RETURN count(f) AS updated',
             id=ann['id'],
             louvain=ann.get('louvain_community_id'),
             emb_cluster=ann.get('embedding_cluster_id'),
             betweenness=ann.get('betweenness_centrality'),
             now=now,
         )
-        count += 1
+        rec = result.single()
+        if rec:
+            count += rec['updated']
     return count
