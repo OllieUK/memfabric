@@ -25,6 +25,7 @@ from typing import Any
 
 import numpy as np
 from neo4j import GraphDatabase
+from neo4j.exceptions import AuthError, ServiceUnavailable
 from pydantic_settings import BaseSettings
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -313,6 +314,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument('--top-bridge', type=int, default=20, dest='top_bridge')
     args = parser.parse_args(argv)
 
+    if args.k is not None and args.k < 2:
+        parser.error('--k must be >= 2')
+    if args.k is None and args.k_min > args.k_max:
+        parser.error(f'--k-min ({args.k_min}) must be <= --k-max ({args.k_max})')
+
     settings = Settings()
     driver = GraphDatabase.driver(
         f'bolt://{settings.memgraph_host}:{settings.memgraph_port}',
@@ -337,10 +343,10 @@ def main(argv: list[str] | None = None) -> None:
         print('Running embedding k-means clustering...', flush=True)
         embs = np.array([n['embedding'] for n in raw_nodes], dtype=np.float32)
         normalized = _normalize_embeddings(embs)
-        k = args.k if args.k else _find_optimal_k(
+        k = args.k if args.k is not None else _find_optimal_k(
             normalized, k_min=args.k_min, k_max=args.k_max,
         )
-        print(f'  k={k} ({"forced" if args.k else "auto-selected via silhouette"})')
+        print(f'  k={k} ({"forced" if args.k is not None else "auto-selected via silhouette"})')
         emb_labels = _kmeans_cluster(normalized, n_clusters=k)
         for i, node in enumerate(raw_nodes):
             node['embedding_cluster_id'] = int(emb_labels[i])
@@ -369,10 +375,12 @@ def main(argv: list[str] | None = None) -> None:
         print('Running MAGE betweenness centrality...', flush=True)
         with driver.session() as s:
             bridge_nodes = _run_betweenness_on_framework_subgraph(s, top_n=args.top_bridge)
-        print(f'  {len(bridge_nodes)} bridge nodes returned.')
+        merged_bridge = 0
         for row in bridge_nodes:
             if row['id'] in id_to_node:
                 id_to_node[row['id']]['betweenness_centrality'] = row['betweenness_centrality']
+                merged_bridge += 1
+        print(f'  {len(bridge_nodes)} bridge nodes returned, {merged_bridge} merged into node set.')
 
         all_nodes = list(id_to_node.values())
 
@@ -389,6 +397,13 @@ def main(argv: list[str] | None = None) -> None:
         report = _generate_summary_report(all_nodes, top_bridge=bridge_nodes)
         print(report)
 
+    except (ServiceUnavailable, AuthError) as exc:
+        print(
+            f'ERROR: Cannot connect to Memgraph at '
+            f'{settings.memgraph_host}:{settings.memgraph_port} — {exc}',
+            file=sys.stderr,
+        )
+        sys.exit(1)
     finally:
         driver.close()
 
