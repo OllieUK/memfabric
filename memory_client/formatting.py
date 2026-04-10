@@ -4,13 +4,7 @@ format_wake_up() is the single source of truth for rendering a wake_up_split()
 result. The CLI uses it with plain=False (Rich markup). The SessionStart hook
 uses it with plain=True (stripped plain text).
 """
-import re
 from itertools import groupby
-
-
-def _strip_rich(text: str) -> str:
-    """Remove Rich markup tags like [bold], [/dim], [cyan], etc."""
-    return re.sub(r'\[/?[a-zA-Z0-9_ ]+\]', '', text)
 
 
 def _format_timestamp(created_at: str | None) -> str | None:

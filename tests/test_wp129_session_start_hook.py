@@ -1,5 +1,10 @@
 import pytest
 import re
+import subprocess
+import sys
+import os
+from unittest.mock import patch
+import httpx
 from memory_client.formatting import format_wake_up
 
 
@@ -147,3 +152,76 @@ def test_format_wake_up_rich_output_matches_cli_structure():
     assert "core fact" in output
     assert "topic fact" in output
     assert "companion fact" in output
+
+
+# --- Hook script tests ---
+
+
+def test_hook_main_prints_briefing(capsys):
+    """main() prints wake-up briefing to stdout."""
+    mock_result = {
+        "memories": [_make_mem(text="session start test memory")],
+        "topic_memories": [],
+        "companion_anchors": None,
+        "conversant_anchors": None,
+    }
+    with patch("hooks.session_start.MemoryClient") as MockClient:
+        mock_instance = MockClient.return_value.__enter__.return_value
+        mock_instance.wake_up_split.return_value = mock_result
+        from hooks.session_start import main
+        main()
+    captured = capsys.readouterr()
+    assert "Memory briefing" in captured.out
+
+
+def test_hook_main_fallback_on_connect_error(capsys):
+    """main() prints fallback message on ConnectError."""
+    with patch("hooks.session_start.MemoryClient") as MockClient:
+        mock_instance = MockClient.return_value.__enter__.return_value
+        mock_instance.wake_up_split.side_effect = httpx.ConnectError("refused")
+        from hooks.session_start import main
+        main()
+    captured = capsys.readouterr()
+    assert "unreachable" in captured.out.lower()
+
+
+def test_hook_main_fallback_on_timeout_error(capsys):
+    """main() prints fallback message on TimeoutException."""
+    with patch("hooks.session_start.MemoryClient") as MockClient:
+        mock_instance = MockClient.return_value.__enter__.return_value
+        mock_instance.wake_up_split.side_effect = httpx.TimeoutException("timeout")
+        from hooks.session_start import main
+        main()
+    captured = capsys.readouterr()
+    assert "unreachable" in captured.out.lower()
+
+
+def test_hook_main_fallback_on_http_error(capsys):
+    """main() prints fallback message on HTTPStatusError."""
+    with patch("hooks.session_start.MemoryClient") as MockClient:
+        mock_instance = MockClient.return_value.__enter__.return_value
+        response = httpx.Response(500, request=httpx.Request("GET", "http://localhost:8000/memory/wake-up"))
+        mock_instance.wake_up_split.side_effect = httpx.HTTPStatusError("error", request=httpx.Request("GET", "http://localhost:8000"), response=response)
+        from hooks.session_start import main
+        main()
+    captured = capsys.readouterr()
+    assert "memory service" in captured.out.lower() and "operating without" in captured.out.lower()
+
+
+def test_hook_main_output_no_rich_markup(capsys):
+    """main() output contains no Rich markup tags."""
+    mock_result = {
+        "memories": [_make_mem(text="plain text check")],
+        "topic_memories": [],
+        "companion_anchors": None,
+        "conversant_anchors": None,
+    }
+    with patch("hooks.session_start.MemoryClient") as MockClient:
+        mock_instance = MockClient.return_value.__enter__.return_value
+        mock_instance.wake_up_split.return_value = mock_result
+        from hooks.session_start import main
+        main()
+    captured = capsys.readouterr()
+    assert not re.search(r'\[[a-zA-Z_ /]+\]', captured.out), (
+        f"Rich tags found in hook output: {captured.out!r}"
+    )
