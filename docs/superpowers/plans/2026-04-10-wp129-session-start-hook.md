@@ -189,11 +189,6 @@ import re
 from itertools import groupby
 
 
-def _strip_rich(text: str) -> str:
-    """Remove Rich markup tags like [bold], [/dim], [cyan], etc."""
-    return re.sub(r'\[/?[a-zA-Z0-9_ ]+\]', '', text)
-
-
 def _format_timestamp(created_at: str | None) -> str | None:
     """Return a compact UTC label like '2026-04-10 10:00 UTC', or None."""
     if not created_at:
@@ -295,6 +290,8 @@ def format_wake_up(
 
     return "\n".join(lines)
 ```
+
+> **Note:** `_strip_rich` was removed during implementation. The `plain=True` path builds plain strings directly via conditional branching (`if plain: ... else: ...`), which is cleaner than post-hoc stripping and easier to test. The `import re` and `_strip_rich` definition shown above should be omitted.
 
 - [ ] **Step 4: Run tests — expect pass**
 
@@ -609,7 +606,9 @@ In `/home/oliver/projects/graph-memory-fabric/.claude/settings.json`, add a `"ho
 "hooks": {
   "SessionStart": [
     {
-      "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"
+      "hooks": [
+        {"type": "command", "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"}
+      ]
     }
   ]
 }
@@ -625,7 +624,9 @@ The full updated file becomes (preserving existing keys):
   "hooks": {
     "SessionStart": [
       {
-        "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"
+        "hooks": [
+          {"type": "command", "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"}
+        ]
       }
     ]
   }
