@@ -300,7 +300,8 @@ def _build_file_filter_clause(
     """Build AND predicates for file provenance filtering.
 
     Returns a string of zero or more AND clauses to append inside a WHERE block.
-    Empty string means no file filter is active.
+    Empty string means no file filter is active; Cypher treats the resulting blank
+    line in the template as whitespace and parses it correctly.
     """
     parts = []
     if files_modified:
@@ -357,8 +358,8 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
     else:
         neighbour_return = "[] AS neighbours"
 
-    files_modified = getattr(req, "files_modified", None)
-    files_read = getattr(req, "files_read", None)
+    files_modified = req.files_modified
+    files_read = req.files_read
     file_filter = _build_file_filter_clause(files_modified, files_read)
 
     if req.person_ids:
@@ -423,8 +424,8 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
                 "strand_ids": list(record["strand_ids"]),
                 "neighbours": record["neighbours"],
                 "score": score,
-                "files_modified": list(record.get("files_modified") or []),
-                "files_read": list(record.get("files_read") or []),
+                "files_modified": list(record["files_modified"]),
+                "files_read": list(record["files_read"]),
             }
         )
     return rows

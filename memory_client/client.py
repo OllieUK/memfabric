@@ -88,6 +88,8 @@ class MemoryClient:
         min_importance: int | None = None,
         min_score: float | None = None,
         neighbour_cap: int | None = None,
+        files_modified: list[str] | None = None,
+        files_read: list[str] | None = None,
     ) -> list[dict]:
         """POST /memory/search. Returns list of MemoryHit dicts."""
         body: dict = {
@@ -110,6 +112,10 @@ class MemoryClient:
             body["min_score"] = min_score
         if neighbour_cap is not None:
             body["neighbour_cap"] = neighbour_cap
+        if files_modified is not None:
+            body["files_modified"] = files_modified
+        if files_read is not None:
+            body["files_read"] = files_read
         response = self._http.post("/memory/search", json=body)
         response.raise_for_status()
         return response.json()["memories"]
