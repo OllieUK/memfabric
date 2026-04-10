@@ -1130,11 +1130,11 @@ This is blocking correct ISO 27001 loading and will cause confusion for any down
 
 ---
 
-### WP-127 — `files_modified` and `files_read` properties on Memory nodes ✅
+### WP-127 — File provenance on Memory nodes
 
-> **Completed 2026-04-10.** Added `files_modified: List[str]` and `files_read: List[str]` as list properties on Memory nodes. Exposed via `POST /memory`, `PATCH /memory/{id}`, `POST /memory/search` (filter), and new `GET /memory/by-file?path=&role=modified|read|any` endpoint. Extended `memory_client/client.py` with updated `add_memory()`, `update_memory()`, `search_memory()`, and new `get_memories_by_file()`. 28 tests (23 unit + 5 integration) passing.
+Completed 2026-04-10. Added files_modified and files_read list properties to Memory nodes. Exposed through AddMemoryRequest, UpdateMemoryRequest (optional), SearchMemoryRequest (filter), and MemoryHit (response). New GET /memory/by-file endpoint for path-based lookup with role=modified|read|any. _build_file_filter_clause helper inserts AND predicates into search query templates. memory_client.search_memory(), add_memory(), update_memory(), and get_memories_by_file() all extended. 28 tests (23 unit + 5 integration against live stack), all passing.
 
-**Retrospective:** `search_memory()` in the client was initially missed during Task 6 — caught by integration tests. The `_build_file_filter_clause` helper plus `{file_filter}` placeholder pattern worked cleanly for injecting optional Cypher predicates without breaking existing queries.
+Retrospective: integration test caught a real gap — search_memory() in the client was not updated alongside the other client methods. Running integration tests via the client (not raw HTTP) is what surfaced it. The person-path branch of search_memories also needed a dedicated test — the main branch alone gives false confidence.
 
 ---
 
