@@ -1,6 +1,5 @@
 import json
 import sys
-import unittest.mock
 from unittest.mock import patch, MagicMock
 
 import httpx
@@ -382,8 +381,9 @@ def test_main_unexpected_error_exits_cleanly():
             main()  # must not raise
 
 
-def test_main_agent_id_from_env(monkeypatch):
-    monkeypatch.setenv("AGENT_ID", "my-custom-agent")
+def test_main_agent_id_from_env():
+    # AGENT_ID is evaluated at module import time, so we patch the constant
+    # directly rather than the env var (setenv has no effect after import).
     with _stdin_mock(WRITE_PAYLOAD):
         with patch("hooks.post_tool_use.MemoryClient") as MockClient:
             mock_instance = MockClient.return_value.__enter__.return_value
@@ -451,7 +451,7 @@ def cleanup_memories(mem_client):
 
 def _run_hook_with_payload(payload: dict) -> None:
     from hooks.post_tool_use import main
-    with unittest.mock.patch("sys.stdin", new=unittest.mock.MagicMock(read=lambda: json.dumps(payload))):
+    with patch("sys.stdin", new=MagicMock(read=lambda: json.dumps(payload))):
         main()
 
 
@@ -529,9 +529,9 @@ class TestWP126Integration:
             "tool_response": {"type": "result", "result": "File written successfully"},
             "session_id": "test-session",
         }
-        with unittest.mock.patch("hooks.post_tool_use.API_BASE_URL", "http://localhost:19999"):
+        with patch("hooks.post_tool_use.API_BASE_URL", "http://localhost:19999"):
             from hooks.post_tool_use import main
-            with unittest.mock.patch("sys.stdin", new=unittest.mock.MagicMock(read=lambda: json.dumps(payload))):
+            with patch("sys.stdin", new=MagicMock(read=lambda: json.dumps(payload))):
                 main()  # must not raise
 
     def test_integration_observation_has_correct_type(self, mem_client, cleanup_memories):

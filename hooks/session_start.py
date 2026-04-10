@@ -48,6 +48,9 @@ def main() -> None:
     except httpx.HTTPStatusError as exc:
         print(f"Memory service error ({exc.response.status_code}) — operating without context briefing.")
         return
+    except Exception as exc:
+        print(f"session_start hook: unexpected error ({exc!r}) — operating without context briefing.", file=sys.stderr)
+        return
 
     output = format_wake_up(result, topic=HOOK_WAKE_UP_TOPIC, plain=True)
     print(output)
