@@ -112,6 +112,12 @@ STRANDS = [
         "description": "Reusable prompts, macros, and shorthand commands Oliver uses to guide the Companion.",
         "category": "Companion Domain",
     },
+    {
+        "id": "strand-session-activity",
+        "name": "Session Activity",
+        "description": "Automatic observations captured from Claude Code tool use: file writes, edits, significant bash commands, and web fetches. Low-importance ephemeral record of what was done during sessions.",
+        "category": "Companion Domain",
+    },
     # Shadow Domain
     {
         "id": "strand-shadow-current-stressors",

@@ -4,6 +4,33 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-126 — PostToolUse observer hook for automatic memory capture ✅
+
+> **Completed 2026-04-10.**
+
+- `hooks/post_tool_use.py`: PostToolUse hook script — captures Write, Edit, significant Bash (output ≥10 chars), and WebFetch events as `observation` memories with `files_modified`/`files_read` provenance, `importance=2`, strand `strand-session-activity`
+- `scripts/seed_strands.py`: added `strand-session-activity` strand (Companion Domain)
+- `.claude/settings.json`: PostToolUse hook registered
+- `tests/test_wp126_post_tool_use_hook.py`: full test suite — unit tests (Groups A–D) + integration tests
+- Depends on WP-127 ✅ (files_modified/files_read schema already delivered)
+
+**Retrospective:** `observation` type, `files_modified`, `files_read` all pre-existed from WP-127 — hook implementation was purely additive. Three pure functions (`parse_payload`, `is_substantive`, `build_memory_params`) make the filtering logic independently testable without mocking I/O. Hook must always exit 0 to avoid blocking the primary Claude Code session.
+
+---
+
+### WP-132 — Cross-framework INFORMS edges for ISO 22301, ISO 27005, DIN SPEC 14027 ✅
+
+> **Completed 2026-04-10.**
+
+- `scripts/create_new_framework_informs.py`: 9 framework pairs bridged via embedding similarity at threshold 0.55
+- 36,785 INFORMS edges created: ISO 27005→ISO 27001 (8,189), ISO 27005→NIST CSF (2,999), ISO 27005→COBIT (1,681), ISO 22301→ISO 27001 (6,074), ISO 22301→NIST CSF (571), ISO 22301→COBIT (3,192), DIN SPEC 14027→ISO 27001 (7,349), DIN SPEC 14027→ISO 22301 (4,205), DIN SPEC 14027→NIST CSF (2,525)
+- DIN SPEC 14027→COBIT deliberately excluded (scope too different)
+- Average similarity across all pairs: 0.597–0.628; 0 errors
+
+**Retrospective:** Script was already purpose-built for WP-132 (`create_new_framework_informs.py`). Dry-run + histogram review confirmed 0.55 threshold appropriate — distributions clearly bimodal with natural falloff before threshold. ISO 22301→NIST CSF produced the fewest edges (571) as expected: BCM vocabulary maps more weakly to NIST CSF than to ISO 27001/COBIT. No code changes required; WP-132 was pure data work.
+
+---
+
 ## WP-039 — Ephemeral test-memory handling
 
 **Completed:** 2026-04-09.

@@ -46,6 +46,16 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/post_tool_use.py"
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
