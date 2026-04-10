@@ -116,6 +116,8 @@ class AddMemoryRequest(BaseModel):
     control_relationship_type: Optional[Literal["context", "evidence", "gap"]] = None
     org_id: Optional[str] = None
     ephemeral: bool = False
+    files_modified: List[str] = []
+    files_read: List[str] = []
 
     @model_validator(mode="before")
     @classmethod
@@ -211,6 +213,8 @@ class SearchMemoryRequest(BaseModel):
     min_importance: Optional[int] = Field(default=None, ge=1, le=5)
     min_score: Optional[float] = Field(default=None, ge=0.0, le=1.0)
     neighbour_cap: int = Field(default=3, ge=0, le=10)
+    files_modified: Optional[List[str]] = None
+    files_read: Optional[List[str]] = None
 
 
 class AssociatedMemoryHit(BaseModel):
@@ -233,6 +237,8 @@ class MemoryHit(BaseModel):
     associated: List[AssociatedMemoryHit] = []
     controls: List[dict] = []
     documents: List[dict] = []
+    files_modified: List[str] = []
+    files_read: List[str] = []
 
 
 class SearchMemoryResponse(BaseModel):
@@ -789,6 +795,8 @@ class UpdateMemoryRequest(BaseModel):
     doc_ids: Optional[List[str]] = None
     control_relationship_type: Optional[Literal["context", "evidence", "gap"]] = None
     org_id: Optional[str] = None
+    files_modified: Optional[List[str]] = None
+    files_read: Optional[List[str]] = None
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> "UpdateMemoryRequest":
@@ -796,6 +804,7 @@ class UpdateMemoryRequest(BaseModel):
             self.fact, self.so_what, self.tags,
             self.importance, self.person_ids, self.strand_ids,
             self.control_ids, self.doc_ids, self.control_relationship_type, self.org_id,
+            self.files_modified, self.files_read,
         ]):
             raise ValueError("At least one field must be provided for update")
         return self
