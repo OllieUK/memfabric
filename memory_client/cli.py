@@ -13,6 +13,7 @@ from rich.table import Table
 
 from memory_client.client import MemoryClient
 from memory_client.config import settings
+from memory_client.formatting import format_wake_up
 
 app = typer.Typer(name="memory", help="Graph Memory Fabric CLI")
 console = Console()
@@ -406,44 +407,22 @@ def wake_up(
         err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
         raise typer.Exit(1)
 
-    heading = f"[bold]## Memory briefing — {topic if topic else 'general session'}[/bold]"
-    console.print(heading)
-
-    def _render_section(items: list) -> None:
-        if not items:
-            console.print("  No memories found.")
-            return
-        # Sort before groupby: itertools.groupby only groups consecutive equal-key items
-        sorted_items = sorted(items, key=lambda m: m.get("strand_id") or "(no strand)")
-        for strand_id, group in groupby(sorted_items, key=lambda m: m.get("strand_id") or "(no strand)"):
-            console.print(f"\n[dim]{strand_id}[/dim]")
-            for mem in group:
-                imp = str(mem.get("importance") or "")
-                timestamp = _format_memory_timestamp(mem.get("created_at"))
-                timestamp_label = f" [dim]({timestamp})[/dim]" if timestamp else ""
-                console.print(
-                    f"  [{imp}] [bold]{mem['type']}[/bold]{timestamp_label} — {mem['text']}"
-                )
-
     core = result.get("memories", [])
     topic_memories = result.get("topic_memories", [])
     companion_anchors = result.get("companion_anchors")
     conversant_anchors = result.get("conversant_anchors")
 
-    console.print("\n[bold cyan]### Core context[/bold cyan]")
-    _render_section(core)
-
-    if topic and topic_memories:
-        console.print("\n[bold cyan]### Relevant to today[/bold cyan]")
-        _render_section(topic_memories)
-
-    if companion_anchors:
-        console.print("\n[bold cyan]### Companion[/bold cyan]")
-        _render_section(companion_anchors)
-
-    if conversant_anchors:
-        console.print("\n[bold cyan]### Conversant[/bold cyan]")
-        _render_section(conversant_anchors)
+    output = format_wake_up(
+        {
+            "memories": core,
+            "topic_memories": topic_memories,
+            "companion_anchors": companion_anchors,
+            "conversant_anchors": conversant_anchors,
+        },
+        topic=topic,
+        plain=False,
+    )
+    console.print(output)
 
 
 @app.command("close-session")
