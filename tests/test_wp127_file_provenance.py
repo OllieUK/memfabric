@@ -96,3 +96,33 @@ def test_memory_hit_files_fields_round_trip():
     data = hit.model_dump()
     assert data["files_modified"] == ["memory_service/main.py"]
     assert data["files_read"] == ["memory_service/config.py"]
+
+
+# --- Integration with add_memory Cypher ---
+
+def test_add_memory_passes_files_to_cypher():
+    """files_modified and files_read are passed as Cypher params."""
+    from unittest.mock import MagicMock
+    from memory_service import memory_repo
+
+    req = AddMemoryRequest(
+        fact="edited main.py",
+        type=MemoryType.fact,
+        agent_id="test-agent",
+        files_modified=["memory_service/main.py"],
+        files_read=["memory_service/config.py"],
+    )
+    req.text = req.fact  # simulate validator
+
+    session = MagicMock()
+    session.run.return_value = MagicMock()
+
+    memory_repo.add_memory(
+        session, req, "test-id-123", [0.1] * 384, "2026-01-01T00:00:00+00:00", 0.1
+    )
+
+    # First session.run call is the main CREATE — inspect kwargs
+    call_kwargs = session.run.call_args_list[0]
+    call_kw = call_kwargs[1]    # keyword args dict
+    assert call_kw.get("files_modified") == ["memory_service/main.py"]
+    assert call_kw.get("files_read") == ["memory_service/config.py"]

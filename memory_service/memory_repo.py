@@ -96,7 +96,9 @@ def add_memory(
             last_reinforced_at: $last_reinforced_at,
             decay_rate: $decay_rate,
             status: 'active',
-            ephemeral: $ephemeral
+            ephemeral: $ephemeral,
+            files_modified: $files_modified,
+            files_read: $files_read
         })
         CREATE (m)-[:PRODUCED_BY]->(a)
         """,
@@ -116,6 +118,8 @@ def add_memory(
         last_reinforced_at=now,
         decay_rate=decay_rate,
         ephemeral=req.ephemeral,
+        files_modified=req.files_modified,
+        files_read=req.files_read,
     )
 
     # Step 2 — Upsert Project + ABOUT edge
