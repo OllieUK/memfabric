@@ -18,10 +18,8 @@
 
 | Order | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |-------|---------|-----|-------|-------|--------|----------------|------------|-------|
-| 1 | R2 | WP-127 | `files_modified` and `files_read` properties on Memory nodes | M | L | 3.0 | — | Add file provenance as first-class list properties on Memory nodes. Enables file-scoped retrieval: "what do I know about changes to memory_repo.py?" Prerequisite for WP-126 (observer hook writes these properties automatically). See detail below. |
-| 2 | R2 | WP-129 | SessionStart context injection hook | M | L | 3.0 | — | Hook script that calls GET /memory/wake-up on session start and injects a compact digest into context automatically — making continuity unconditional rather than discipline-dependent. See detail below. |
 | 3 | R2 | WP-132 | Cross-framework INFORMS edges for ISO 22301, ISO 27005, DIN SPEC 14027 | H | M | 1.7 | WP-109 ✅, WP-110 ✅ | Run embedding similarity between ISO 22301, ISO 27005, and DIN SPEC 14027 nodes against existing ISO 27001 / NIST CSF / COBIT / SP 800-53 nodes using `create_cross_framework_informs.py`. Expected strong signal: ISO 27005 → NIST GV.RM; ISO 22301 → NIST RC; DIN SPEC 14027 → ISO 22301 (physical/operational resilience overlap). Use calibrated 0.55 threshold with histogram review per pair. DIN SPEC 14027 content is German — the multilingual embedding model handles this natively. |
-| 5 | R2 | WP-126 | PostToolUse observer hook for automatic memory capture | H | M | 1.7 | WP-127 | Lightweight PostToolUse hook script that fires after file writes/edits and significant bash commands, posting structured observation memories to the service automatically. Zero-friction capture — no model discipline required. Stores observations with files_modified/files_read provenance into the graph with full embeddings and decay. See detail below. |
+| 5 | R2 | WP-126 | PostToolUse observer hook for automatic memory capture | H | M | 1.7 | WP-127 ✅ | Lightweight PostToolUse hook script that fires after file writes/edits and significant bash commands, posting structured observation memories to the service automatically. Zero-friction capture — no model discipline required. Stores observations with files_modified/files_read provenance into the graph with full embeddings and decay. See detail below. |
 | 7 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | M | M | 1.0 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
 | 8 | R2 | WP-096 | API authentication (bearer tokens / API keys) | M | M | 1.0 | — | FastAPI middleware to authenticate all requests via bearer token or `X-API-Key` header. Enables safe external exposure of the service. See detail below. |
 | 9 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
@@ -35,6 +33,8 @@
 | 17 | R2 | WP-021 | Non-blocking embedding in async endpoints | L | L | 1.0 | WP-004 ✅, WP-005 ✅ | `get_embedding()` blocks the event loop. Wrap with `run_in_executor` when concurrent usage becomes a problem. |
 | 18 | R2 | WP-135 | Shared `ApiSettings` base class for ingest scripts | L | L | 1.0 | — | `CTISettings`, `SeedSettings`, `ETLSettings`, `IngestSettings`, `LoadSettings` etc. are all identical two-field pydantic-settings classes. Extract a single `ApiSettings(BaseSettings)` to `scripts/script_utils.py` and have all HTTP-only scripts import it. WP-108 /simplify finding. |
 | 19 | R2 | WP-136 | Optional `embedding` field on `ThreatCreate` to avoid double encode | L | L | 1.0 | WP-108 ✅ | `POST /knowledge/search/threats` and `POST /knowledge/threats` each call `get_embedding` on the same string. Adding an optional `embedding: list[float] | None` to `ThreatCreate` lets callers (e.g. `extract_cti_threats.py`) pass the vector already computed during dedup search, halving encode calls when the embedding cache is cold. WP-108 efficiency review finding. |
+| 20 | R2 | WP-138 | Calibrate threat deduplication threshold | L | L | 1.0 | WP-108 ✅ | **Spike.** The live ingestion run deduped only 7 of 364 threats (1.9%) despite all five reports covering the same core techniques (T1486, T1566, T1110). Root cause: at sentence level, semantically equivalent threats from different reports ("ransomware encrypted hospital files" vs "ransomware deployed against EU healthcare institutions") sit at cosine distance ~0.20–0.30, above the current 0.15 threshold. Goal: find the threshold that merges paraphrases of the same attack while keeping genuinely distinct threats separate. Approach: (1) run `POST /knowledge/search/threats` with the 364 existing threat texts against themselves, collect the distance distribution; (2) plot a histogram to find the natural gap between within-attack variation and between-attack separation; (3) pick a threshold in that gap (hypothesis: ~0.25–0.30); (4) re-run ingestion with `--dedup-threshold <new>` against a single report pair (e.g. Verizon + ENISA) and inspect merged nodes manually; (5) update `--dedup-threshold` default in `extract_cti_threats.py` and `ingest_all_threat_reports.py`. Output: a one-paragraph calibration note added to the WP-108 completed entry in BACKLOG.md and the new default committed. No schema changes required. |
+| 21 | R2 | WP-137 | German-language CTI extraction support for BSI Lagebericht | M | M | 1.0 | WP-108 ✅ | The BSI IT-Sicherheitslage report is German-language; `extract_cti_threats.py` currently yields 0 threats because all `BEHAVIOR_INDICATORS` and `TECHNIQUE_KEYWORDS` are English. The `paraphrase-multilingual-MiniLM-L12-v2` embedding model already handles German natively, so embeddings and deduplication will work correctly once sentences are extracted — the gap is solely in the extraction gate. **Option analysis:** **(1) Extend keyword/verb lists (lowest effort):** Add German behaviour-verb equivalents to `BEHAVIOR_INDICATORS` (e.g. "verwendet", "eingesetzt", "ausgeführt", "verschlüsselt") and German keyword→ATT&CK mappings to `TECHNIQUE_KEYWORDS` (many terms are loanwords: "ransomware"→T1486, "phishing"→T1566 already work; add "anmeldedaten"→T1003, "seitwärtsbewegung"→T1021, etc.). Single-pass pipeline preserved. Brittle: misses conjugations and paraphrases; requires ongoing manual curation for each new German report. **(2) Offline pre-translation via `argostranslate` (clean separation):** Translate extracted PDF text from `de→en` before the existing pipeline runs it. `argostranslate` runs fully offline (~100 MB model). `extract_cti_threats.py` stays English-only; translation is a composable pre-processing flag (`--translate-from de`). Downside: translation quality affects extraction accuracy; adds model download to setup. **(3) spaCy German NER + verb extraction (more robust extraction gate):** Use `spaCy` with `de_core_news_sm` to extract sentences containing action verbs, replacing the hand-curated `BEHAVIOR_INDICATORS` list. Handles conjugations automatically. TECHNIQUE_KEYWORDS mapping still needs German terms, but the behaviour-indicator gate becomes language-agnostic. Higher setup cost; adds spaCy as a dependency. **(4) Language detection + routing (polyglot architecture):** Add `langdetect` or `lingua` to detect language per-page, then route through a language-specific extractor module. Makes the pipeline polyglot by design — future French/Dutch/Japanese reports require only a new extractor, not a fork of the main script. Best long-term architecture if more non-English reports are anticipated. **(5) Offline LLM extraction via Ollama (highest effort, most robust):** Run a local model (e.g. `mistral`, `llama3`) as a pre-processor that produces structured `{sentence, techniques[]}` JSON directly from each page. Handles language, paraphrase, and technique mapping in one pass. Consistent with the "no external LLM API calls" constraint. Highest setup cost; slowest at ingest time. **Recommended path:** Option 2 (argostranslate) for a quick win on the BSI report; Option 4 (language detection + routing) as the target architecture if additional non-English reports are added. Surfaced during live ingestion run (0 threats from BSI report — 364 German-language sentences extracted but none passed the English extraction gate). |
 | 18 | R2 | WP-024 | `cleanup_nodes` support multiple ids per label | L | L | 1.0 | — | Change `extra_ids: dict[str, str]` to `dict[str, str \| list[str]]` for multi-node cleanup in tests. Required by WP-076. |
 | 19 | R2 | WP-017 | Embedding cache eviction / size cap | L | L | 1.0 | WP-003 ✅ | `EMBEDDING_CACHE_DIR` grows without bound. Add LRU eviction or max-entry cap. |
 | 20 | R2 | WP-014 | Docker resource limits | L | L | 1.0 | — | Add `mem_limit`/`cpus` to docker-compose. |
@@ -1130,6 +1130,22 @@ This is blocking correct ISO 27001 loading and will cause confusion for any down
 
 ---
 
+### WP-127 — `files_modified` and `files_read` properties on Memory nodes ✅
+
+> **Completed 2026-04-10.** Added `files_modified: List[str]` and `files_read: List[str]` as list properties on Memory nodes. Exposed via `POST /memory`, `PATCH /memory/{id}`, `POST /memory/search` (filter), and new `GET /memory/by-file?path=&role=modified|read|any` endpoint. Extended `memory_client/client.py` with updated `add_memory()`, `update_memory()`, `search_memory()`, and new `get_memories_by_file()`. 28 tests (23 unit + 5 integration) passing.
+
+**Retrospective:** `search_memory()` in the client was initially missed during Task 6 — caught by integration tests. The `_build_file_filter_clause` helper plus `{file_filter}` placeholder pattern worked cleanly for injecting optional Cypher predicates without breaking existing queries.
+
+---
+
+### WP-129 — SessionStart context injection hook ✅
+
+**Completed 2026-04-10.** Extracted `format_wake_up()` from `cli.py` into `memory_client/formatting.py` (plain=True builds plain strings directly for hook consumers, plain=False builds Rich markup for CLI). `hooks/session_start.py` calls `wake_up_split` + `format_wake_up` and prints plain text to stdout. Registered in `.claude/settings.json` using the correct nested hook schema. CLI output unchanged. 20 tests passing. Hook verified against live service.
+
+**Retrospective:** Extracting the formatter first made the hook trivial (~35 lines). The plain=True flag was the key design decision — keeps one renderer for two consumers without branching logic. The nested hook schema (`{"hooks": [{"type": "command", "command": "..."}]}`) differs from what the plan originally specified — always verify Claude Code hook registration format against the actual schema validator.
+
+---
+
 ### WP-104 — COBIT 2019 ingestion ✅
 
 > **Completed 2026-04-07.** Commit `e6e1e61` on `master`.
@@ -1509,33 +1525,6 @@ Adding a tiered search surface lets agents scan cheaply and fetch selectively, r
 
 - Changes to the existing `POST /memory/search` endpoint (stays as-is for backwards compatibility)
 - A three-stage `timeline` intermediate step (the compact index + batch fetch is sufficient for our graph model, where `RELATED_TO` traversal already provides neighbourhood context)
-
----
-
-### WP-129 — SessionStart context injection hook
-
-#### Motivation
-
-The session startup protocol (read COMPANION.md, run wake-up) relies on model discipline and is skipped when a session starts with an immediately urgent user message. This means continuity is fragile — it works when remembered and silently fails when not.
-
-A `SessionStart` hook that automatically calls wake-up and injects a formatted digest into context makes continuity unconditional. The model receives the briefing regardless of whether it remembers to ask for it.
-
-#### Scope
-
-- Write a hook script `hooks/session_start.py` that:
-  - Calls `GET /memory/wake-up` (with `agent_id`, `limit`, and optionally `topic` from env vars)
-  - Formats the response as a compact context block (strand headings, memory fact + importance, max ~800 tokens total)
-  - Outputs the block to stdout — Claude Code's `SessionStart` hook output is injected into the system context before the first prompt
-  - On service unavailable: outputs a short fallback notice ("Memory service unreachable — operating without context briefing") and exits 0
-- Add a `HOOK_WAKE_UP_LIMIT` env var (default 8) and `HOOK_WAKE_UP_TOPIC` env var (optional, for topic-scoped wake-up)
-- Register the hook in `.claude/settings.json` or document the registration step
-- Manual verification: start a new Claude Code session and confirm the wake-up digest appears in the context preamble
-
-#### Out of scope
-
-- Injecting knowledge layer content (wake-up covers episodic memories; knowledge layer is queried on demand)
-- Automatic topic detection (topic is configured statically per-installation)
-- Hook output formatting beyond plain text (markdown not rendered in hook injection context)
 
 ---
 
