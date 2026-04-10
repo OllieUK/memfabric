@@ -1,0 +1,59 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:memgraph.com)",
+      "mcp__claude_ai_Notion__notion-fetch",
+      "mcp__claude_ai_Notion__notion-search",
+      "Read(//home/oliver/**)",
+      "Read(//tmp/**)",
+      "Read(//proc/sys/vm/**)",
+      "Bash(git *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(docker *)",
+      "Bash(gh *)",
+      "Bash(curl *)",
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(pkill *)",
+      "Bash(fuser *)",
+      "Bash(sudo sysctl:*)",
+      "Edit(/.claude/skills/engineering/**)",
+      "Edit(/.claude/skills/wp-executor/**)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//home/oliver/projects/graph-memory-fabric/**)",
+      "Bash(done)",
+      "Bash(wc -l /home/oliver/projects/graph-memory-fabric/.claude/agents/*.md /home/oliver/projects/graph-memory-fabric/.claude/skills/*/skill.md /home/oliver/projects/graph-memory-fabric/.claude/skills/engineering/references/*.md)",
+      "Edit(/.claude/skills/engineering-orchestrator/**)",
+      "Bash(wc -l /home/oliver/projects/graph-memory-fabric/.claude/agents/*.md /home/oliver/projects/graph-memory-fabric/.claude/skills/*/skill.md)",
+      "Bash(/tmp/check_test_data.py:*)"
+    ],
+    "additionalDirectories": [
+      "/home/oliver/projects/graph-memory-fabric/.claude/skills/engineering",
+      "/home/oliver/projects/graph-memory-fabric/.claude/skills",
+      "/home/oliver/projects/graph-memory-fabric/.claude/skills/wp-executor"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "commit-commands@claude-plugins-official": true
+  },
+  "autoMode": {
+    "environment": [
+      "Never chain shell commands with && or ; unless the pipeline is the natural form of the command. Run each logical step as a separate Bash call to avoid triggering safety prompts."
+    ]
+  }
+}
