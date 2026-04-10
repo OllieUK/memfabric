@@ -775,6 +775,7 @@ def get_memories_by_file(
             "OR ANY(f IN m.files_read WHERE f = $path))"
         )
 
+    # where_clause comes only from the three hardcoded branch literals above — not user input
     result = session.run(
         f"""
         MATCH (m:Memory)

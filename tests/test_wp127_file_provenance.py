@@ -204,6 +204,33 @@ def test_search_memories_passes_files_to_session_run():
     assert call_kw.get("files_read") == ["memory_service/config.py"]
 
 
+def test_search_memories_person_path_passes_files_to_session_run():
+    """files_modified and files_read are passed as Cypher params to search_memories via person path."""
+    from unittest.mock import MagicMock
+    from memory_service import memory_repo
+
+    req = SearchMemoryRequest(
+        query="test search",
+        person_ids=["person-oliver"],
+        files_modified=["memory_service/main.py"],
+        files_read=["memory_service/config.py"],
+    )
+
+    session = MagicMock()
+    session.run.return_value = MagicMock()
+    session.run.return_value.__iter__ = lambda self: iter([])
+
+    memory_repo.search_memories(
+        session, req, [0.1] * 384, neighbour_cap=5
+    )
+
+    # Inspect the session.run call kwargs
+    call_kwargs = session.run.call_args_list[0]
+    call_kw = call_kwargs[1]    # keyword args dict
+    assert call_kw.get("files_modified") == ["memory_service/main.py"]
+    assert call_kw.get("files_read") == ["memory_service/config.py"]
+
+
 # --- get_memories_by_file ---
 
 def test_get_memories_by_file_role_modified_queries_files_modified():
