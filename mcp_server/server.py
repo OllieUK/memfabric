@@ -8,27 +8,15 @@ Exposes tools via FastMCP over STDIO transport:
   memory_update, memory_archive, memory_restore, memory_delete, memory_merge,
   memory_find_duplicates, memory_purge_ephemeral
 """
-from datetime import datetime, timezone
-from itertools import groupby
-
 from fastmcp import FastMCP
 
 from memory_client.client import MemoryClient
+from memory_client.formatting import format_wake_up, _format_timestamp
 from mcp_server.config import settings
 
 
 mcp = FastMCP("graph-memory-fabric")
 
-
-def _format_memory_timestamp(created_at: str | None) -> str:
-    """Render created_at as a compact UTC label for wake-up output."""
-    if not created_at:
-        return ""
-    try:
-        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-    except ValueError:
-        return created_at
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 @mcp.tool
@@ -128,59 +116,10 @@ def memory_wake_up(
     maintenance_status = result.get("maintenance_status") or {}
     action = maintenance_status.get("recommended_action")
     if action:
-        lines += [
-            "## ⚠ Maintenance required",
-            "",
-            f"  {action}",
-            "",
-        ]
+        lines += ["## ⚠ Maintenance required", "", f"  {action}", ""]
 
-    heading = f"## Memory briefing — {topic if topic else 'general session'}"
-    lines += [heading, "", "### Core context", ""]
-    lines.extend(_render_section(result.get("memories", [])))
-
-    if topic and result.get("topic_memories"):
-        lines += ["", "### Relevant to today", ""]
-        lines.extend(_render_section(result["topic_memories"]))
-
-    companion_anchors = result.get("companion_anchors")
-    if companion_anchors:
-        lines += ["", "### Companion", ""]
-        lines.extend(_render_section(companion_anchors))
-
-    conversant_anchors = result.get("conversant_anchors")
-    if conversant_anchors:
-        lines += ["", "### Conversant", ""]
-        lines.extend(_render_section(conversant_anchors))
-
+    lines.append(format_wake_up(result, topic=topic, plain=True))
     return "\n".join(lines)
-
-
-def _render_section(memories: list[dict]) -> list[str]:
-    """Render a flat list of memory dicts as grouped plain-text lines."""
-    if not memories:
-        return ["  No memories found."]
-
-    lines = []
-    sorted_mems = sorted(memories, key=lambda m: m.get("strand_id") or "(no strand)")
-    for strand_id, group in groupby(
-        sorted_mems, key=lambda m: m.get("strand_id") or "(no strand)"
-    ):
-        lines.append(strand_id)
-        for mem in group:
-            imp = mem.get("importance", "-")
-            mem_type = mem.get("type", "")
-            mem_text = mem.get("text", "")
-            timestamp = _format_memory_timestamp(mem.get("created_at"))
-            timestamp_label = f" ({timestamp})" if timestamp else ""
-            lines.append(f"  [{imp}] {mem_type}{timestamp_label} — {mem_text}")
-        lines.append("")  # blank line between strand groups
-
-    # Remove trailing blank line
-    if lines and lines[-1] == "":
-        lines.pop()
-
-    return lines
 
 
 @mcp.tool

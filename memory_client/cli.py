@@ -1,7 +1,6 @@
 # memory_client/cli.py
 import json
 import sys
-from datetime import datetime, timezone
 from itertools import groupby
 from pathlib import Path
 from typing import Optional
@@ -22,17 +21,6 @@ err_console = Console(stderr=True)
 
 def _make_client() -> MemoryClient:
     return MemoryClient(base_url=settings.api_base_url)
-
-
-def _format_memory_timestamp(created_at: str | None) -> str:
-    """Render created_at as a compact UTC label for wake-up output."""
-    if not created_at:
-        return ""
-    try:
-        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-    except ValueError:
-        return created_at
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 @app.command("add-memory")
@@ -407,22 +395,7 @@ def wake_up(
         err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
         raise typer.Exit(1)
 
-    core = result.get("memories", [])
-    topic_memories = result.get("topic_memories", [])
-    companion_anchors = result.get("companion_anchors")
-    conversant_anchors = result.get("conversant_anchors")
-
-    output = format_wake_up(
-        {
-            "memories": core,
-            "topic_memories": topic_memories,
-            "companion_anchors": companion_anchors,
-            "conversant_anchors": conversant_anchors,
-        },
-        topic=topic,
-        plain=False,
-    )
-    console.print(output)
+    console.print(format_wake_up(result, topic=topic, plain=False))
 
 
 @app.command("close-session")

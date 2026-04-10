@@ -4,6 +4,7 @@ format_wake_up() is the single source of truth for rendering a wake_up_split()
 result. The CLI uses it with plain=False (Rich markup). The SessionStart hook
 uses it with plain=True (stripped plain text).
 """
+from datetime import datetime, timezone
 from itertools import groupby
 
 
@@ -12,10 +13,18 @@ def _format_timestamp(created_at: str | None) -> str | None:
     if not created_at:
         return None
     try:
-        dt = created_at[:16].replace("T", " ")
-        return f"{dt} UTC"
-    except Exception:
+        dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    except ValueError:
         return None
+
+
+def _heading(text: str, plain: bool, bold_only: bool = False) -> str:
+    """Wrap a heading string in Rich markup, or return it plain."""
+    if plain:
+        return text
+    markup = "bold" if bold_only else "bold cyan"
+    return f"[{markup}]{text}[/{markup}]"
 
 
 def _render_section(items: list, plain: bool) -> str:
@@ -72,37 +81,20 @@ def format_wake_up(
     conversant_anchors = result.get("conversant_anchors")
 
     lines = []
-
-    if plain:
-        lines.append(f"## Memory briefing — {topic_label}")
-    else:
-        lines.append(f"[bold]## Memory briefing — {topic_label}[/bold]")
-
-    if plain:
-        lines.append("\n### Core context")
-    else:
-        lines.append("\n[bold cyan]### Core context[/bold cyan]")
+    lines.append(_heading(f"## Memory briefing — {topic_label}", plain, bold_only=True))
+    lines.append(_heading("\n### Core context", plain))
     lines.append(_render_section(core, plain=plain))
 
     if topic and topic_memories:
-        if plain:
-            lines.append("\n### Relevant to today")
-        else:
-            lines.append("\n[bold cyan]### Relevant to today[/bold cyan]")
+        lines.append(_heading("\n### Relevant to today", plain))
         lines.append(_render_section(topic_memories, plain=plain))
 
     if companion_anchors is not None:
-        if plain:
-            lines.append("\n### Companion")
-        else:
-            lines.append("\n[bold cyan]### Companion[/bold cyan]")
+        lines.append(_heading("\n### Companion", plain))
         lines.append(_render_section(companion_anchors, plain=plain))
 
     if conversant_anchors is not None:
-        if plain:
-            lines.append("\n### Conversant")
-        else:
-            lines.append("\n[bold cyan]### Conversant[/bold cyan]")
+        lines.append(_heading("\n### Conversant", plain))
         lines.append(_render_section(conversant_anchors, plain=plain))
 
     return "\n".join(lines)

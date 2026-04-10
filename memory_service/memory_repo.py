@@ -770,7 +770,7 @@ def get_memories_by_file(
         where_clause = "ANY(f IN m.files_modified WHERE f = $path)"
     elif role == "read":
         where_clause = "ANY(f IN m.files_read WHERE f = $path)"
-    else:  # any
+    else:
         where_clause = (
             "(ANY(f IN m.files_modified WHERE f = $path) "
             "OR ANY(f IN m.files_read WHERE f = $path))"
@@ -804,8 +804,8 @@ def get_memories_by_file(
             "tags": record["tags"],
             "importance": record["importance"],
             "strand_ids": list(record["strand_ids"]),
-            "files_modified": list(record["files_modified"] or []),
-            "files_read": list(record["files_read"] or []),
+            "files_modified": list(record["files_modified"]),
+            "files_read": list(record["files_read"]),
         }
         for record in result
     ]
