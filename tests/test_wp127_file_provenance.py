@@ -57,6 +57,12 @@ def test_update_memory_request_files_read_passes_validator():
     assert req.files_read == ["memory_service/config.py"]
 
 
+def test_update_memory_request_files_empty_list_passes_validator():
+    """Empty list is a valid 'clear this field' value — distinct from None (not provided)."""
+    req = UpdateMemoryRequest(files_modified=[])
+    assert req.files_modified == []
+
+
 # --- SearchMemoryRequest ---
 
 def test_search_memory_request_files_modified_field():
@@ -96,6 +102,28 @@ def test_memory_hit_files_fields_round_trip():
     data = hit.model_dump()
     assert data["files_modified"] == ["memory_service/main.py"]
     assert data["files_read"] == ["memory_service/config.py"]
+
+
+def test_update_memory_sets_files_modified():
+    """files_modified is included in the scalar SET clause."""
+    from unittest.mock import MagicMock
+    from memory_service import memory_repo
+
+    session = MagicMock()
+    session.run.return_value = MagicMock()
+
+    memory_repo.update_memory(
+        session,
+        memory_id="test-id",
+        patch_fields={"files_modified": ["memory_service/main.py"]},
+        new_embedding=None,
+        now="2026-01-01T00:00:00+00:00",
+    )
+
+    call = session.run.call_args_list[0]
+    query = call[0][0]
+    assert "files_modified" in query
+    assert call[1]["files_modified"] == ["memory_service/main.py"]
 
 
 # --- Integration with add_memory Cypher ---
