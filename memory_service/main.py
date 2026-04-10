@@ -303,6 +303,43 @@ async def search_memory(
                 ],
                 controls=hydration.get(r["id"], {}).get("controls", []),
                 documents=hydration.get(r["id"], {}).get("documents", []),
+                files_modified=r.get("files_modified", []),
+                files_read=r.get("files_read", []),
+            )
+            for r in results
+        ]
+    )
+
+
+class ByFileResponse(BaseModel):
+    memories: List[MemoryHit]
+
+
+@app.get("/memory/by-file", response_model=ByFileResponse)
+async def get_memories_by_file(
+    request: Request,
+    path: str = Query(..., description="File path to match (exact)"),
+    role: Literal["modified", "read", "any"] = Query(default="any"),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> ByFileResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            results = memory_repo.get_memories_by_file(
+                session, path=path, role=role, limit=limit
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ByFileResponse(
+        memories=[
+            MemoryHit(
+                id=r["id"],
+                text=r["text"],
+                type=r["type"],
+                tags=r["tags"],
+                importance=r["importance"],
+                strand_ids=r["strand_ids"],
+                files_modified=r["files_modified"],
+                files_read=r["files_read"],
             )
             for r in results
         ]

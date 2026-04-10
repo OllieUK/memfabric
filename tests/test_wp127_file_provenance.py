@@ -154,3 +154,73 @@ def test_add_memory_passes_files_to_cypher():
     call_kw = call_kwargs[1]    # keyword args dict
     assert call_kw.get("files_modified") == ["memory_service/main.py"]
     assert call_kw.get("files_read") == ["memory_service/config.py"]
+
+
+# --- _build_file_filter_clause ---
+
+def test_build_file_filter_clause_files_modified():
+    from memory_service.memory_repo import _build_file_filter_clause
+    clause = _build_file_filter_clause(files_modified=["main.py"], files_read=None)
+    assert "ANY(f IN m.files_modified WHERE f IN $files_modified)" in clause
+
+
+def test_build_file_filter_clause_files_read():
+    from memory_service.memory_repo import _build_file_filter_clause
+    clause = _build_file_filter_clause(files_modified=None, files_read=["config.py"])
+    assert "ANY(f IN m.files_read WHERE f IN $files_read)" in clause
+
+
+def test_build_file_filter_clause_none_returns_empty():
+    from memory_service.memory_repo import _build_file_filter_clause
+    clause = _build_file_filter_clause(files_modified=None, files_read=None)
+    assert clause == ""
+
+
+# --- get_memories_by_file ---
+
+def test_get_memories_by_file_role_modified_queries_files_modified():
+    from unittest.mock import MagicMock
+    from memory_service import memory_repo
+
+    session = MagicMock()
+    session.run.return_value = iter([])
+
+    memory_repo.get_memories_by_file(session, path="memory_service/main.py", role="modified", limit=10)
+
+    call = session.run.call_args_list[0]
+    query = call[0][0]
+    # WHERE clause should filter on files_modified only
+    assert "ANY(f IN m.files_modified WHERE f = $path)" in query
+    assert "ANY(f IN m.files_read WHERE f = $path)" not in query
+    assert call[1]["path"] == "memory_service/main.py"
+
+
+def test_get_memories_by_file_role_read_queries_files_read():
+    from unittest.mock import MagicMock
+    from memory_service import memory_repo
+
+    session = MagicMock()
+    session.run.return_value = iter([])
+
+    memory_repo.get_memories_by_file(session, path="memory_service/config.py", role="read", limit=10)
+
+    call = session.run.call_args_list[0]
+    query = call[0][0]
+    # WHERE clause should filter on files_read only
+    assert "ANY(f IN m.files_read WHERE f = $path)" in query
+    assert "ANY(f IN m.files_modified WHERE f = $path)" not in query
+
+
+def test_get_memories_by_file_role_any_queries_both():
+    from unittest.mock import MagicMock
+    from memory_service import memory_repo
+
+    session = MagicMock()
+    session.run.return_value = iter([])
+
+    memory_repo.get_memories_by_file(session, path="memory_service/main.py", role="any", limit=10)
+
+    call = session.run.call_args_list[0]
+    query = call[0][0]
+    assert "m.files_modified" in query
+    assert "m.files_read" in query

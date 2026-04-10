@@ -242,6 +242,7 @@ WHERE (m.status IS NULL OR m.status = 'active')
 AND   (m.ephemeral IS NULL OR m.ephemeral = false)
 AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
 AND   ($min_importance IS NULL OR m.importance >= $min_importance)
+{file_filter}
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
 WITH m, distance, a
 WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
@@ -254,7 +255,11 @@ WHERE ($person_ids IS NULL OR per.id IN $person_ids)
 OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
 WITH DISTINCT m, distance, collect(DISTINCT s.id) AS strand_ids
 {neighbour_clause}
-RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, distance, strand_ids, {neighbour_return}
+RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags,
+       m.importance AS importance, distance, strand_ids,
+       coalesce(m.files_modified, []) AS files_modified,
+       coalesce(m.files_read, []) AS files_read,
+       {neighbour_return}
 ORDER BY distance ASC\
 """
 
@@ -271,16 +276,38 @@ AND   (m.status IS NULL OR m.status = 'active')
 AND   (m.ephemeral IS NULL OR m.ephemeral = false)
 AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
 AND   ($min_importance IS NULL OR m.importance >= $min_importance)
+{file_filter}
 OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
 WITH m, a
 WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
 OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
 WITH DISTINCT m, collect(DISTINCT s.id) AS strand_ids
 {neighbour_clause}
-RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags, m.importance AS importance, coalesce(m.strength, 0.0) AS strength, strand_ids, {neighbour_return}
+RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags,
+       m.importance AS importance, coalesce(m.strength, 0.0) AS strength, strand_ids,
+       coalesce(m.files_modified, []) AS files_modified,
+       coalesce(m.files_read, []) AS files_read,
+       {neighbour_return}
 ORDER BY importance DESC, strength DESC
 LIMIT $limit\
 """
+
+
+def _build_file_filter_clause(
+    files_modified: list[str] | None,
+    files_read: list[str] | None,
+) -> str:
+    """Build AND predicates for file provenance filtering.
+
+    Returns a string of zero or more AND clauses to append inside a WHERE block.
+    Empty string means no file filter is active.
+    """
+    parts = []
+    if files_modified:
+        parts.append("AND ANY(f IN m.files_modified WHERE f IN $files_modified)")
+    if files_read:
+        parts.append("AND ANY(f IN m.files_read WHERE f IN $files_read)")
+    return "\n".join(parts)
 
 
 def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> list:
@@ -330,11 +357,16 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
     else:
         neighbour_return = "[] AS neighbours"
 
+    files_modified = getattr(req, "files_modified", None)
+    files_read = getattr(req, "files_read", None)
+    file_filter = _build_file_filter_clause(files_modified, files_read)
+
     if req.person_ids:
         # Graph path: start from Person nodes, bypass vector index.
         query = _PERSON_SEARCH_QUERY_TEMPLATE.format(
             neighbour_clause=neighbour_clauses,
             neighbour_return=neighbour_return,
+            file_filter=file_filter,
         )
         result = session.run(
             query,
@@ -343,11 +375,14 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
             tags=req.tags,
             agent_ids=req.agent_ids,
             min_importance=req.min_importance,
+            files_modified=files_modified,
+            files_read=files_read,
         )
     else:
         query = _SEARCH_QUERY_TEMPLATE.format(
             neighbour_clause=neighbour_clauses,
             neighbour_return=neighbour_return,
+            file_filter=file_filter,
         )
         result = session.run(
             query,
@@ -358,6 +393,8 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
             project_ids=req.project_ids,
             person_ids=None,
             min_importance=req.min_importance,
+            files_modified=files_modified,
+            files_read=files_read,
         )
 
     min_score = req.min_score
@@ -386,6 +423,8 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
                 "strand_ids": list(record["strand_ids"]),
                 "neighbours": record["neighbours"],
                 "score": score,
+                "files_modified": list(record.get("files_modified") or []),
+                "files_read": list(record.get("files_read") or []),
             }
         )
     return rows
@@ -706,6 +745,68 @@ def get_memory_for_update(session, memory_id: str) -> dict | None:
     if record is None:
         return None
     return {"fact": record["fact"], "so_what": record["so_what"]}
+
+
+def get_memories_by_file(
+    session,
+    path: str,
+    role: str = "any",
+    limit: int = 20,
+) -> list[dict]:
+    """Return active memories where path appears in files_modified, files_read, or both.
+
+    Args:
+        session: open neo4j Session
+        path: exact file path string to match against list elements
+        role: 'modified' | 'read' | 'any'
+        limit: max results
+
+    Returns:
+        List of dicts with keys: id, text, type, tags, importance, strand_ids,
+        files_modified, files_read
+    """
+    if role == "modified":
+        where_clause = "ANY(f IN m.files_modified WHERE f = $path)"
+    elif role == "read":
+        where_clause = "ANY(f IN m.files_read WHERE f = $path)"
+    else:  # any
+        where_clause = (
+            "(ANY(f IN m.files_modified WHERE f = $path) "
+            "OR ANY(f IN m.files_read WHERE f = $path))"
+        )
+
+    result = session.run(
+        f"""
+        MATCH (m:Memory)
+        WHERE (m.status IS NULL OR m.status = 'active')
+          AND (m.ephemeral IS NULL OR m.ephemeral = false)
+          AND {where_clause}
+        OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+        WITH DISTINCT m, collect(DISTINCT s.id) AS strand_ids
+        RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags,
+               m.importance AS importance,
+               coalesce(m.files_modified, []) AS files_modified,
+               coalesce(m.files_read, []) AS files_read,
+               strand_ids
+        ORDER BY m.importance DESC, m.created_at DESC
+        LIMIT $limit
+        """,
+        path=path,
+        limit=limit,
+    )
+    return [
+        {
+            "id": record["id"],
+            "text": record["text"],
+            "type": record["type"],
+            "tags": record["tags"],
+            "importance": record["importance"],
+            "strand_ids": list(record["strand_ids"]),
+            "files_modified": list(record["files_modified"] or []),
+            "files_read": list(record["files_read"] or []),
+        }
+        for record in result
+    ]
 
 
 def update_memory(
