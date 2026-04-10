@@ -1,6 +1,7 @@
 # memory_client/cli.py
 import json
 import sys
+from datetime import datetime, timezone
 from itertools import groupby
 from pathlib import Path
 from typing import Optional
