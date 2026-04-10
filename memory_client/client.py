@@ -36,6 +36,8 @@ class MemoryClient:
         control_relationship_type: str | None = None,
         org_id: str | None = None,
         ephemeral: bool = False,
+        files_modified: list[str] | None = None,
+        files_read: list[str] | None = None,
     ) -> dict:
         """POST /memory. Returns dict with memory_id, deduplicated, and strand_ids."""
         body: dict = {
@@ -47,6 +49,8 @@ class MemoryClient:
             "person_ids": person_ids or [],
             "strand_ids": strand_ids or [],
             "ephemeral": ephemeral,
+            "files_modified": files_modified or [],
+            "files_read": files_read or [],
         }
         if so_what is not None:
             body["so_what"] = so_what
@@ -209,6 +213,8 @@ class MemoryClient:
         doc_ids: list[str] | None = None,
         control_relationship_type: str | None = None,
         org_id: str | None = None,
+        files_modified: list[str] | None = None,
+        files_read: list[str] | None = None,
     ) -> dict:
         """PATCH /memory/{id}. Returns {memory_id, updated_at}."""
         body: dict = {}
@@ -232,9 +238,36 @@ class MemoryClient:
             body["control_relationship_type"] = control_relationship_type
         if org_id is not None:
             body["org_id"] = org_id
+        if files_modified is not None:
+            body["files_modified"] = files_modified
+        if files_read is not None:
+            body["files_read"] = files_read
         response = self._http.patch(f"/memory/{memory_id}", json=body)
         response.raise_for_status()
         return response.json()
+
+    def get_memories_by_file(
+        self,
+        path: str,
+        role: str = "any",
+        limit: int = 20,
+    ) -> list[dict]:
+        """Return memories tagged with the given file path.
+
+        Args:
+            path: File path to match (exact string match).
+            role: "modified" checks files_modified only, "read" checks files_read only,
+                  "any" checks both.
+            limit: Max results (default 20).
+
+        Returns:
+            List of memory dicts, each with at minimum id, text, type, importance,
+            files_modified, files_read.
+        """
+        params: dict = {"path": path, "role": role, "limit": limit}
+        response = self._http.get("/memory/by-file", params=params)
+        response.raise_for_status()
+        return response.json()["memories"]
 
     def merge_memory(self, memory_id: str, target_id: str, strategy: str = "replace") -> dict:
         """POST /memory/{id}/merge. Returns {source_id, target_id}."""

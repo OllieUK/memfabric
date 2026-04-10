@@ -252,3 +252,82 @@ def test_get_memories_by_file_role_any_queries_both():
     query = call[0][0]
     assert "m.files_modified" in query
     assert "m.files_read" in query
+
+
+# --- MemoryClient unit tests ---
+
+def test_client_add_memory_passes_files():
+    """files_modified and files_read are sent in the POST /memory request body."""
+    from unittest.mock import MagicMock, patch
+    import httpx
+    from memory_client.client import MemoryClient
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"memory_id": "abc", "deduplicated": False, "strand_ids": []}
+    mock_response.raise_for_status = MagicMock()
+
+    with patch.object(httpx.Client, "post", return_value=mock_response) as mock_post:
+        client = MemoryClient(base_url="http://localhost:8000")
+        client.add_memory(
+            fact="edited main.py",
+            type="fact",
+            agent_id="test-agent",
+            files_modified=["memory_service/main.py"],
+            files_read=["memory_service/config.py"],
+        )
+
+    _, kwargs = mock_post.call_args
+    body = kwargs["json"]
+    assert body["files_modified"] == ["memory_service/main.py"]
+    assert body["files_read"] == ["memory_service/config.py"]
+
+
+def test_client_update_memory_passes_files():
+    """files_modified and files_read are sent in the PATCH /memory/{id} request body."""
+    from unittest.mock import MagicMock, patch
+    import httpx
+    from memory_client.client import MemoryClient
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"memory_id": "abc", "updated_at": "2026-01-01T00:00:00+00:00"}
+    mock_response.raise_for_status = MagicMock()
+
+    with patch.object(httpx.Client, "patch", return_value=mock_response) as mock_patch:
+        client = MemoryClient(base_url="http://localhost:8000")
+        client.update_memory(
+            "abc",
+            files_modified=["memory_service/main.py"],
+            files_read=["memory_service/config.py"],
+        )
+
+    _, kwargs = mock_patch.call_args
+    body = kwargs["json"]
+    assert body["files_modified"] == ["memory_service/main.py"]
+    assert body["files_read"] == ["memory_service/config.py"]
+
+
+def test_client_get_memories_by_file():
+    """GET /memory/by-file is called with correct params; returns the memories list."""
+    from unittest.mock import MagicMock, patch
+    import httpx
+    from memory_client.client import MemoryClient
+
+    fake_memory = {"id": "abc", "text": "edited main.py", "type": "fact", "importance": 3,
+                   "files_modified": ["memory_service/main.py"], "files_read": []}
+    mock_response = MagicMock()
+    mock_response.json.return_value = {"memories": [fake_memory]}
+    mock_response.raise_for_status = MagicMock()
+
+    with patch.object(httpx.Client, "get", return_value=mock_response) as mock_get:
+        client = MemoryClient(base_url="http://localhost:8000")
+        result = client.get_memories_by_file(
+            path="memory_service/main.py",
+            role="modified",
+            limit=5,
+        )
+
+    _, kwargs = mock_get.call_args
+    assert kwargs["params"]["path"] == "memory_service/main.py"
+    assert kwargs["params"]["role"] == "modified"
+    assert kwargs["params"]["limit"] == 5
+    assert result == [fake_memory]
