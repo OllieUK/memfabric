@@ -27,6 +27,8 @@ Idempotent: safe to re-run; all writes use MERGE on the API side.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import sys
 import urllib.request
 from pathlib import Path
@@ -41,6 +43,7 @@ STIX_DOWNLOAD_URL = (
     "/master/enterprise-attack/enterprise-attack-17.0.json"
 )
 DEFAULT_STIX_PATH = Path(__file__).parent.parent / "data" / "frameworks" / "enterprise-attack-17.0.json"
+_STIX_PINS_FILE = Path(__file__).resolve().parent.parent / "data" / "frameworks" / "attack-stix-pins.json"
 DOMAIN = "enterprise"
 
 
@@ -298,6 +301,35 @@ def ingest_subtechniques(
 # CLI
 # ---------------------------------------------------------------------------
 
+def _verify_stix_sha256(path: Path, skip: bool = False) -> None:
+    """Verify path against the SHA-256 pin in _STIX_PINS_FILE. Exits on mismatch."""
+    if skip:
+        print("WARNING: SHA-256 verification skipped (--skip-sha256-check)", file=sys.stderr)
+        return
+    try:
+        pins = json.loads(_STIX_PINS_FILE.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Error: cannot read pin file {_STIX_PINS_FILE}: {e}", file=sys.stderr)
+        sys.exit(1)
+    filename = path.name
+    if filename not in pins:
+        print(
+            f"Error: no SHA-256 pin entry for '{filename}' in {_STIX_PINS_FILE}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    expected = pins[filename]["sha256"]
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != expected:
+        print(
+            f"Error: SHA-256 mismatch for {path.name}\n"
+            f"  expected: {expected}\n"
+            f"  actual:   {actual}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -313,28 +345,38 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Parse STIX and report counts without making any API calls.",
     )
+    parser.add_argument(
+        "--skip-sha256-check",
+        action="store_true",
+        help="Bypass SHA-256 pin verification (emergency use only).",
+    )
     return parser.parse_args()
 
 
-def _resolve_stix_path(stix_file: Optional[str]) -> Path:
+def _resolve_stix_path(stix_file: Optional[str], skip_sha256: bool = False) -> Path:
     """Return path to STIX file, downloading if necessary."""
     if stix_file:
         path = Path(stix_file)
         if not path.exists():
             print(f"Error: STIX file not found: {path}", file=sys.stderr)
             sys.exit(1)
+        try:
+            pins = json.loads(_STIX_PINS_FILE.read_text())
+        except (json.JSONDecodeError, OSError):
+            pins = {}
+        if path.name in pins:
+            _verify_stix_sha256(path, skip=skip_sha256)
         return path
 
     if DEFAULT_STIX_PATH.exists():
         print(f"Using cached STIX bundle: {DEFAULT_STIX_PATH}")
+        _verify_stix_sha256(DEFAULT_STIX_PATH, skip=skip_sha256)
         return DEFAULT_STIX_PATH
 
-    print(f"Downloading ATT&CK Enterprise STIX bundle from MITRE GitHub...")
+    print("Downloading ATT&CK Enterprise STIX bundle from MITRE GitHub...")
     DEFAULT_STIX_PATH.parent.mkdir(parents=True, exist_ok=True)
     urllib.request.urlretrieve(STIX_DOWNLOAD_URL, DEFAULT_STIX_PATH)
-    # TODO (WP-SEC-3): Verify downloaded STIX bundle against SHA-256 recorded in
-    # data/frameworks/attack-stix-pins.json before parsing.
-    # See docs/security/03-operating-guide.md for the verification procedure.
+    _verify_stix_sha256(DEFAULT_STIX_PATH, skip=skip_sha256)
     print(f"Saved to: {DEFAULT_STIX_PATH}")
     return DEFAULT_STIX_PATH
 
@@ -343,7 +385,7 @@ def main() -> None:
     args = _parse_args()
     cfg = ETLSettings()
 
-    stix_path = _resolve_stix_path(args.stix_file)
+    stix_path = _resolve_stix_path(args.stix_file, skip_sha256=args.skip_sha256_check)
 
     print(f"Loading STIX bundle: {stix_path.name}")
     data = MitreAttackData(str(stix_path))
