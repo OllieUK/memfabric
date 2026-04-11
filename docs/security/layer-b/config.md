@@ -23,4 +23,6 @@
 
 ## Tightening Milestones
 Files currently excluded from ask-tier (under active development — see `02-policy.md` for exit conditions):
-`hooks/session_start.py`, `hooks/post_tool_use.py`, `mcp_server/server.py`, `memory_service/main.py`, `memory_service/config.py`, `memory_service/knowledge_routes.py`
+`mcp_server/server.py`, `memory_service/main.py`, `memory_service/config.py`, `memory_service/knowledge_routes.py`
+
+**Graduated (now ask-tier):** `hooks/_filters.py`, `hooks/session_start.py`, `hooks/post_tool_use.py` — 2026-04-11

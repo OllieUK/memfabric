@@ -18,9 +18,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Ensure project root on path so memory_service is importable
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-import sys as _sys
-if str(_PROJECT_ROOT) not in _sys.path:
-    _sys.path.insert(0, str(_PROJECT_ROOT))
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
 from memory_service.ingest_guard import guard_chunk
 
 

@@ -192,6 +192,9 @@ def main() -> None:
             if item.level is not None:
                 body["level"] = item.level
             if item.body is not None:
+                if guard_chunk(item.body, source=f"ingest_framework:{yaml_path.name}:framework/{item.id}"):
+                    print(f"  [SKIP] framework/{item.id}: quarantined by ingest guard", file=sys.stderr)
+                    continue
                 body["body"] = item.body
             if item.statement_type is not None:
                 body["statement_type"] = item.statement_type
@@ -251,6 +254,9 @@ def main() -> None:
         for ba in fw.business_attributes:
             body = {"id": ba.id, "name": ba.name}
             if ba.description is not None:
+                if guard_chunk(ba.description, source=f"ingest_framework:{yaml_path.name}:ba/{ba.id}"):
+                    print(f"  [SKIP] business-attribute/{ba.id}: quarantined by ingest guard", file=sys.stderr)
+                    continue
                 body["description"] = ba.description
             s = _upsert(client, "/knowledge/business-attributes", body, f"business-attribute/{ba.id}")
             if s != "error":

@@ -10,9 +10,16 @@
       "Bash(docker volume rm *memgraph*)",
       "Bash(rm -rf /home/oliver/projects/graph-memory-fabric/data/*)",
       "Bash(python3 /home/oliver/projects/graph-memory-fabric/scripts/seed_strands.py*)",
-      "Bash(python /home/oliver/projects/graph-memory-fabric/scripts/seed_strands.py*)"
+      "Bash(python /home/oliver/projects/graph-memory-fabric/scripts/seed_strands.py*)",
+      "Read(/home/oliver/projects/graph-memory-fabric/data/ingest-quarantine/**)"
     ],
     "ask": [
+      "Edit(/home/oliver/projects/graph-memory-fabric/hooks/_filters.py)",
+      "Write(/home/oliver/projects/graph-memory-fabric/hooks/_filters.py)",
+      "Edit(/home/oliver/projects/graph-memory-fabric/hooks/session_start.py)",
+      "Write(/home/oliver/projects/graph-memory-fabric/hooks/session_start.py)",
+      "Edit(/home/oliver/projects/graph-memory-fabric/hooks/post_tool_use.py)",
+      "Write(/home/oliver/projects/graph-memory-fabric/hooks/post_tool_use.py)",
       "Edit(/home/oliver/projects/graph-memory-fabric/.claude/settings.json)",
       "Edit(/home/oliver/projects/graph-memory-fabric/.claude/settings.local.json)",
       "Edit(/home/oliver/projects/graph-memory-fabric/.mcp.json)",

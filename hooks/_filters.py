@@ -101,6 +101,7 @@ _SENSITIVE_PATH_GLOBS = [
     "*/shadow",
     "*/sudoers",
     "*/sudoers.*",
+    "*/data/ingest-quarantine/*",  # quarantine files ARE known injection payloads — never store observations about them
 ]
 
 

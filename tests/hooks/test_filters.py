@@ -230,3 +230,9 @@ class TestIsSensitivePath:
 
     def test_env_sample_is_not_sensitive(self):
         assert is_sensitive_path("/home/oliver/projects/graph-memory-fabric/.env.sample") is False
+
+    def test_ingest_quarantine_file_is_sensitive(self):
+        assert is_sensitive_path("/home/oliver/projects/graph-memory-fabric/data/ingest-quarantine/abc123.txt") is True
+
+    def test_ingest_quarantine_nested_file_is_sensitive(self):
+        assert is_sensitive_path("/any/path/data/ingest-quarantine/deadbeef.txt") is True

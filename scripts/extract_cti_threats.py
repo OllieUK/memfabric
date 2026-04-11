@@ -300,15 +300,16 @@ def main() -> None:
             technique_edges = 0
 
             for sentence, techniques in candidates:
+                if guard_chunk(sentence, source=f"extract_cti_threats:{args.report_id}"):
+                    print(f"  [SKIP] threat quarantined by ingest guard", file=sys.stderr)
+                    continue
+
                 existing_id = None if args.dry_run else find_duplicate_threat(client, sentence, args.dedup_threshold)
 
                 if existing_id:
                     threat_id = existing_id
                     deduped += 1
                 else:
-                    if guard_chunk(sentence, source=f"extract_cti_threats:{args.report_id}"):
-                        print(f"  [SKIP] threat quarantined by ingest guard", file=sys.stderr)
-                        continue
                     threat_id = f"threat-{args.report_id}-{hashlib.sha1(sentence.encode()).hexdigest()[:8]}"
                     if not args.dry_run:
                         r = client.post("/knowledge/threats", json={

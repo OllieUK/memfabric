@@ -40,8 +40,9 @@ The following files are currently excluded from ask-tier rules because they are 
 
 | File | Reason currently excluded | Exit condition |
 |---|---|---|
-| `hooks/session_start.py` | Under active hardening in WP-SEC-2 | WP-SEC-2 merged; no edits for 30 days |
-| `hooks/post_tool_use.py` | Under active hardening in WP-SEC-2 | WP-SEC-2 merged; no edits for 30 days |
+| ~~`hooks/_filters.py`~~ | ~~Under active development in WP-SEC-2~~ | **Graduated to ask-tier 2026-04-11** |
+| ~~`hooks/session_start.py`~~ | ~~Under active hardening in WP-SEC-2~~ | **Graduated to ask-tier 2026-04-11** |
+| ~~`hooks/post_tool_use.py`~~ | ~~Under active hardening in WP-SEC-2~~ | **Graduated to ask-tier 2026-04-11** |
 | `mcp_server/server.py` | Tool surface still evolving | No new tools added for 30 days |
 | `memory_service/main.py` | Routes still being added (WP-096, WP-113) | WP-096 and WP-113 merged |
 | `memory_service/config.py` | Settings surface still evolving | WP-096 merged (adds auth settings) |
