@@ -15,7 +15,7 @@
 ## Confirm
 - Ingest a PDF not yet in `data/threats/SOURCES.md`
 - Ingest from any path outside `data/frameworks/` or the allow-listed OneDrive folder
-- Ingest the STIX bundle from GitHub (verify SHA against `data/frameworks/attack-stix-pins.json` first)
+- Ingest the STIX bundle from GitHub (verify SHA against `data/frameworks/attack-stix-pins.json` — stubs created, SHA values added in WP-SEC-3)
 
 ## Refuse
 - Run any ingest script with `shell=True` subprocess — this must never appear in ingest orchestrators
