@@ -165,3 +165,17 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 **Key Strand properties:** `id` (kebab-case string e.g. `strand-core-health`), `name`, `description`, `category` (Core Life Domains / Companion Domain / Shadow Domain)
 
 **Key Agent properties:** `id` (string, from AGENT_ID env var), `name`
+
+## Security posture
+
+This project inherits the Layer A action-tier digest from the sister Mara framework
+(`/mnt/c/Users/olive/Nextcloud/Projects/mara/policies/security/layer-a.md`):
+four tiers (Proceed/Report/Confirm/Refuse), 4-question check, R1 absolute rule.
+
+**gmf crown jewels** (ask-tier on write/edit, deny where noted):
+- `.env` — **deny** Write/Edit
+- `.claude/settings*.json`, `.mcp.json`, `docker-compose.yml` — ask
+- `CLAUDE.md`, `BACKLOG.md`, `data/frameworks/**`, `data/threats/**` — ask
+- `scripts/{seed_strands,dump_db,restore_db,init_schema,init_knowledge_schema}.py` — ask on edit; `seed_strands.py` **deny** on Bash exec (escape: `ENABLE_SEED_STRANDS=1`)
+
+Full framework: `docs/security/`. Per-surface sheets: `docs/security/layer-b/`.
