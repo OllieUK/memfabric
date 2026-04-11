@@ -21,6 +21,7 @@ if _PROJECT_ROOT not in sys.path:
 
 import httpx
 from memory_client.client import MemoryClient
+from hooks._filters import redact_secrets, is_sensitive_path
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
 AGENT_ID = os.environ.get("AGENT_ID", "claude-code")
@@ -95,17 +96,34 @@ def main() -> None:
     if params is None:
         return
 
+    fact = params["fact"]
+    files_modified = params["files_modified"]
+    files_read = params["files_read"]
+    tags = ["hook", "post-tool-use"]
+
+    try:
+        all_paths = files_modified + files_read
+        if any(is_sensitive_path(p) for p in all_paths if p):
+            print("[post_tool_use] sensitive path detected, memory dropped", file=sys.stderr)
+            return
+
+        fact, was_redacted = redact_secrets(fact)
+        if was_redacted:
+            tags = tags + ["redacted"]
+    except Exception as exc:
+        print(f"post_tool_use hook: filter error ({exc!r}) — proceeding with unfiltered add.", file=sys.stderr)
+
     try:
         with MemoryClient(base_url=API_BASE_URL) as client:
             client.add_memory(
-                fact=params["fact"],
+                fact=fact,
                 type="observation",
                 agent_id=AGENT_ID,
                 importance=IMPORTANCE,
                 strand_ids=[STRAND_ID],
-                files_modified=params["files_modified"],
-                files_read=params["files_read"],
-                tags=["hook", "post-tool-use"],
+                files_modified=files_modified,
+                files_read=files_read,
+                tags=tags,
             )
     except (httpx.ConnectError, httpx.TimeoutException):
         print("post_tool_use hook: memory service unreachable — skipping capture.", file=sys.stderr)
