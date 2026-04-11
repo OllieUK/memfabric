@@ -80,6 +80,9 @@ def redact_secrets(text: str) -> tuple[str, bool]:
 # Sensitive path detection
 # ---------------------------------------------------------------------------
 
+# Filenames that are never sensitive (template/example .env files safe to store observations about)
+_ENV_SAFE_NAMES = {".env.example", ".env.template", ".env.sample"}
+
 _SENSITIVE_FILENAME_GLOBS = [
     ".env",
     ".env.*",
@@ -105,6 +108,10 @@ def is_sensitive_path(path: str) -> bool:
     """Return True if path refers to a sensitive file (credentials, keys, etc.)."""
     p = PurePath(path)
     name_lower = p.name.lower()
+
+    # Template/example env files are safe — they contain no real secrets
+    if name_lower in _ENV_SAFE_NAMES:
+        return False
 
     for glob in _SENSITIVE_FILENAME_GLOBS:
         if fnmatch(name_lower, glob):

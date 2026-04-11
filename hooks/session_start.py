@@ -51,7 +51,8 @@ def _filter_memories(memories: list) -> tuple[list, int]:
     dropped = 0
     for mem in memories:
         # Drop untrusted memories silently — no dropped counter increment
-        tags = mem.get("tags") or []
+        raw_tags = mem.get("tags")
+        tags = raw_tags if isinstance(raw_tags, list) else []
         if "untrusted" in tags:
             continue
         fact = mem.get("fact", "") or ""

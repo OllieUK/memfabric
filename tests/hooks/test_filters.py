@@ -221,3 +221,12 @@ class TestIsSensitivePath:
 
     def test_safe_hook_file(self):
         assert is_sensitive_path("/home/oliver/projects/graph-memory-fabric/hooks/post_tool_use.py") is False
+
+    def test_env_example_is_not_sensitive(self):
+        assert is_sensitive_path("/home/oliver/projects/graph-memory-fabric/.env.example") is False
+
+    def test_env_template_is_not_sensitive(self):
+        assert is_sensitive_path("/home/oliver/projects/graph-memory-fabric/.env.template") is False
+
+    def test_env_sample_is_not_sensitive(self):
+        assert is_sensitive_path("/home/oliver/projects/graph-memory-fabric/.env.sample") is False

@@ -4,6 +4,38 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-SEC-2 — Hook hardening: content filter + redaction ✅
+
+> **Completed 2026-04-11.**
+
+- `hooks/_filters.py`: shared filter module — `contains_injection()` (banned literals, credential prefixes, U+E0000 tag block, bidi overrides), `redact_secrets()` (9 regex patterns), `is_sensitive_path()` (filename + path globs, with explicit safe-list for `.env.example`/`.env.template`/`.env.sample`)
+- `hooks/session_start.py`: `_filter_memories()` (injection filter, untrusted-tag drop, 500-char fact cap, `isinstance` type guard on tags), `_apply_filters()` (fail-open wrapper), 6000-char total output cap, dropped-count footer
+- `hooks/post_tool_use.py`: `is_sensitive_path()` check on file paths (drop + stderr), `redact_secrets()` on fact, `"redacted"` tag when fired, fail-open exception handling
+- `tests/hooks/__init__.py`, `tests/hooks/test_filters.py` (70 total tests across all three files), `tests/hooks/test_session_start_filter.py`, `tests/hooks/test_post_tool_use_redaction.py`
+
+**Retrospective:** Fail-open design (filter exceptions log to stderr and proceed) was the right call — a failing security filter must not block the session. The `.env.example` false-positive was caught in code review: `.env.*` glob matched template files, so an explicit safe-set was added. The `isinstance` type guard on tags was also caught in review — Python's `in` operator on strings does substring matching, not membership testing.
+
+---
+
+### WP-SEC-1 — Security framework: Layer C docs + settings + CLAUDE.md ✅
+
+> **Completed 2026-04-11.**
+
+- `docs/security/01-threat-model.md`: adversary model, injection chain, crown jewels, MCP inventory, token footprint budget
+- `docs/security/02-policy.md`: four-tier action model, four-question check, agent behaviour rule (no `&&`/`|` chaining), untrusted-in-untrusted-out rule, Tightening Milestones table
+- `docs/security/03-operating-guide.md`: stack start/stop, PDF review runbook, seed_strands.py escape hatch, incident response, deployment gates
+- `docs/security/05-native-permissions.md`: rationale for every deny/ask/allow rule
+- `docs/security/proposed-settings.json`: authoritative permissions config (10 deny, 27 ask, broad allow)
+- `docs/security/layer-b/ingest.md`, `docs/security/layer-b/config.md`: per-surface sheets ≤250 tokens
+- `data/frameworks/SOURCES.md`, `data/threats/SOURCES.md`, `data/frameworks/attack-stix-pins.json`: provenance stubs for WP-SEC-3
+- `.claude/settings.json`: updated to match proposed-settings.json
+- `.claude/settings.local.json` (gitignored): removed `defaultMode: "dontAsk"`, stale Windows allows, `/bin/python3.10` allows
+- `CLAUDE.md`: added "Security posture" section (52 words, ≤80 token budget)
+
+**Retrospective:** The "describe the operating model broadly, ask only on genuine outliers" principle reduced the effective permission ask surface below dontAsk mode. Crown jewels for BACKLOG.md and `data/**` were initially missing from the ask list — caught in spec review. CLAUDE.md Security posture section required two compression passes to hit the 80-token budget.
+
+---
+
 ### WP-126 — PostToolUse observer hook for automatic memory capture ✅
 
 > **Completed 2026-04-10.**

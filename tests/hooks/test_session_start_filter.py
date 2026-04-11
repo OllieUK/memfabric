@@ -59,3 +59,20 @@ class TestSessionStartFilterLogic:
         assert "untrusted" in tags
         # Verify injection filter does NOT catch it (so the tag check is the gate)
         assert self._check_memory(mem) is False
+
+    def test_tags_string_value_does_not_false_positive(self):
+        """If tags field is a string containing 'untrusted', it must NOT be treated as the list tag.
+
+        This guards against the `'untrusted' in 'notuntrusted'` substring match bug.
+        The isinstance type guard in _filter_memories ensures only list tags are honoured.
+        """
+        import sys, os
+        _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if _PROJECT_ROOT not in sys.path:
+            sys.path.insert(0, _PROJECT_ROOT)
+        from hooks.session_start import _filter_memories
+        mem = {"fact": "clean fact", "so_what": "", "tags": "notuntrusted"}
+        filtered, dropped = _filter_memories([mem])
+        # The memory should pass through — string tags should not trigger the untrusted drop
+        assert len(filtered) == 1
+        assert dropped == 0
