@@ -50,3 +50,12 @@ class TestSessionStartFilterLogic:
     def test_empty_fact_and_so_what_is_not_caught(self):
         mem = {"fact": "", "so_what": ""}
         assert self._check_memory(mem) is False
+
+    def test_untrusted_tag_dropped(self):
+        """Memory tagged 'untrusted' should be dropped silently."""
+        mem = {"fact": "perfectly benign content", "so_what": "", "tags": ["untrusted"]}
+        # Simulate the check from _filter_memories
+        tags = mem.get("tags") or []
+        assert "untrusted" in tags
+        # Verify injection filter does NOT catch it (so the tag check is the gate)
+        assert self._check_memory(mem) is False

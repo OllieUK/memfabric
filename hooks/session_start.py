@@ -42,11 +42,18 @@ _OUTPUT_MAX_LEN = 6000
 def _filter_memories(memories: list) -> tuple[list, int]:
     """Remove memories containing injection patterns; truncate long facts.
 
+    Memories tagged 'untrusted' are dropped silently (not counted in dropped).
+    Only injection-filtered memories count toward the dropped note.
+
     Returns (filtered_list, dropped_count).
     """
     filtered = []
     dropped = 0
     for mem in memories:
+        # Drop untrusted memories silently — no dropped counter increment
+        tags = mem.get("tags") or []
+        if "untrusted" in tags:
+            continue
         fact = mem.get("fact", "") or ""
         so_what = mem.get("so_what", "") or ""
         if contains_injection(fact + " " + so_what):
