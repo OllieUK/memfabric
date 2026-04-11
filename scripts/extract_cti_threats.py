@@ -13,7 +13,7 @@ Usage:
         [--scope SCOPE] \\
         [--perspective-notes NOTES] \\
         [--dry-run] \\
-        [--dedup-threshold 0.15] \\
+        [--dedup-threshold 0.28] \\
         [--page-range START END]
 
 Reads config from .env (API_BASE_URL).
@@ -232,7 +232,10 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--scope", default=None, help="Report scope (e.g. geographic, vendor)")
     parser.add_argument("--perspective-notes", default=None, help="Free-text perspective notes")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be ingested but make no API calls")
-    parser.add_argument("--dedup-threshold", type=float, default=0.15, help="Distance threshold for deduplication (default: 0.15)")
+    # Calibrated for paraphrase-multilingual-MiniLM-L12-v2 (WP-138).
+    # Re-run scripts/calibrate_threat_dedup.py --histogram and re-tune if the
+    # knowledge embedding model changes or a new CTI report batch is ingested.
+    parser.add_argument("--dedup-threshold", type=float, default=0.28, help="Distance threshold for deduplication (default: 0.28, calibrated WP-138)")
     parser.add_argument("--page-range", nargs=2, type=int, default=[0, 100], metavar=("START", "END"), help="Page range to extract (0-indexed, exclusive end)")
     return parser.parse_args()
 
