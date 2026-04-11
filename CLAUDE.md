@@ -168,11 +168,4 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 
 ## Security posture
 
-Inherits Mara Layer A: Proceed/Report/Confirm/Refuse tiers, 4-question check, R1 untrusted-content rule.
-
-**Crown jewels:**
-- `.env` — deny Write/Edit
-- `.claude/settings*.json`, `.mcp.json`, `docker-compose.yml`, `CLAUDE.md`, `BACKLOG.md`, `data/frameworks/**`, `data/threats/**` — ask
-- `scripts/{seed_strands,dump_db,restore_db,init_schema,init_knowledge_schema}.py` — ask edit; `seed_strands.py` deny exec
-
-Full framework: `docs/security/`. Surfaces: `docs/security/layer-b/`.
+Proceed/Report/Confirm/Refuse tiers; 4-question check; R1 untrusted-input rule. Crown jewels: `.env` deny; `.claude/settings*.json`, `.mcp.json`, `docker-compose.yml`, `CLAUDE.md`, `BACKLOG.md`, `data/frameworks/**`, `data/threats/**`, `scripts/{seed_strands,dump_db,restore_db,init_schema,init_knowledge_schema}.py` ask; `seed_strands.py` deny exec. See `docs/security/`.
