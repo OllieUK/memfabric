@@ -332,6 +332,9 @@ def _resolve_stix_path(stix_file: Optional[str]) -> Path:
     print(f"Downloading ATT&CK Enterprise STIX bundle from MITRE GitHub...")
     DEFAULT_STIX_PATH.parent.mkdir(parents=True, exist_ok=True)
     urllib.request.urlretrieve(STIX_DOWNLOAD_URL, DEFAULT_STIX_PATH)
+    # TODO (WP-SEC-3): Verify downloaded STIX bundle against SHA-256 recorded in
+    # data/frameworks/attack-stix-pins.json before parsing.
+    # See docs/security/03-operating-guide.md for the verification procedure.
     print(f"Saved to: {DEFAULT_STIX_PATH}")
     return DEFAULT_STIX_PATH
 

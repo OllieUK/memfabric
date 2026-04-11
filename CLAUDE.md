@@ -165,3 +165,7 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 **Key Strand properties:** `id` (kebab-case string e.g. `strand-core-health`), `name`, `description`, `category` (Core Life Domains / Companion Domain / Shadow Domain)
 
 **Key Agent properties:** `id` (string, from AGENT_ID env var), `name`
+
+## Security posture
+
+Proceed/Report/Confirm/Refuse tiers; 4-question check; R1 untrusted-input rule. Crown jewels: `.env` deny; `.claude/settings*.json`, `.mcp.json`, `docker-compose.yml`, `CLAUDE.md`, `BACKLOG.md`, `data/frameworks/**`, `data/threats/**`, `scripts/{seed_strands,dump_db,restore_db,init_schema,init_knowledge_schema}.py` ask; `seed_strands.py` deny exec. See `docs/security/`.

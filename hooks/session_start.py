@@ -29,10 +29,58 @@ if _PROJECT_ROOT not in sys.path:
 import httpx
 from memory_client.client import MemoryClient
 from memory_client.formatting import format_wake_up
+from hooks._filters import contains_injection
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
 HOOK_WAKE_UP_LIMIT = int(os.environ.get("HOOK_WAKE_UP_LIMIT", "8"))
 HOOK_WAKE_UP_TOPIC = os.environ.get("HOOK_WAKE_UP_TOPIC") or None
+
+_FACT_MAX_LEN = 500
+_OUTPUT_MAX_LEN = 6000
+
+
+def _filter_memories(memories: list) -> tuple[list, int]:
+    """Remove memories containing injection patterns; truncate long facts.
+
+    Memories tagged 'untrusted' are dropped silently (not counted in dropped).
+    Only injection-filtered memories count toward the dropped note.
+
+    Returns (filtered_list, dropped_count).
+    """
+    filtered = []
+    dropped = 0
+    for mem in memories:
+        # Drop untrusted memories silently — no dropped counter increment
+        raw_tags = mem.get("tags")
+        tags = raw_tags if isinstance(raw_tags, list) else []
+        if "untrusted" in tags:
+            continue
+        fact = mem.get("fact", "") or ""
+        so_what = mem.get("so_what", "") or ""
+        if contains_injection(fact + " " + so_what):
+            dropped += 1
+            continue
+        if len(fact) > _FACT_MAX_LEN:
+            mem = dict(mem)
+            mem["fact"] = fact[:_FACT_MAX_LEN] + "[…]"
+            # text is derived from fact+so_what — rebuild it so rendering is consistent
+            mem["text"] = mem["fact"] + (" " + so_what if so_what else "")
+        filtered.append(mem)
+    return filtered, dropped
+
+
+def _apply_filters(result: dict) -> tuple[dict, int]:
+    """Filter all memory lists in a wake_up_split result. Returns (new_result, total_dropped)."""
+    total_dropped = 0
+    new_result = {}
+    for key, value in result.items():
+        if isinstance(value, list):
+            filtered, dropped = _filter_memories(value)
+            new_result[key] = filtered
+            total_dropped += dropped
+        else:
+            new_result[key] = value
+    return new_result, total_dropped
 
 
 def main() -> None:
@@ -52,7 +100,21 @@ def main() -> None:
         print(f"session_start hook: unexpected error ({exc!r}) — operating without context briefing.", file=sys.stderr)
         return
 
-    output = format_wake_up(result, topic=HOOK_WAKE_UP_TOPIC, plain=True)
+    try:
+        filtered_result, dropped = _apply_filters(result)
+    except Exception as exc:
+        print(f"session_start hook: filter error ({exc!r}) — using unfiltered output.", file=sys.stderr)
+        filtered_result = result
+        dropped = 0
+
+    output = format_wake_up(filtered_result, topic=HOOK_WAKE_UP_TOPIC, plain=True)
+
+    if len(output) > _OUTPUT_MAX_LEN:
+        output = output[:_OUTPUT_MAX_LEN] + "\n[note: output truncated at 6000 chars]"
+
+    if dropped:
+        output += f"\n[note: {dropped} memories omitted by content filter]"
+
     print(output)
 
 

@@ -33,6 +33,12 @@ try:
 except ImportError:
     from scripts.pdf_utils import words_to_lines, line_text
 
+# Ensure project root on path so memory_service is importable
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+from memory_service.ingest_guard import guard_chunk
+
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -294,6 +300,10 @@ def main() -> None:
             technique_edges = 0
 
             for sentence, techniques in candidates:
+                if guard_chunk(sentence, source=f"extract_cti_threats:{args.report_id}"):
+                    print(f"  [SKIP] threat quarantined by ingest guard", file=sys.stderr)
+                    continue
+
                 existing_id = None if args.dry_run else find_duplicate_threat(client, sentence, args.dedup_threshold)
 
                 if existing_id:
