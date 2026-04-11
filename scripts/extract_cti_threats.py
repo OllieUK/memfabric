@@ -33,6 +33,12 @@ try:
 except ImportError:
     from scripts.pdf_utils import words_to_lines, line_text
 
+# Ensure project root on path so memory_service is importable
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+from memory_service.ingest_guard import guard_chunk
+
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -300,6 +306,9 @@ def main() -> None:
                     threat_id = existing_id
                     deduped += 1
                 else:
+                    if guard_chunk(sentence, source=f"extract_cti_threats:{args.report_id}"):
+                        print(f"  [SKIP] threat quarantined by ingest guard", file=sys.stderr)
+                        continue
                     threat_id = f"threat-{args.report_id}-{hashlib.sha1(sentence.encode()).hexdigest()[:8]}"
                     if not args.dry_run:
                         r = client.post("/knowledge/threats", json={

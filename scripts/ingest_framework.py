@@ -21,6 +21,12 @@ import yaml
 from pydantic import BaseModel, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Ensure project root on path so memory_service is importable
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+from memory_service.ingest_guard import guard_chunk
+
 
 # ---------------------------------------------------------------------------
 # Settings
@@ -199,6 +205,9 @@ def main() -> None:
         # 3. Norms
         norm_ok = 0
         for norm in fw.norms:
+            if guard_chunk(norm.text, source=f"ingest_framework:{yaml_path.name}:norm/{norm.id}"):
+                print(f"  [SKIP] norm/{norm.id}: quarantined by ingest guard", file=sys.stderr)
+                continue
             body = {
                 "id": norm.id,
                 "name": norm.name,

@@ -4,6 +4,24 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-SEC-3 — Ingestion provenance + ingest guard ✅
+
+> **Completed 2026-04-11.**
+
+- `memory_service/ingest_guard.py`: `guard_chunk(text, source)` — fail-open guard reusing `hooks/_filters.py` via `importlib.util`; quarantines flagged text to `data/ingest-quarantine/<sha256>.txt`
+- `scripts/ingest_document.py`: guard wired at chunk-post loop; flagged chunks are skipped (not posted) and logged to stderr
+- `scripts/ingest_framework.py`: guard wired at norm-upsert loop; flagged norms skipped
+- `scripts/extract_cti_threats.py`: guard wired before threat POST; flagged sentences skipped
+- `scripts/ingest_attack.py`: STIX hash-pin TODO comment added post-download
+- `data/frameworks/SOURCES.md`: provenance populated for all 9 framework files (SHA-256, upstream URL, date, licence)
+- `data/threats/SOURCES.md`: template + static file entries; placeholder for future report entries
+- `data/frameworks/attack-stix-pins.json`: SHA-256 pin populated for `enterprise-attack-17.0.json`
+- `tests/test_wp_sec3_ingest_guard.py`: 13 unit tests (clean pass-through, injection quarantine, quarantine naming, fail-open)
+
+**Retrospective:** `importlib.util.load_from_spec` doesn't exist — the correct API is `module_from_spec` + `exec_module`. The lazy-import approach keeps `ingest_guard.py` free of a hard `hooks` module dependency and importable as part of the `memory_service` package. Fail-open was essential: a guard crash must never block an ingest run.
+
+---
+
 ### WP-SEC-2 — Hook hardening: content filter + redaction ✅
 
 > **Completed 2026-04-11.**

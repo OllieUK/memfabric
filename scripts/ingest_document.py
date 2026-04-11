@@ -16,6 +16,13 @@ from pathlib import Path
 import httpx
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Ensure project root on path so memory_service is importable
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+import sys as _sys
+if str(_PROJECT_ROOT) not in _sys.path:
+    _sys.path.insert(0, str(_PROJECT_ROOT))
+from memory_service.ingest_guard import guard_chunk
+
 
 class IngestSettings(BaseSettings):
     api_base_url: str = "http://localhost:8000"
@@ -154,6 +161,13 @@ def main() -> None:
 
         for chunk in chunks:
             chunk_id = str(uuid.uuid4())
+            source = f"ingest_document:{args.doc_id}:seq{chunk.sequence}"
+            if guard_chunk(chunk.text, source=source):
+                print(f"  [SKIP] chunk {chunk.sequence}: quarantined by ingest guard", file=sys.stderr)
+                chunk_ids.append(None)
+                chunk_texts.append(chunk.text)
+                prev_chunk_id = None
+                continue
             try:
                 _post_chunk(client, chunk_id, args.doc_id, chunk.text, chunk.sequence, prev_chunk_id)
                 chunk_ids.append(chunk_id)

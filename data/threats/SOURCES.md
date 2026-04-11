@@ -1,7 +1,7 @@
 # Threat intelligence sources
 
 This file records provenance for CTI files under `data/threats/` and for PDF threat reports ingested via `scripts/ingest_all_threat_reports.py`.
-Populated in WP-SEC-3. See `docs/security/03-operating-guide.md` for the recording procedure.
+See `docs/security/03-operating-guide.md` for the recording procedure (PDF review runbook must be followed before ingesting any report).
 
 ## Template
 
@@ -14,6 +14,23 @@ Populated in WP-SEC-3. See `docs/security/03-operating-guide.md` for the recordi
 - Notes: <e.g. "Verizon DBIR 2024">
 ```
 
-## Files
+---
 
-<!-- WP-SEC-3: add one entry per ingested threat report and per file in data/threats/ -->
+## Static files
+
+## assets.yaml
+- Upstream: Manual — authored by OC
+- SHA-256: (small config file; hash not required)
+- Fetched: 2026-03-20
+- Reviewed: OC
+- Licence: Internal
+
+---
+
+## Ingested threat reports
+
+Reports are ingested via `scripts/ingest_all_threat_reports.py` and `scripts/extract_cti_threats.py`.
+Each report must be reviewed per the PDF runbook in `docs/security/03-operating-guide.md` before ingestion.
+
+<!-- Add one entry per ingested threat report using the template above.
+     Include the PDF SHA-256 (sha256sum <file.pdf>) and the report_id used during ingestion. -->

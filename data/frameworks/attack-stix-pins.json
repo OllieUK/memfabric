@@ -1,9 +1,9 @@
 {
-  "_comment": "SHA-256 pins for MITRE ATT&CK STIX bundles downloaded by scripts/ingest_attack.py. Populated in WP-SEC-3.",
+  "_comment": "SHA-256 pins for MITRE ATT&CK STIX bundles downloaded by scripts/ingest_attack.py. Update when downloading a new version. See docs/security/03-operating-guide.md.",
   "enterprise-attack-17.0.json": {
     "upstream_url": "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-17.0.json",
-    "sha256": "TODO",
-    "last_verified": "TODO",
-    "reviewed_by": "TODO"
+    "sha256": "c8966a9a55f1723c0082910f4522af448514343f84ffb9a3e757bdd59642d057",
+    "last_verified": "2026-04-11",
+    "reviewed_by": "OC"
   }
 }
