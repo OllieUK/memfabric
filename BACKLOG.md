@@ -7,6 +7,14 @@
 
 ---
 
+## Currently In Progress
+
+| ID | Title | Started |
+|----|-------|---------|
+| WP-117 | Autonomous dedup: define auto-merge threshold and wire into long_rest | 2026-04-15 |
+
+---
+
 ## Prioritised Backlog
 
 > Items ordered as a dependency-safe executable sequence informed by `Priority score`.
@@ -1737,12 +1745,27 @@ Service startup is currently too brittle across environments. `docker compose up
 
 Task and commitment state is currently fragmented across multiple project-specific backlogs and lists. That makes it hard to answer both "what is the right next task in this project?" and "what is the right project to work on at all?" A first-class `Task` node model inside MemFabric would consolidate active commitments into the existing core substrate, support cross-project prioritisation, and avoid adding a separate task service purely to enable follow-through and backlog stewardship.
 
+This WP also directly enables Mara's expectation-tracking function. The three-layer accountability model (tracking via cron + MemFabric, enforcement via pre-defined consequences, reminders via Telegram) has been designed but has had no operational data substrate to work with. `:Task` nodes are that substrate: expectations set in conversation need to be written to the fabric at the moment they are made, so that a cron-driven `mara-companion` agent has something to act on later. Without durable commitment records, the accountability layer can observe but cannot enforce.
+
+The key insight: most task systems fail because they are passive — nothing happens if you ignore them. `:Task` nodes with `committed_at` / `committed_by` fields give the cron job a live signal: "this commitment was made, by this agent, at this time, and has not been updated since." That is what provides teeth.
+
 #### Scope
 
-1. Add a `Task` graph model with a stable `id` plus core fields such as `title`, `description`, `status`, `priority`, `urgency`, optional `due_at`, optional `snooze_until`, optional recurrence marker, and created/updated timestamps.
+1. Add a `Task` graph model with a stable `id` plus core fields:
+   - `title`, `description`
+   - `status` — `open | active | blocked | done | abandoned`
+   - `priority` — numeric score (mirrors the Value/Effort scoring already in use across project backlogs)
+   - `urgency` — separate from priority; allows "low priority but time-sensitive" to surface correctly
+   - `due_at` — optional; required for the accountability cron to have a trigger
+   - `snooze_until` — optional recurrence/deferral marker
+   - `created_at`, `updated_at`
+   - `committed_at` — when the expectation was explicitly set; distinct from `created_at` because a task can exist for weeks before a commitment is made; the accountability clock starts here
+   - `committed_by` — agent_id that made the commitment; determines which agent is responsible for follow-up
+   - `last_checked_at` — when Mara last surfaced this task; lets the cron detect staleness without re-scanning full state
+   - `source_ref` — optional back-reference to the originating backlog item (e.g. `WP-025`, `JFLP-042`) for traceability
 2. Add relationships:
    - `OWNED_BY` from `Task` to `Agent` and/or `Person`
-   - `FOR_PROJECT` from `Task` to `Project`
+   - `FOR_PROJECT` from `Task` to `Project` (use project string initially, migrate to proper `Project` node when WP-078 lands — `:Task` does not need to wait for WP-078)
    - `RELATES_TO` from `Task` to `Memory` and/or knowledge-layer nodes for context
    - optional task-to-task dependency edges such as `BLOCKS` / `DEPENDS_ON`
 3. Expose CRUD and retrieval surfaces across API, CLI, and MCP so Claude-side skills can create, inspect, update, and prioritise tasks.
@@ -1751,7 +1774,16 @@ Task and commitment state is currently fragmented across multiple project-specif
    - open commitments across all projects
    - highest-priority or highest-urgency open tasks
    - blocked tasks and their blockers
+   - tasks with `committed_at` set but no `updated_at` change since — the staleness signal for the accountability cron
 5. Keep the design aligned with the architectural principle of minimising operational dependencies: this WP exists so the future `commitment stewardship` skill can use MemFabric directly instead of requiring a separate tracker.
+
+#### Schema note — `committed_at` vs `created_at`
+
+These are intentionally separate fields. A task can be created speculatively (by a skill, a hook, or a planning session) without any commitment being made. The accountability layer only activates when `committed_at` is set — that is the moment Oliver explicitly agreed to do something. `committed_by` records which agent witnessed or facilitated the commitment, establishing provenance for follow-up.
+
+#### Relationship to WP-078 (Project node CRUD)
+
+`:Task` nodes are valuable independently of WP-078. Use `project` as a string property initially (consistent with how `add_memory` already handles project tagging). When WP-078 lands, migrate the string to a proper `[:FOR_PROJECT]->(:Project)` relationship. The two WPs are complementary but not sequentially dependent.
 
 #### Out of scope
 
@@ -1761,10 +1793,11 @@ Task and commitment state is currently fragmented across multiple project-specif
 
 #### Definition of Success
 
-- [ ] `Task` nodes exist as a first-class model with stable IDs and core state fields
+- [ ] `Task` nodes exist as a first-class model with stable IDs and core state fields including `committed_at` and `committed_by`
 - [ ] Task ownership and project linkage are queryable through graph relationships
 - [ ] API, CLI, and MCP provide enough surface for Claude-side task retrieval and updates
 - [ ] Cross-project queries can identify what to work on next across projects, not just within one project
+- [ ] Staleness query works: tasks with `committed_at` set but no status change since — the cron accountability trigger
 - [ ] The planned `commitment stewardship` skill can be explicitly defined as depending on this WP rather than a separate tracking service
 
 ---

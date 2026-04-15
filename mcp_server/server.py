@@ -201,13 +201,15 @@ def memory_long_rest(dry_run: bool = False, prune: bool = False) -> str:
     near_cap = " ⚠ index near capacity" if result.get("index_near_capacity") else ""
     dup_count = result.get("near_duplicate_count", 0)
     dup_note = f" {dup_count} near-duplicate pairs pending review." if dup_count else ""
+    auto_count = result.get("auto_merged_count", 0)
+    auto_note = f" Auto-merged {auto_count} pairs." if auto_count else ""
     return (
         f"Long Rest{dr}: {result['nodes_decayed']} nodes decayed, "
         f"{result['edges_decayed']} edges decayed, "
         f"{result['edges_discovered']} edges discovered, "
         f"{result['edges_pruned']} edges pruned. "
         f"Index: {result.get('embedded_memory_count', '?')}/{result.get('index_capacity', '?')} "
-        f"({util_str}){near_cap}.{dup_note}"
+        f"({util_str}){near_cap}.{dup_note}{auto_note}"
     )
 
 

@@ -332,6 +332,9 @@ def long_rest(
             f"{result.get('index_capacity', '?')} nodes ({util_str}){cap_label}"
         )
         console.print(f"Dedup queue: {dup_count} pairs above threshold{dup_label}")
+        auto_count = result.get("auto_merged_count", 0)
+        if auto_count:
+            console.print(f"Auto-merged: {auto_count} pairs above threshold")
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)

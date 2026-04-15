@@ -12,7 +12,7 @@ from typing import List, Literal, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request, Response
 from neo4j.exceptions import ServiceUnavailable
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from memory_service import memory_repo
 from memory_service.config import get_driver, settings
@@ -677,6 +677,7 @@ class LongRestResponse(BaseModel):
     index_near_capacity: bool
     near_duplicate_count: int
     near_duplicate_candidates: List[NearDuplicateCandidate]
+    auto_merged_count: int = 0
     dry_run: bool
 
 
@@ -685,8 +686,10 @@ async def long_rest(
     request: Request,
     dry_run: bool = Query(default=False),
     prune: bool = Query(default=False),
+    auto_merge_threshold: Optional[float] = Query(default=None),
 ) -> LongRestResponse:
     now_iso = datetime.now(tz=timezone.utc).isoformat()
+    effective_threshold = auto_merge_threshold if auto_merge_threshold is not None else settings.auto_merge_threshold
     try:
         with request.app.state.driver.session() as session:
             result = memory_repo.long_rest(
@@ -704,6 +707,7 @@ async def long_rest(
                 near_duplicate_preview_limit=settings.near_duplicate_limit,
                 dry_run=dry_run,
                 prune=prune,
+                auto_merge_threshold=effective_threshold,
             )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
@@ -757,13 +761,14 @@ async def maintenance_stats(request: Request) -> MaintenanceStatsResponse:
 
 
 class MaintenanceLogEntry(BaseModel):
+    model_config = ConfigDict(extra="allow")
     operation: str
-    ran_at: str
-    dry_run: bool
-    nodes_affected: int
-    edges_affected: int
-    edges_discovered: int
-    edges_pruned: int
+    ran_at: Optional[str] = None
+    dry_run: Optional[bool] = None
+    nodes_affected: Optional[int] = None
+    edges_affected: Optional[int] = None
+    edges_discovered: Optional[int] = None
+    edges_pruned: Optional[int] = None
 
 
 class MaintenanceLogResponse(BaseModel):

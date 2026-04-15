@@ -69,7 +69,9 @@ class Settings(BaseSettings):
     ingest_auto_supports_threshold: float = 0.20
     ingest_chunk_review_mode: bool = True
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    auto_merge_threshold: float | None = None
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 def get_driver(settings: Settings) -> neo4j.Driver:

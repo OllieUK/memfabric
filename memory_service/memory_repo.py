@@ -35,7 +35,9 @@ def find_near_duplicates(session, threshold: float, limit: int) -> list[dict]:
           AND b.embedding IS NOT NULL AND size(b.embedding) > 0
           AND a.id < b.id
         RETURN a.id AS a_id, a.text AS a_text,
+               a.importance AS a_importance, a.created_at AS a_created_at,
                b.id AS b_id, b.text AS b_text,
+               b.importance AS b_importance, b.created_at AS b_created_at,
                a.embedding AS a_emb, b.embedding AS b_emb
         """
     )
@@ -45,13 +47,39 @@ def find_near_duplicates(session, threshold: float, limit: int) -> list[dict]:
         sim = cosine_similarity(record["a_emb"], record["b_emb"])
         if sim >= threshold:
             pairs.append({
-                "a": {"id": record["a_id"], "text": record["a_text"]},
-                "b": {"id": record["b_id"], "text": record["b_text"]},
+                "a": {
+                    "id": record["a_id"],
+                    "text": record["a_text"],
+                    "importance": record["a_importance"],
+                    "created_at": record["a_created_at"],
+                },
+                "b": {
+                    "id": record["b_id"],
+                    "text": record["b_text"],
+                    "importance": record["b_importance"],
+                    "created_at": record["b_created_at"],
+                },
                 "similarity": round(sim, 4),
             })
 
     pairs.sort(key=lambda p: p["similarity"], reverse=True)
     return pairs[:limit]
+
+
+def _pick_canonical(a: dict, b: dict) -> tuple[str, str]:
+    """Return (canonical_id, source_id).
+
+    Canonical = higher importance; tie-break = older created_at; fallback = lower id string.
+    """
+    imp_a = a.get("importance") or 1
+    imp_b = b.get("importance") or 1
+    if imp_a != imp_b:
+        return (a["id"], b["id"]) if imp_a > imp_b else (b["id"], a["id"])
+    ts_a = a.get("created_at") or ""
+    ts_b = b.get("created_at") or ""
+    if ts_a != ts_b:
+        return (a["id"], b["id"]) if ts_a <= ts_b else (b["id"], a["id"])
+    return (a["id"], b["id"]) if a["id"] < b["id"] else (b["id"], a["id"])
 
 
 def add_memory(
@@ -1711,6 +1739,7 @@ def long_rest(
     near_duplicate_preview_limit: int = 5,
     dry_run: bool = False,
     prune: bool = False,
+    auto_merge_threshold: float | None = None,
 ) -> dict:
     """Full maintenance pass: decay all nodes/edges, edge rediscovery, optional prune.
 
@@ -1862,13 +1891,49 @@ def long_rest(
     index_near_capacity = utilisation_pct is not None and utilisation_pct >= 80.0
 
     # Step 6: Near-duplicate review — run after edge rediscovery so newly linked pairs
-    # are immediately eligible. Returns top pairs by similarity for the response preview;
-    # full list always available via GET /memory/duplicates.
+    # are immediately eligible. When auto_merge_threshold is set below near_duplicate_threshold,
+    # use the lower value so the merge step sees all eligible pairs.
+    _dup_query_threshold = near_duplicate_threshold
+    if auto_merge_threshold is not None and auto_merge_threshold < near_duplicate_threshold:
+        _dup_query_threshold = auto_merge_threshold
     near_duplicate_pairs = find_near_duplicates(
-        session, threshold=near_duplicate_threshold, limit=1000
+        session, threshold=_dup_query_threshold, limit=1000
     )
-    near_duplicate_count = len(near_duplicate_pairs)
-    near_duplicate_candidates = near_duplicate_pairs[:near_duplicate_preview_limit]
+    # near_duplicate_count and candidates use the configured review threshold for the response
+    review_pairs = [p for p in near_duplicate_pairs if p["similarity"] >= near_duplicate_threshold]
+    near_duplicate_count = len(review_pairs)
+    near_duplicate_candidates = review_pairs[:near_duplicate_preview_limit]
+
+    # Step 7: Auto-merge pairs above auto_merge_threshold (disabled when None or dry_run)
+    auto_merged_count = 0
+    auto_merge_log: list[dict] = []
+    if auto_merge_threshold is not None and not dry_run:
+        consumed: set[str] = set()
+        eligible = sorted(
+            (p for p in near_duplicate_pairs if p["similarity"] >= auto_merge_threshold),
+            key=lambda p: p["similarity"],
+            reverse=True,
+        )
+        for pair in eligible:
+            a = pair["a"]
+            b = pair["b"]
+            if a["id"] in consumed or b["id"] in consumed:
+                continue
+            canonical_id, source_id = _pick_canonical(a, b)
+            try:
+                merge_memory(session, source_id=source_id, target_id=canonical_id, strategy="replace")
+            except ValueError:
+                continue
+            consumed.add(source_id)
+            consumed.add(canonical_id)
+            auto_merged_count += 1
+            auto_merge_log.append({
+                "operation": "auto_merge",
+                "merged_at": now_iso,
+                "source_id": source_id,
+                "canonical_id": canonical_id,
+                "similarity": pair["similarity"],
+            })
 
     if not dry_run:
         append_maintenance_log(session, {
@@ -1883,7 +1948,10 @@ def long_rest(
             "index_capacity": memory_index_capacity,
             "index_utilisation_pct": utilisation_pct,
             "near_duplicate_count": near_duplicate_count,
+            "auto_merged_count": auto_merged_count,
         })
+        for entry in auto_merge_log:
+            append_maintenance_log(session, entry)
 
     return {
         "nodes_decayed": nodes_decayed,
@@ -1896,6 +1964,7 @@ def long_rest(
         "index_near_capacity": index_near_capacity,
         "near_duplicate_count": near_duplicate_count,
         "near_duplicate_candidates": near_duplicate_candidates,
+        "auto_merged_count": auto_merged_count,
         "dry_run": dry_run,
     }
 

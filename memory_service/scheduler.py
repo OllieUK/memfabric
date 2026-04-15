@@ -85,14 +85,16 @@ async def _run_long_rest(driver, settings: Settings) -> None:
                 memory_index_capacity=settings.memory_index_capacity,
                 near_duplicate_threshold=settings.near_duplicate_threshold,
                 near_duplicate_preview_limit=settings.near_duplicate_limit,
+                auto_merge_threshold=settings.auto_merge_threshold,
             )
         logger.info(
             "Scheduled long-rest complete: nodes_decayed=%d edges_decayed=%d "
-            "edges_discovered=%d near_dups=%d index=%.1f%%",
+            "edges_discovered=%d near_dups=%d auto_merged=%d index=%.1f%%",
             result["nodes_decayed"],
             result["edges_decayed"],
             result["edges_discovered"],
             result["near_duplicate_count"],
+            result.get("auto_merged_count", 0),
             result.get("index_utilisation_pct") or 0.0,
         )
         if result.get("index_near_capacity"):
@@ -108,6 +110,9 @@ async def _run_long_rest(driver, settings: Settings) -> None:
                 "%d near-duplicate pairs above threshold — review via GET /memory/duplicates",
                 result["near_duplicate_count"],
             )
+        auto_merged = result.get("auto_merged_count", 0)
+        if auto_merged > 0:
+            logger.info("Auto-merged %d near-duplicate pairs during long-rest", auto_merged)
     except Exception:
         logger.exception("Scheduled long-rest failed")
 
