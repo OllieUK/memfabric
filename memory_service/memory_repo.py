@@ -1750,6 +1750,7 @@ def long_rest(
     4. Update System node last_long_rest_at (skipped when dry_run)
     5. Index capacity check: count embedded Memory nodes vs configured capacity
     6. Near-duplicate review: surface pairs above threshold for human-initiated merge
+    7. Auto-merge: merge pairs above auto_merge_threshold (disabled by default / skipped on dry_run)
     """
     now = _parse_iso(now_iso)
 
@@ -1909,11 +1910,8 @@ def long_rest(
     auto_merge_log: list[dict] = []
     if auto_merge_threshold is not None and not dry_run:
         consumed: set[str] = set()
-        eligible = sorted(
-            (p for p in near_duplicate_pairs if p["similarity"] >= auto_merge_threshold),
-            key=lambda p: p["similarity"],
-            reverse=True,
-        )
+        # near_duplicate_pairs is already sorted descending by similarity
+        eligible = [p for p in near_duplicate_pairs if p["similarity"] >= auto_merge_threshold]
         for pair in eligible:
             a = pair["a"]
             b = pair["b"]

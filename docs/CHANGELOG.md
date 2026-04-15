@@ -4,6 +4,14 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-117: Autonomous dedup auto-merge threshold wired into long_rest — 2026-04-15
+
+Added opt-in `AUTO_MERGE_THRESHOLD` setting (default `None`, disabled) that causes `long_rest` Step 7 to automatically merge near-duplicate Memory pairs above the configured cosine similarity threshold. Canonical node selection is deterministic: higher importance wins, tie-break is older `created_at`, fallback is lexicographic `id`. A consumed-ID guard prevents double-merge within one run; per-pair `ValueError` is caught so one bad pair cannot abort the entire long-rest. The `auto_merge_threshold` query parameter on `POST /memory/maintenance/long-rest` provides a per-call override for testing. Corpus inspection found max observed similarity of 0.9458, so the feature ships with `None` as the safe default. 12 unit tests + 6 integration tests all passing against the live stack.
+
+**Retrospective:** The empirical corpus inspection (Step 0) before coding was the most valuable part — it confirmed 0.97 is appropriately conservative and that the feature is genuinely safe to ship as opt-in. The `extra="ignore"` fix to `Settings` was a bonus payoff: Docker-injected env vars had been silently causing validation errors in the containerised deployment. The `eligible` re-sort was caught and removed in the simplify pass (pairs are already sorted by `find_near_duplicates`). The `MaintenanceLogEntry` open-schema approach (`extra="allow"` + optional fields) was the right call for heterogeneous log entries, though it reduces static type safety — worth revisiting if the log schema stabilises.
+
+---
+
 ### WP-SEC-3 — Ingestion provenance + ingest guard ✅
 
 > **Completed 2026-04-11.**
