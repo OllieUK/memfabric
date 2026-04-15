@@ -4,6 +4,14 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-143: First-class Task nodes for commitment and backlog stewardship — 2026-04-15
+
+Added `Task` as a first-class graph node — the canonical cross-project commitment store replacing fragmented per-project BACKLOG.md files. Full stack: API (8 endpoints), CLI (5 commands), MCP (7 tools), client. Task nodes carry value/effort scoring (`priority_score = V/E` with H=3, M=2, L=1), a staleness signal (`committed_at` set but `updated_at = created_at`), and recurring-task support via `is_template` parent nodes. `GET /task/next` returns a cross-project priority queue sorted by `priority_score × project.weight DESC`. Project nodes extended with `slug` (source_ref namespace) and `weight` (priority multiplier). `source_ref` convention: `{project-slug}:WP-NNN`. 34 unit tests + 23 integration tests all passing against the live stack.
+
+**Retrospective:** The hardest design decisions were: (1) staleness condition — `updated_at <= committed_at` failed because `committed_at` can be supplied in the past at create time while `updated_at` is the server `now`; corrected to `updated_at = created_at` (task created but never touched). (2) Memgraph `NOT IN` syntax rejected by the parser — must write `NOT (x IN [...])`. (3) `_ALLOWED_PATCH_FIELDS` / `_TASK_PATCH_FIELDS` intentionally cannot be derived from `UpdateTaskRequest` because it includes `priority_score` (computed, not a request field). Simplify pass caught: `task_update` in server.py had a 10-line kwargs builder replaced by a dict comprehension; `update_task` in memory_repo.py skipped an unnecessary DB fetch when both value+effort axes are in the same patch; enum conversion in `main.py` collapsed from 3 `if` blocks to a loop. The WP-143 Task node is now the authoritative commitment record for this project going forward.
+
+---
+
 ### WP-117: Autonomous dedup auto-merge threshold wired into long_rest — 2026-04-15
 
 Added opt-in `AUTO_MERGE_THRESHOLD` setting (default `None`, disabled) that causes `long_rest` Step 7 to automatically merge near-duplicate Memory pairs above the configured cosine similarity threshold. Canonical node selection is deterministic: higher importance wins, tie-break is older `created_at`, fallback is lexicographic `id`. A consumed-ID guard prevents double-merge within one run; per-pair `ValueError` is caught so one bad pair cannot abort the entire long-rest. The `auto_merge_threshold` query parameter on `POST /memory/maintenance/long-rest` provides a per-call override for testing. Corpus inspection found max observed similarity of 0.9458, so the feature ships with `None` as the safe default. 12 unit tests + 6 integration tests all passing against the live stack.

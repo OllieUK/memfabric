@@ -183,12 +183,99 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()["projects"]
 
-    def create_project(self, project_id: str, name: str, description: str | None = None) -> dict:
+    def create_project(
+        self,
+        project_id: str,
+        name: str,
+        description: str | None = None,
+        slug: str | None = None,
+        weight: float | None = None,
+    ) -> dict:
         """POST /project. Creates or merges a Project node. Returns project dict."""
         body: dict = {"id": project_id, "name": name}
         if description is not None:
             body["description"] = description
+        if slug is not None:
+            body["slug"] = slug
+        if weight is not None:
+            body["weight"] = weight
         response = self._http.post("/project", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    # ------------------------------------------------------------------
+    # Task methods
+    # ------------------------------------------------------------------
+
+    def create_task(self, title: str, agent_id: str, **kwargs) -> dict:
+        """POST /task. Creates a Task node. Returns task dict."""
+        body: dict = {"title": title, "agent_id": agent_id}
+        for key, val in kwargs.items():
+            if val is not None:
+                body[key] = val
+        response = self._http.post("/task", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def list_tasks(
+        self,
+        *,
+        status: str | None = None,
+        agent_id: str | None = None,
+        project_id: str | None = None,
+        committed_only: bool = False,
+    ) -> list[dict]:
+        """GET /task. Returns list of task dicts."""
+        params: dict = {}
+        if status is not None:
+            params["status"] = status
+        if agent_id is not None:
+            params["agent_id"] = agent_id
+        if project_id is not None:
+            params["project_id"] = project_id
+        if committed_only:
+            params["committed_only"] = "true"
+        response = self._http.get("/task", params=params)
+        response.raise_for_status()
+        return response.json()["tasks"]
+
+    def get_task(self, task_id: str) -> dict:
+        """GET /task/{id}. Returns task dict."""
+        response = self._http.get(f"/task/{task_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def update_task(self, task_id: str, **kwargs) -> dict:
+        """PATCH /task/{id}. Updates task fields. Returns updated task dict."""
+        body = {k: v for k, v in kwargs.items() if v is not None}
+        response = self._http.patch(f"/task/{task_id}", json=body)
+        response.raise_for_status()
+        return response.json()
+
+    def delete_task(self, task_id: str) -> dict:
+        """DELETE /task/{id}. Returns {deleted: true}."""
+        response = self._http.delete(f"/task/{task_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def list_next_tasks(self, limit: int = 20) -> list[dict]:
+        """GET /task/next. Returns prioritised cross-project task list."""
+        response = self._http.get("/task/next", params={"limit": limit})
+        response.raise_for_status()
+        return response.json()["tasks"]
+
+    def list_stale_tasks(self) -> list[dict]:
+        """GET /task/stale. Returns tasks with committed_at but no update since."""
+        response = self._http.get("/task/stale")
+        response.raise_for_status()
+        return response.json()["tasks"]
+
+    def link_tasks(self, from_id: str, to_id: str, rel_type: str) -> dict:
+        """POST /task/{id}/link. Creates BLOCKS or DEPENDS_ON edge."""
+        response = self._http.post(
+            f"/task/{from_id}/link",
+            json={"target_id": to_id, "rel_type": rel_type},
+        )
         response.raise_for_status()
         return response.json()
 

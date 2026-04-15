@@ -220,12 +220,216 @@ def create_project(
     project_id: str = typer.Argument(..., help="Kebab-case project ID, e.g. graph-memory-fabric"),
     name: str = typer.Option(..., "--name", "-n", help="Display name"),
     description: Optional[str] = typer.Option(None, "--description", "-d", help="Optional description"),
+    slug: Optional[str] = typer.Option(None, "--slug", "-s", help="Short slug for source_ref namespace, e.g. gmf"),
+    weight: Optional[float] = typer.Option(None, "--weight", "-w", help="Priority multiplier (default 1.0, must be > 0)"),
 ) -> None:
     """Create or update a Project node."""
     try:
         with _make_client() as client:
-            project = client.create_project(project_id, name, description=description)
+            project = client.create_project(project_id, name, description=description, slug=slug, weight=weight)
         console.print(project["id"])
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("create-task")
+def create_task(
+    title: str = typer.Argument(..., help="Task title"),
+    agent_id: str = typer.Option(..., "--agent-id", "-a", help="Agent ID that owns this task"),
+    description: Optional[str] = typer.Option(None, "--description", "-d", help="Task detail"),
+    status: str = typer.Option("open", "--status", help="open|active|blocked|done|abandoned"),
+    value: Optional[str] = typer.Option(None, "--value", help="Value axis: H|M|L"),
+    effort: Optional[str] = typer.Option(None, "--effort", help="Effort axis: H|M|L"),
+    urgency: Optional[float] = typer.Option(None, "--urgency", help="Time-sensitivity 0-5"),
+    due_at: Optional[str] = typer.Option(None, "--due-at", help="ISO deadline datetime"),
+    committed_at: Optional[str] = typer.Option(None, "--committed-at", help="ISO datetime when commitment was made"),
+    committed_by: Optional[str] = typer.Option(None, "--committed-by", help="Agent ID that made the commitment"),
+    source_ref: Optional[str] = typer.Option(None, "--source-ref", help="Qualified back-ref e.g. gmf:WP-143"),
+    project_id: Optional[str] = typer.Option(None, "--project-id", help="Project node ID"),
+    recurrence: Optional[str] = typer.Option(None, "--recurrence", help="Recurrence pattern e.g. weekly"),
+    is_template: bool = typer.Option(False, "--is-template", help="Mark as recurring template parent"),
+) -> None:
+    """Create a Task node."""
+    kwargs: dict = {"status": status}
+    if description is not None:
+        kwargs["description"] = description
+    if value is not None:
+        kwargs["value"] = value
+    if effort is not None:
+        kwargs["effort"] = effort
+    if urgency is not None:
+        kwargs["urgency"] = urgency
+    if due_at is not None:
+        kwargs["due_at"] = due_at
+    if committed_at is not None:
+        kwargs["committed_at"] = committed_at
+    if committed_by is not None:
+        kwargs["committed_by"] = committed_by
+    if source_ref is not None:
+        kwargs["source_ref"] = source_ref
+    if project_id is not None:
+        kwargs["project_id"] = project_id
+    if recurrence is not None:
+        kwargs["recurrence"] = recurrence
+    if is_template:
+        kwargs["is_template"] = True
+    try:
+        with _make_client() as client:
+            task = client.create_task(title, agent_id, **kwargs)
+        console.print(task["id"])
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("list-tasks")
+def list_tasks(
+    status: Optional[str] = typer.Option(None, "--status", help="Filter by status: open|active|blocked|done|abandoned"),
+    agent_id: Optional[str] = typer.Option(None, "--agent-id", "-a", help="Filter by agent ID"),
+    project_id: Optional[str] = typer.Option(None, "--project-id", help="Filter by project ID"),
+    committed_only: bool = typer.Option(False, "--committed-only", help="Only show committed tasks"),
+) -> None:
+    """List Task nodes."""
+    try:
+        with _make_client() as client:
+            tasks = client.list_tasks(
+                status=status, agent_id=agent_id,
+                project_id=project_id, committed_only=committed_only,
+            )
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    if not tasks:
+        console.print("No tasks found.")
+        return
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("ID", style="dim", width=8)
+    table.add_column("Title")
+    table.add_column("Status", width=10)
+    table.add_column("V/E", width=5)
+    table.add_column("Score", justify="right", width=6)
+    table.add_column("Urgency", justify="right", width=7)
+    table.add_column("Due", width=12)
+    table.add_column("Source", width=16)
+    for t in tasks:
+        ve = f"{t.get('value') or '-'}/{t.get('effort') or '-'}"
+        score = f"{t['priority_score']:.1f}" if t.get("priority_score") is not None else "-"
+        urgency = f"{t['urgency']:.1f}" if t.get("urgency") is not None else "-"
+        table.add_row(
+            t["id"][:8], t["title"], t["status"], ve, score, urgency,
+            t.get("due_at") or "", t.get("source_ref") or "",
+        )
+    console.print(table)
+
+
+@app.command("next-task")
+def next_task(
+    limit: int = typer.Option(10, "--limit", "-n", help="Max tasks to show"),
+) -> None:
+    """Show the cross-project prioritised task queue."""
+    try:
+        with _make_client() as client:
+            tasks = client.list_next_tasks(limit=limit)
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    if not tasks:
+        console.print("No open tasks found.")
+        return
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("ID", style="dim", width=8)
+    table.add_column("Title")
+    table.add_column("Status", width=10)
+    table.add_column("V/E", width=5)
+    table.add_column("Score", justify="right", width=6)
+    table.add_column("Project", width=20)
+    table.add_column("Eff.Score", justify="right", width=9)
+    table.add_column("Due", width=12)
+    for t in tasks:
+        ve = f"{t.get('value') or '-'}/{t.get('effort') or '-'}"
+        score = f"{t['priority_score']:.1f}" if t.get("priority_score") is not None else "-"
+        pw = t.get("project_weight") or 1.0
+        eff = (t.get("priority_score") or 1.0) * pw
+        table.add_row(
+            t["id"][:8], t["title"], t["status"], ve, score,
+            t.get("project_id") or "",
+            f"{eff:.2f}",
+            t.get("due_at") or "",
+        )
+    console.print(table)
+
+
+@app.command("update-task")
+def update_task(
+    task_id: str = typer.Argument(..., help="Task UUID"),
+    status: Optional[str] = typer.Option(None, "--status", help="New status"),
+    value: Optional[str] = typer.Option(None, "--value", help="Value axis: H|M|L"),
+    effort: Optional[str] = typer.Option(None, "--effort", help="Effort axis: H|M|L"),
+    urgency: Optional[float] = typer.Option(None, "--urgency", help="Time-sensitivity 0-5"),
+    due_at: Optional[str] = typer.Option(None, "--due-at", help="ISO deadline datetime"),
+    source_ref: Optional[str] = typer.Option(None, "--source-ref", help="Qualified back-ref"),
+    committed_at: Optional[str] = typer.Option(None, "--committed-at", help="ISO commitment datetime"),
+    committed_by: Optional[str] = typer.Option(None, "--committed-by", help="Agent ID that committed"),
+) -> None:
+    """Update a Task node's fields."""
+    kwargs: dict = {}
+    if status is not None:
+        kwargs["status"] = status
+    if value is not None:
+        kwargs["value"] = value
+    if effort is not None:
+        kwargs["effort"] = effort
+    if urgency is not None:
+        kwargs["urgency"] = urgency
+    if due_at is not None:
+        kwargs["due_at"] = due_at
+    if source_ref is not None:
+        kwargs["source_ref"] = source_ref
+    if committed_at is not None:
+        kwargs["committed_at"] = committed_at
+    if committed_by is not None:
+        kwargs["committed_by"] = committed_by
+    if not kwargs:
+        err_console.print("[red]No fields to update — provide at least one option.[/red]")
+        raise typer.Exit(1)
+    try:
+        with _make_client() as client:
+            task = client.update_task(task_id, **kwargs)
+        console.print(task["id"])
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("complete-task")
+def complete_task(
+    task_id: str = typer.Argument(..., help="Task UUID to mark as done"),
+) -> None:
+    """Mark a Task as done."""
+    try:
+        with _make_client() as client:
+            task = client.update_task(task_id, status="done")
+        console.print(task["id"])
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)

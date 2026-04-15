@@ -529,6 +529,8 @@ class ProjectItem(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+    slug: Optional[str] = None
+    weight: Optional[float] = None
 
 
 class ProjectsResponse(BaseModel):
@@ -539,6 +541,106 @@ class CreateProjectRequest(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+    slug: Optional[str] = None
+    weight: Optional[float] = Field(default=None, gt=0)
+
+
+# ---------------------------------------------------------------------------
+# Task node models
+# ---------------------------------------------------------------------------
+
+_VE_MAP = {"H": 3.0, "M": 2.0, "L": 1.0}
+
+
+class TaskStatus(str, Enum):
+    open = "open"
+    active = "active"
+    blocked = "blocked"
+    done = "done"
+    abandoned = "abandoned"
+
+
+class VELevel(str, Enum):
+    H = "H"
+    M = "M"
+    L = "L"
+
+
+class CreateTaskRequest(BaseModel):
+    title: str
+    agent_id: str
+    description: Optional[str] = None
+    status: TaskStatus = TaskStatus.open
+    value: Optional[VELevel] = None
+    effort: Optional[VELevel] = None
+    urgency: Optional[float] = Field(default=None, ge=0, le=5)
+    due_at: Optional[str] = None
+    snooze_until: Optional[str] = None
+    committed_at: Optional[str] = None
+    committed_by: Optional[str] = None
+    source_ref: Optional[str] = None
+    project_id: Optional[str] = None
+    memory_ids: List[str] = []
+    recurrence: Optional[str] = None
+    is_template: bool = False
+
+    @property
+    def priority_score(self) -> Optional[float]:
+        if self.value and self.effort:
+            return _VE_MAP[self.value.value] / _VE_MAP[self.effort.value]
+        return None
+
+
+class UpdateTaskRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[TaskStatus] = None
+    value: Optional[VELevel] = None
+    effort: Optional[VELevel] = None
+    urgency: Optional[float] = Field(default=None, ge=0, le=5)
+    due_at: Optional[str] = None
+    snooze_until: Optional[str] = None
+    committed_at: Optional[str] = None
+    committed_by: Optional[str] = None
+    last_checked_at: Optional[str] = None
+    source_ref: Optional[str] = None
+
+
+class TaskItem(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    value: Optional[str] = None
+    effort: Optional[str] = None
+    priority_score: Optional[float] = None
+    urgency: Optional[float] = None
+    due_at: Optional[str] = None
+    snooze_until: Optional[str] = None
+    created_at: str
+    updated_at: str
+    committed_at: Optional[str] = None
+    committed_by: Optional[str] = None
+    last_checked_at: Optional[str] = None
+    source_ref: Optional[str] = None
+    recurrence: Optional[str] = None
+    is_template: Optional[bool] = None
+    agent_id: Optional[str] = None
+    project_id: Optional[str] = None
+    project_weight: Optional[float] = None
+
+
+class TasksResponse(BaseModel):
+    tasks: List[TaskItem]
+
+
+class LinkTasksRequest(BaseModel):
+    target_id: str
+    rel_type: Literal["BLOCKS", "DEPENDS_ON"]
+
+
+class DeleteTaskResponse(BaseModel):
+    deleted: bool
 
 
 @app.get("/strands", response_model=StrandsResponse)
@@ -589,6 +691,121 @@ async def create_project(req: CreateProjectRequest, request: Request) -> Project
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return ProjectItem(**project)
+
+
+# ---------------------------------------------------------------------------
+# Task routes
+# ---------------------------------------------------------------------------
+
+@app.post("/task", response_model=TaskItem)
+async def create_task(req: CreateTaskRequest, request: Request) -> TaskItem:
+    task_id = str(uuid.uuid4())
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            task = memory_repo.create_task(session, req, task_id, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return TaskItem(**task)
+
+
+@app.get("/task/next", response_model=TasksResponse)
+async def list_next_tasks(
+    request: Request,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> TasksResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            tasks = memory_repo.list_next_tasks(session, limit=limit)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return TasksResponse(tasks=[TaskItem(**t) for t in tasks])
+
+
+@app.get("/task/stale", response_model=TasksResponse)
+async def list_stale_tasks(request: Request) -> TasksResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            tasks = memory_repo.list_stale_tasks(session)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return TasksResponse(tasks=[TaskItem(**t) for t in tasks])
+
+
+@app.get("/task", response_model=TasksResponse)
+async def list_tasks(
+    request: Request,
+    status: Optional[str] = Query(default=None),
+    agent_id: Optional[str] = Query(default=None),
+    project_id: Optional[str] = Query(default=None),
+    committed_only: bool = Query(default=False),
+) -> TasksResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            tasks = memory_repo.list_tasks(
+                session,
+                status=status,
+                agent_id=agent_id,
+                project_id=project_id,
+                committed_only=committed_only,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return TasksResponse(tasks=[TaskItem(**t) for t in tasks])
+
+
+@app.get("/task/{task_id}", response_model=TaskItem)
+async def get_task(task_id: str, request: Request) -> TaskItem:
+    try:
+        with request.app.state.driver.session() as session:
+            task = memory_repo.get_task(session, task_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found")
+    return TaskItem(**task)
+
+
+@app.patch("/task/{task_id}", response_model=TaskItem)
+async def update_task(task_id: str, req: UpdateTaskRequest, request: Request) -> TaskItem:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    patch_fields = req.model_dump(exclude_none=True)
+    # Convert enum instances to their string values before passing to the repo
+    for _enum_field in ("status", "value", "effort"):
+        if _enum_field in patch_fields and hasattr(patch_fields[_enum_field], "value"):
+            patch_fields[_enum_field] = patch_fields[_enum_field].value
+    try:
+        with request.app.state.driver.session() as session:
+            task = memory_repo.update_task(session, task_id, patch_fields, now)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found")
+    return TaskItem(**task)
+
+
+@app.delete("/task/{task_id}", response_model=DeleteTaskResponse)
+async def delete_task(task_id: str, request: Request) -> DeleteTaskResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            deleted = memory_repo.delete_task(session, task_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found")
+    return DeleteTaskResponse(deleted=True)
+
+
+@app.post("/task/{task_id}/link", response_model=TaskItem)
+async def link_tasks(task_id: str, req: LinkTasksRequest, request: Request) -> TaskItem:
+    try:
+        with request.app.state.driver.session() as session:
+            task = memory_repo.link_tasks(session, task_id, req.target_id, req.rel_type)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task {task_id!r} not found")
+    return TaskItem(**task)
 
 
 class DecayPassResponse(BaseModel):

@@ -4,6 +4,7 @@ Exposes tools via FastMCP over STDIO transport:
   memory_add, memory_search, memory_wake_up, memory_list_strands, memory_close_session,
   memory_list_persons, memory_create_person,
   memory_list_projects, memory_create_project,
+  task_add, task_list, task_get, task_update, task_complete, task_stale, task_next,
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
   memory_update, memory_archive, memory_restore, memory_delete, memory_merge,
   memory_find_duplicates, memory_purge_ephemeral
@@ -155,10 +156,128 @@ def memory_list_projects() -> list[dict]:
 
 
 @mcp.tool
-def memory_create_project(project_id: str, name: str, description: str | None = None) -> dict:
-    """Create or merge a Project node. Returns the project dict."""
+def memory_create_project(
+    project_id: str,
+    name: str,
+    description: str | None = None,
+    slug: str | None = None,
+    weight: float | None = None,
+) -> dict:
+    """Create or merge a Project node. slug is a short alias for source_ref namespace (e.g. 'gmf').
+    weight is a cross-project priority multiplier (default 1.0, must be > 0).
+    Returns the project dict."""
     with MemoryClient(base_url=settings.api_base_url) as client:
-        return client.create_project(project_id, name, description=description)
+        return client.create_project(project_id, name, description=description, slug=slug, weight=weight)
+
+
+@mcp.tool
+def task_add(
+    title: str,
+    agent_id: str,
+    description: str | None = None,
+    status: str = "open",
+    value: str | None = None,
+    effort: str | None = None,
+    urgency: float | None = None,
+    due_at: str | None = None,
+    snooze_until: str | None = None,
+    committed_at: str | None = None,
+    committed_by: str | None = None,
+    source_ref: str | None = None,
+    project_id: str | None = None,
+    memory_ids: list[str] | None = None,
+    recurrence: str | None = None,
+    is_template: bool = False,
+) -> dict:
+    """Create a Task node. value/effort are H|M|L for priority scoring.
+    source_ref format: '{project-slug}:WP-NNN' (e.g. 'gmf:WP-143').
+    committed_at starts the accountability clock; committed_by records which agent made the commitment.
+    Returns the task dict including computed priority_score."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.create_task(
+            title, agent_id,
+            description=description, status=status,
+            value=value, effort=effort,
+            urgency=urgency, due_at=due_at,
+            snooze_until=snooze_until,
+            committed_at=committed_at, committed_by=committed_by,
+            source_ref=source_ref, project_id=project_id,
+            memory_ids=memory_ids,
+            recurrence=recurrence, is_template=is_template,
+        )
+
+
+@mcp.tool
+def task_list(
+    status: str | None = None,
+    agent_id: str | None = None,
+    project_id: str | None = None,
+    committed_only: bool = False,
+) -> list[dict]:
+    """List Task nodes. Filter by status (open|active|blocked|done|abandoned),
+    agent_id, project_id, or committed_only (tasks with committed_at set).
+    Templates are excluded. Returns list of task dicts."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.list_tasks(
+            status=status, agent_id=agent_id,
+            project_id=project_id, committed_only=committed_only,
+        )
+
+
+@mcp.tool
+def task_get(task_id: str) -> dict:
+    """Get a single Task node by UUID. Returns the task dict or raises 404."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.get_task(task_id)
+
+
+@mcp.tool
+def task_update(
+    task_id: str,
+    status: str | None = None,
+    value: str | None = None,
+    effort: str | None = None,
+    urgency: float | None = None,
+    due_at: str | None = None,
+    committed_at: str | None = None,
+    committed_by: str | None = None,
+    last_checked_at: str | None = None,
+    source_ref: str | None = None,
+) -> dict:
+    """Update Task node fields. priority_score is recomputed automatically when value or effort changes.
+    Returns the updated task dict."""
+    kwargs = {k: v for k, v in {
+        "status": status, "value": value, "effort": effort, "urgency": urgency,
+        "due_at": due_at, "committed_at": committed_at, "committed_by": committed_by,
+        "last_checked_at": last_checked_at, "source_ref": source_ref,
+    }.items() if v is not None}
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.update_task(task_id, **kwargs)
+
+
+@mcp.tool
+def task_complete(task_id: str) -> dict:
+    """Mark a Task as done. Shorthand for task_update(task_id, status='done').
+    Returns the updated task dict."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.update_task(task_id, status="done")
+
+
+@mcp.tool
+def task_stale() -> list[dict]:
+    """Return tasks with committed_at set but no status update since — the accountability cron signal.
+    Returns list of task dicts ordered by committed_at ASC (oldest commitment first)."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.list_stale_tasks()
+
+
+@mcp.tool
+def task_next(limit: int = 10) -> list[dict]:
+    """Return the cross-project prioritised task queue: open/active tasks sorted by
+    priority_score × project.weight DESC, then due_at ASC.
+    Use this to answer 'what should I work on next?' across all projects."""
+    with MemoryClient(base_url=settings.api_base_url) as client:
+        return client.list_next_tasks(limit=limit)
 
 
 @mcp.tool

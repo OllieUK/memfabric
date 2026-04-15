@@ -733,31 +733,50 @@ def list_projects(session) -> list[dict]:
     """Return all Project nodes with a non-null name, ordered by id."""
     result = session.run(
         "MATCH (p:Project) WHERE p.name IS NOT NULL "
-        "RETURN p.id AS id, p.name AS name, "
-        "p.description AS description ORDER BY p.id"
+        "RETURN p.id AS id, p.name AS name, p.description AS description, "
+        "p.slug AS slug, p.weight AS weight ORDER BY p.id"
     )
     return [
-        {"id": r["id"], "name": r["name"], "description": r["description"]}
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "description": r["description"],
+            "slug": r["slug"],
+            "weight": r["weight"],
+        }
         for r in result
     ]
 
 
 def upsert_project(session, req) -> dict:
     """Create or update a Project node by id. Returns the stored values."""
+    weight = getattr(req, "weight", None)
+    slug = getattr(req, "slug", None)
     result = session.run(
         """
         MERGE (p:Project {id: $id})
-        SET p.name = $name, p.description = $description
-        RETURN p.id AS id, p.name AS name, p.description AS description
+        SET p.name = $name, p.description = $description,
+            p.slug = $slug,
+            p.weight = CASE WHEN $weight IS NOT NULL THEN $weight ELSE coalesce(p.weight, 1.0) END
+        RETURN p.id AS id, p.name AS name, p.description AS description,
+               p.slug AS slug, p.weight AS weight
         """,
         id=req.id,
         name=req.name,
         description=req.description,
+        slug=slug,
+        weight=weight,
     )
     record = result.single()
     if record is None:
         raise RuntimeError(f"upsert_project: MERGE returned no record for id={req.id!r}")
-    return {"id": record["id"], "name": record["name"], "description": record["description"]}
+    return {
+        "id": record["id"],
+        "name": record["name"],
+        "description": record["description"],
+        "slug": record["slug"],
+        "weight": record["weight"],
+    }
 
 
 def get_memory_for_update(session, memory_id: str) -> dict | None:
@@ -2120,3 +2139,369 @@ def find_duplicate_memory(
         return record["id"]
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Task node functions
+# ---------------------------------------------------------------------------
+
+_VE_MAP = {"H": 3.0, "M": 2.0, "L": 1.0}
+
+# Fields that may be patched on a Task node via update_task.
+# priority_score is included because it is recomputed and injected before the SET.
+_TASK_PATCH_FIELDS = {
+    "title", "description", "status", "value", "effort", "priority_score",
+    "urgency", "due_at", "snooze_until", "committed_at", "committed_by",
+    "last_checked_at", "source_ref",
+}
+
+_TASK_RETURN_CLAUSE = """
+    OPTIONAL MATCH (t)-[:OWNED_BY]->(a:Agent)
+    OPTIONAL MATCH (t)-[:FOR_PROJECT]->(p:Project)
+    RETURN
+        t.id AS id,
+        t.title AS title,
+        t.description AS description,
+        t.status AS status,
+        t.value AS value,
+        t.effort AS effort,
+        t.priority_score AS priority_score,
+        t.urgency AS urgency,
+        t.due_at AS due_at,
+        t.snooze_until AS snooze_until,
+        t.created_at AS created_at,
+        t.updated_at AS updated_at,
+        t.committed_at AS committed_at,
+        t.committed_by AS committed_by,
+        t.last_checked_at AS last_checked_at,
+        t.source_ref AS source_ref,
+        t.recurrence AS recurrence,
+        t.is_template AS is_template,
+        a.id AS agent_id,
+        p.id AS project_id,
+        null AS project_weight
+"""
+
+
+def _task_record_to_dict(record) -> dict:
+    return {
+        "id": record["id"],
+        "title": record["title"],
+        "description": record["description"],
+        "status": record["status"],
+        "value": record["value"],
+        "effort": record["effort"],
+        "priority_score": record["priority_score"],
+        "urgency": record["urgency"],
+        "due_at": record["due_at"],
+        "snooze_until": record["snooze_until"],
+        "created_at": record["created_at"],
+        "updated_at": record["updated_at"],
+        "committed_at": record["committed_at"],
+        "committed_by": record["committed_by"],
+        "last_checked_at": record["last_checked_at"],
+        "source_ref": record["source_ref"],
+        "recurrence": record["recurrence"],
+        "is_template": record["is_template"],
+        "agent_id": record["agent_id"],
+        "project_id": record["project_id"],
+        "project_weight": record["project_weight"],
+    }
+
+
+def create_task(session, req, task_id: str, now: str) -> dict:
+    """Create a Task node with OWNED_BY Agent edge and optional FOR_PROJECT / RELATES_TO edges."""
+    priority_score = None
+    if req.value and req.effort:
+        v = req.value.value if hasattr(req.value, "value") else req.value
+        e = req.effort.value if hasattr(req.effort, "value") else req.effort
+        priority_score = _VE_MAP[v] / _VE_MAP[e]
+
+    status_val = req.status.value if hasattr(req.status, "value") else req.status
+    value_val = req.value.value if req.value and hasattr(req.value, "value") else (req.value or None)
+    effort_val = req.effort.value if req.effort and hasattr(req.effort, "value") else (req.effort or None)
+
+    # Step 1: Create Task node + OWNED_BY Agent
+    session.run(
+        """
+        MERGE (a:Agent {id: $agent_id})
+        CREATE (t:Task {
+            id: $id,
+            title: $title,
+            description: $description,
+            status: $status,
+            value: $value,
+            effort: $effort,
+            priority_score: $priority_score,
+            urgency: $urgency,
+            due_at: $due_at,
+            snooze_until: $snooze_until,
+            created_at: $now,
+            updated_at: $now,
+            committed_at: $committed_at,
+            committed_by: $committed_by,
+            last_checked_at: null,
+            source_ref: $source_ref,
+            recurrence: $recurrence,
+            is_template: $is_template
+        })
+        CREATE (t)-[:OWNED_BY]->(a)
+        """,
+        agent_id=req.agent_id,
+        id=task_id,
+        title=req.title,
+        description=req.description,
+        status=status_val,
+        value=value_val,
+        effort=effort_val,
+        priority_score=priority_score,
+        urgency=req.urgency,
+        due_at=req.due_at,
+        snooze_until=req.snooze_until,
+        now=now,
+        committed_at=req.committed_at,
+        committed_by=req.committed_by,
+        source_ref=req.source_ref,
+        recurrence=req.recurrence,
+        is_template=req.is_template,
+    )
+
+    # Step 2: FOR_PROJECT edge (if project_id supplied)
+    if req.project_id:
+        session.run(
+            """
+            MERGE (p:Project {id: $project_id})
+            WITH p
+            MATCH (t:Task {id: $task_id})
+            MERGE (t)-[:FOR_PROJECT]->(p)
+            """,
+            project_id=req.project_id,
+            task_id=task_id,
+        )
+
+    # Step 3: RELATES_TO edges (for each memory_id)
+    for memory_id in req.memory_ids:
+        session.run(
+            """
+            MATCH (t:Task {id: $task_id}), (m:Memory {id: $memory_id})
+            MERGE (t)-[:RELATES_TO]->(m)
+            """,
+            task_id=task_id,
+            memory_id=memory_id,
+        )
+
+    # Read back the created node
+    result = session.run(
+        f"MATCH (t:Task {{id: $id}}) {_TASK_RETURN_CLAUSE}",
+        id=task_id,
+    )
+    record = result.single()
+    if record is None:
+        raise RuntimeError(f"create_task: node not found after creation for id={task_id!r}")
+    return _task_record_to_dict(record)
+
+
+def list_tasks(
+    session,
+    status: str | None = None,
+    agent_id: str | None = None,
+    project_id: str | None = None,
+    committed_only: bool = False,
+) -> list[dict]:
+    """Return Task nodes filtered by status, agent_id, project_id, committed_only.
+
+    Templates (is_template=true) are excluded unless explicitly filtered for.
+    """
+    result = session.run(
+        """
+        MATCH (t:Task)
+        WHERE (t.is_template IS NULL OR t.is_template = false)
+        AND   ($status IS NULL OR t.status = $status)
+        AND   ($committed_only = false OR t.committed_at IS NOT NULL)
+        OPTIONAL MATCH (t)-[:OWNED_BY]->(a:Agent)
+        OPTIONAL MATCH (t)-[:FOR_PROJECT]->(p:Project)
+        WITH t, a, p
+        WHERE ($agent_id IS NULL OR a.id = $agent_id)
+        AND   ($project_id IS NULL OR p.id = $project_id)
+        RETURN
+            t.id AS id, t.title AS title, t.description AS description,
+            t.status AS status, t.value AS value, t.effort AS effort,
+            t.priority_score AS priority_score, t.urgency AS urgency,
+            t.due_at AS due_at, t.snooze_until AS snooze_until,
+            t.created_at AS created_at, t.updated_at AS updated_at,
+            t.committed_at AS committed_at, t.committed_by AS committed_by,
+            t.last_checked_at AS last_checked_at, t.source_ref AS source_ref,
+            t.recurrence AS recurrence, t.is_template AS is_template,
+            a.id AS agent_id, p.id AS project_id, null AS project_weight
+        ORDER BY t.created_at DESC
+        """,
+        status=status,
+        agent_id=agent_id,
+        project_id=project_id,
+        committed_only=committed_only,
+    )
+    return [_task_record_to_dict(r) for r in result]
+
+
+def get_task(session, task_id: str) -> dict | None:
+    """Return a single Task node by id, or None if not found."""
+    result = session.run(
+        f"MATCH (t:Task {{id: $id}}) {_TASK_RETURN_CLAUSE}",
+        id=task_id,
+    )
+    record = result.single()
+    if record is None:
+        return None
+    return _task_record_to_dict(record)
+
+
+def update_task(session, task_id: str, patch_fields: dict, now: str) -> dict | None:
+    """Update Task node fields. Recomputes priority_score when value or effort changes.
+
+    Reads current value/effort from the node when only one axis is in the patch,
+    so partial updates recompute correctly.
+    """
+    if not patch_fields:
+        return get_task(session, task_id)
+
+    # If value or effort is being patched, recompute priority_score.
+    # Only fetch the current node when one axis is missing from the patch.
+    if "value" in patch_fields or "effort" in patch_fields:
+        if "value" in patch_fields and "effort" in patch_fields:
+            v, e = patch_fields["value"], patch_fields["effort"]
+        else:
+            current = session.run(
+                "MATCH (t:Task {id: $id}) RETURN t.value AS value, t.effort AS effort",
+                id=task_id,
+            ).single()
+            if current is None:
+                return None
+            v = patch_fields.get("value") or current["value"]
+            e = patch_fields.get("effort") or current["effort"]
+        if v and e:
+            patch_fields["priority_score"] = _VE_MAP[v] / _VE_MAP[e]
+
+    # Build explicit SET clause — never use map-update operator (Memgraph compat)
+    safe_fields = {k: v for k, v in patch_fields.items() if k in _TASK_PATCH_FIELDS}
+    set_parts = [f"t.{k} = ${k}" for k in safe_fields]
+    set_parts.append("t.updated_at = $updated_at")
+    set_clause = ", ".join(set_parts)
+
+    params = dict(safe_fields)
+    params["id"] = task_id
+    params["updated_at"] = now
+
+    result = session.run(
+        f"""
+        MATCH (t:Task {{id: $id}})
+        SET {set_clause}
+        WITH t
+        OPTIONAL MATCH (t)-[:OWNED_BY]->(a:Agent)
+        OPTIONAL MATCH (t)-[:FOR_PROJECT]->(p:Project)
+        RETURN
+            t.id AS id, t.title AS title, t.description AS description,
+            t.status AS status, t.value AS value, t.effort AS effort,
+            t.priority_score AS priority_score, t.urgency AS urgency,
+            t.due_at AS due_at, t.snooze_until AS snooze_until,
+            t.created_at AS created_at, t.updated_at AS updated_at,
+            t.committed_at AS committed_at, t.committed_by AS committed_by,
+            t.last_checked_at AS last_checked_at, t.source_ref AS source_ref,
+            t.recurrence AS recurrence, t.is_template AS is_template,
+            a.id AS agent_id, p.id AS project_id, null AS project_weight
+        """,
+        **params,
+    )
+    record = result.single()
+    if record is None:
+        return None
+    return _task_record_to_dict(record)
+
+
+def delete_task(session, task_id: str) -> bool:
+    """Delete a Task node. Returns True if it existed, False otherwise."""
+    # Count before delete — DETACH DELETE does not support RETURN (Memgraph gotcha)
+    count_result = session.run(
+        "MATCH (t:Task {id: $id}) RETURN count(t) AS n",
+        id=task_id,
+    )
+    record = count_result.single()
+    if record is None or record["n"] == 0:
+        return False
+    session.run("MATCH (t:Task {id: $id}) DETACH DELETE t", id=task_id)
+    return True
+
+
+def list_next_tasks(session, limit: int = 20) -> list[dict]:
+    """Return open/active non-template tasks sorted by priority_score × project.weight DESC."""
+    result = session.run(
+        """
+        MATCH (t:Task)
+        WHERE t.status IN ['open', 'active']
+        AND   (t.is_template IS NULL OR t.is_template = false)
+        OPTIONAL MATCH (t)-[:OWNED_BY]->(a:Agent)
+        OPTIONAL MATCH (t)-[:FOR_PROJECT]->(p:Project)
+        WITH t, a, p, coalesce(p.weight, 1.0) AS pw
+        RETURN
+            t.id AS id, t.title AS title, t.description AS description,
+            t.status AS status, t.value AS value, t.effort AS effort,
+            t.priority_score AS priority_score, t.urgency AS urgency,
+            t.due_at AS due_at, t.snooze_until AS snooze_until,
+            t.created_at AS created_at, t.updated_at AS updated_at,
+            t.committed_at AS committed_at, t.committed_by AS committed_by,
+            t.last_checked_at AS last_checked_at, t.source_ref AS source_ref,
+            t.recurrence AS recurrence, t.is_template AS is_template,
+            a.id AS agent_id, p.id AS project_id, pw AS project_weight,
+            coalesce(t.priority_score, 1.0) * pw AS effective_score
+        ORDER BY effective_score DESC, t.due_at ASC
+        LIMIT $limit
+        """,
+        limit=limit,
+    )
+    return [_task_record_to_dict(r) for r in result]
+
+
+def list_stale_tasks(session) -> list[dict]:
+    """Return committed tasks that have not been updated since their committed_at timestamp."""
+    result = session.run(
+        """
+        MATCH (t:Task)
+        WHERE t.committed_at IS NOT NULL
+        AND   t.updated_at = t.created_at
+        AND   NOT (t.status IN ['done', 'abandoned'])
+        OPTIONAL MATCH (t)-[:OWNED_BY]->(a:Agent)
+        OPTIONAL MATCH (t)-[:FOR_PROJECT]->(p:Project)
+        RETURN
+            t.id AS id, t.title AS title, t.description AS description,
+            t.status AS status, t.value AS value, t.effort AS effort,
+            t.priority_score AS priority_score, t.urgency AS urgency,
+            t.due_at AS due_at, t.snooze_until AS snooze_until,
+            t.created_at AS created_at, t.updated_at AS updated_at,
+            t.committed_at AS committed_at, t.committed_by AS committed_by,
+            t.last_checked_at AS last_checked_at, t.source_ref AS source_ref,
+            t.recurrence AS recurrence, t.is_template AS is_template,
+            a.id AS agent_id, p.id AS project_id, null AS project_weight
+        ORDER BY t.committed_at ASC
+        """
+    )
+    return [_task_record_to_dict(r) for r in result]
+
+
+def link_tasks(session, from_id: str, to_id: str, rel_type: str) -> dict | None:
+    """Create a BLOCKS or DEPENDS_ON edge between two tasks.
+
+    rel_type must be validated against the allowlist before calling this function.
+    Returns the source task dict, or None if from_id not found.
+    """
+    # Safety: allowlist enforced at API layer (Pydantic Literal) and here
+    if rel_type not in {"BLOCKS", "DEPENDS_ON"}:
+        raise ValueError(f"Invalid rel_type: {rel_type!r}")
+
+    session.run(
+        f"""
+        MATCH (a:Task {{id: $from_id}}), (b:Task {{id: $to_id}})
+        MERGE (a)-[:{rel_type}]->(b)
+        """,
+        from_id=from_id,
+        to_id=to_id,
+    )
+    return get_task(session, from_id)

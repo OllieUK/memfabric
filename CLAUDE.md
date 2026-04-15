@@ -148,7 +148,7 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 
 ## Data model quick-reference
 
-**Nodes:** `Memory`, `Strand`, `Agent`, `Person`, `Project`
+**Nodes:** `Memory`, `Strand`, `Agent`, `Person`, `Project`, `Task`
 
 **Edges:**
 - `RELATED_TO` (Memory→Memory): semantic/associative similarity (auto-linked by vector search); properties: `weight float`
@@ -156,6 +156,12 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 - `PRODUCED_BY` (Memory→Agent): which agent created this memory
 - `ABOUT` (Memory→Person|Project): contextual association
 - `IN_STRAND` (Memory→Strand): strand membership; properties: `weight float` (primary=1.0, secondary=0.5–0.9)
+- `OWNED_BY` (Task→Agent): which agent owns this task
+- `FOR_PROJECT` (Task→Project): project this task belongs to
+- `RELATES_TO` (Task→Memory): optional context link from task to memory/knowledge nodes
+- `BLOCKS` (Task→Task): this task blocks that one
+- `DEPENDS_ON` (Task→Task): this task depends on that one
+- `INSTANCE_OF` (Task→Task): child instance of a recurring parent; properties: `instance_seq int`
 
 **Key Memory properties:** `id` (UUID), `fact` (raw statement), `so_what` (impact/meaning, optional), `text` (derived: fact+so_what, used for embedding), `type` (fact/decision/insight/todo/event/observation), `tags[]`, `created_at`, `last_used_at`, `importance` (1–5), `strength` (0–1, reinforcement level, decays via Ebbinghaus curve), `recall_count`, `reinforcement_count`, `last_reinforced_at`, `decay_rate`, `embedding` (vector)
 
@@ -164,6 +170,10 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 **Key Strand properties:** `id` (kebab-case string e.g. `strand-core-health`), `name`, `description`, `category` (Core Life Domains / Companion Domain / Shadow Domain)
 
 **Key Agent properties:** `id` (string, from AGENT_ID env var), `name`
+
+**Key Task properties:** `id` (UUID), `title`, `description`, `status` (open|active|blocked|done|abandoned), `value` (H|M|L), `effort` (H|M|L), `priority_score` (computed: value_num/effort_num; H=3,M=2,L=1), `urgency` (0–5 float), `due_at`, `snooze_until`, `created_at`, `updated_at`, `committed_at` (accountability clock start — staleness signal when `updated_at = created_at`), `committed_by` (agent_id), `last_checked_at`, `source_ref` (qualified: `{project-slug}:WP-NNN`), `recurrence`, `is_template` (bool, template parents excluded from work queue)
+
+**Key Project properties (extended):** `id`, `name`, `description`, `slug` (short alias for source_ref namespace, e.g. `gmf`), `weight` (float, default 1.0, cross-project priority multiplier — `GET /task/next` sorts by `priority_score × weight DESC`)
 
 ## Security posture
 
