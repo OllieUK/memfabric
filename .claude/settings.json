@@ -1,6 +1,14 @@
 {
   "permissions": {
     "deny": [
+      "Write(/home/oliver/.claude/settings.json)",
+      "Edit(/home/oliver/.claude/settings.json)",
+      "Write(/home/oliver/.claude/CLAUDE.md)",
+      "Edit(/home/oliver/.claude/CLAUDE.md)",
+      "Write(/home/oliver/.codex/config.toml)",
+      "Edit(/home/oliver/.codex/config.toml)",
+      "Write(/home/oliver/.codex/AGENTS.md)",
+      "Edit(/home/oliver/.codex/AGENTS.md)",
       "Write(/home/oliver/projects/graph-memory-fabric/.env)",
       "Edit(/home/oliver/projects/graph-memory-fabric/.env)",
       "Write(/home/oliver/projects/graph-memory-fabric/.env.local)",
