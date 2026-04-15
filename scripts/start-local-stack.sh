@@ -7,55 +7,57 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
 # ---------------------------------------------------------------------------
-# wait_for_memgraph: poll until the memgraph container reports 'healthy'
+# Pre-flight: port 8000 must be free before compose tries to bind it.
+# If a bare uvicorn process is still running, the api service will fail.
 # ---------------------------------------------------------------------------
-wait_for_memgraph() {
-  local container="memgraph-mage"
-  local timeout="${MEMGRAPH_WAIT_TIMEOUT:-60}"
-  local interval=3
+if lsof -Pi :8000 -sTCP:LISTEN -t > /dev/null 2>&1; then
+  echo "ERROR: Port 8000 is already in use." >&2
+  echo "Kill the bare uvicorn process first: fuser -k 8000/tcp" >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Pre-flight: HuggingFace model cache must exist.
+# An empty or missing bind-mount causes a crash-loop with no clear error.
+# ---------------------------------------------------------------------------
+HF_CACHE_PATH="${HF_CACHE_DIR:-/home/oliver/.cache/huggingface}"
+if [[ ! -d "${HF_CACHE_PATH}/hub" ]]; then
+  echo "ERROR: HuggingFace model cache not found at ${HF_CACHE_PATH}/hub" >&2
+  echo "Expected models: all-MiniLM-L6-v2, paraphrase-multilingual-MiniLM-L12-v2" >&2
+  exit 1
+fi
+
+docker compose up -d
+
+# ---------------------------------------------------------------------------
+# wait_for_api: poll until the memory API returns 200 on /health.
+# The compose dependency chain handles Memgraph → API ordering internally.
+# Docker Desktop port forwarding may have a 2–5s lag after compose up;
+# initial connection-refused responses are normal and handled by retries.
+# ---------------------------------------------------------------------------
+wait_for_api() {
+  local url="http://localhost:8000/health"
+  local timeout="${API_WAIT_TIMEOUT:-180}"
+  local interval=5
   local elapsed=0
 
-  echo "Waiting for Memgraph to become healthy (timeout: ${timeout}s)..."
+  echo "Waiting for API to become healthy (timeout: ${timeout}s)..."
   while true; do
-    local status
-    status=$(docker inspect "${container}" --format '{{.State.Health.Status}}' 2>/dev/null || echo "missing")
-
-    if [[ "${status}" == "healthy" ]]; then
-      echo "Memgraph is healthy."
+    if curl -sf "${url}" > /dev/null 2>&1; then
+      echo "API is healthy."
       return 0
     fi
 
     if (( elapsed >= timeout )); then
-      echo "ERROR: Memgraph did not become healthy within ${timeout}s (last status: ${status})." >&2
-      echo "Check logs with: docker logs ${container}" >&2
+      echo "ERROR: API did not become healthy within ${timeout}s." >&2
+      echo "Check logs with: docker logs memory-api" >&2
       return 1
     fi
 
-    echo "  status=${status} — waiting ${interval}s (${elapsed}/${timeout}s elapsed)..."
+    echo "  API not ready — waiting ${interval}s (${elapsed}/${timeout}s elapsed)..."
     sleep "${interval}"
     (( elapsed += interval )) || true
   done
 }
 
-docker compose up -d
-
-wait_for_memgraph
-
-# EMBEDDING_LOCAL_FILES_ONLY=true (default) tells our embeddings module to pass
-# local_files_only=True to SentenceTransformer, preventing any model downloads.
-# We do NOT set HF_HUB_OFFLINE or TRANSFORMERS_OFFLINE: transformers>=4.50 calls
-# model_info() inside AutoTokenizer even for locally-cached models, and those env
-# vars turn that into a hard error rather than a no-op. local_files_only=True alone
-# is the correct download guard.
-export EMBEDDING_LOCAL_FILES_ONLY="${EMBEDDING_LOCAL_FILES_ONLY:-true}"
-
-reload_flag=()
-if [[ "${MEMORY_SERVICE_RELOAD:-1}" == "1" ]]; then
-  reload_flag+=(--reload)
-fi
-
-exec python3 -m uvicorn memory_service.main:app \
-  --host "${API_HOST:-0.0.0.0}" \
-  --port "${API_PORT:-8000}" \
-  --log-config "memory_service/logging.ini" \
-  "${reload_flag[@]}"
+wait_for_api

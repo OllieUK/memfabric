@@ -1,0 +1,14 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.env
+.env.*
+.worktrees/
+build/
+data/
+tests/
+docs/
+notebooks/
+docker-compose.override.yml

@@ -18,7 +18,8 @@
 
 | Order | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |-------|---------|-----|-------|-------|--------|----------------|------------|-------|
-| 1 | R2 | WP-117 | Autonomous dedup: define auto-merge threshold and wire into long_rest | M | L | 3.0 | ✅ WP-047, ✅ WP-088, ✅ WP-138 | Near-duplicate review is surfaced in long_rest output but merge still requires human initiation. This WP defines a high-confidence auto-merge threshold (e.g. ≥0.97) above which long_rest automatically merges pairs without human intervention — treating it as the same memory stored twice, not a semantically distinct pair. Requires: (1) define and validate the threshold empirically against the current corpus; (2) add `auto_merge_threshold` setting (default disabled/None to preserve current behaviour); (3) implement merge logic inside long_rest that calls the existing merge path for pairs above threshold; (4) record each auto-merge in the maintenance log with provenance. Enables the system to maintain itself between human sessions — a prerequisite for genuine agent autonomy. See detail below. |
+| 1 | R2 | WP-144 | Containerise API service + Caddy TLS (startup reliability + HTTPS) | H | M | — | — | **Currently In Progress.** The FastAPI/uvicorn service runs as a bare process with no restart policy. Containerise alongside Memgraph in docker-compose.yml; add Caddy as a TLS reverse proxy. One `docker compose up -d` starts everything. Fixes hook failures, MCP timeouts, and degraded-mode operation caused by service not surviving WSL2 restarts. Also closes WP-014 ambient chore (resource limits). |
+| 2 | R2 | WP-117 | Autonomous dedup: define auto-merge threshold and wire into long_rest | M | L | 3.0 | ✅ WP-047, ✅ WP-088, ✅ WP-138 | Near-duplicate review is surfaced in long_rest output but merge still requires human initiation. This WP defines a high-confidence auto-merge threshold (e.g. ≥0.97) above which long_rest automatically merges pairs without human intervention — treating it as the same memory stored twice, not a semantically distinct pair. Requires: (1) define and validate the threshold empirically against the current corpus; (2) add `auto_merge_threshold` setting (default disabled/None to preserve current behaviour); (3) implement merge logic inside long_rest that calls the existing merge path for pairs above threshold; (4) record each auto-merge in the maintenance log with provenance. Enables the system to maintain itself between human sessions — a prerequisite for genuine agent autonomy. See detail below. |
 | 2 | R2 | WP-113 | Security architecture layer: SABSA, precepts, and business attributes | H | H | 1.0 | WP-107 ✅ | Activate the strategic threat-to-business path from ADR-002. Three components: (1) Seed SABSA Business Attribute Profile as `BusinessAttribute` nodes (customer trust, regulatory standing, operational continuity, competitive advantage, brand reputation, etc.) — SABSA is the primary driver of this layer. (2) Seed universal `Precept` nodes derived from cross-framework convergence (the obligations that ISO 27001, NIST CSF, COBIT, and SP 800-53 all independently demand). Wire `REQUIRES` from Norms, `ADDRESSES` from Controls, `FULFILS` from Precepts to BusinessAttributes. (3) Consider ingestion of additional architectural frameworks that feed the precept model: SABSA conceptual layer, C2M2 capability dimensions, Zero Trust (NIST SP 800-207), CIS Controls v8, TOGAF security architecture domain. Unlocks the board-level query: "Which business attributes face the most active threats?" via Threat → JEOPARDISES → Precept → FULFILS → BusinessAttribute. |
 | 3 | R2 | WP-137 | German-language CTI extraction support for BSI Lagebericht | M | M | 1.0 | WP-108 ✅ | The BSI IT-Sicherheitslage report is German-language; `extract_cti_threats.py` currently yields 0 threats because all `BEHAVIOR_INDICATORS` and `TECHNIQUE_KEYWORDS` are English. The `paraphrase-multilingual-MiniLM-L12-v2` embedding model already handles German natively, so embeddings and deduplication will work correctly once sentences are extracted — the gap is solely in the extraction gate. **Option analysis:** **(1) Extend keyword/verb lists (lowest effort):** Add German behaviour-verb equivalents to `BEHAVIOR_INDICATORS` (e.g. "verwendet", "eingesetzt", "ausgeführt", "verschlüsselt") and German keyword→ATT&CK mappings to `TECHNIQUE_KEYWORDS` (many terms are loanwords: "ransomware"→T1486, "phishing"→T1566 already work; add "anmeldedaten"→T1003, "seitwärtsbewegung"→T1021, etc.). Single-pass pipeline preserved. Brittle: misses conjugations and paraphrases; requires ongoing manual curation for each new German report. **(2) Offline pre-translation via `argostranslate` (clean separation):** Translate extracted PDF text from `de→en` before the existing pipeline runs it. `argostranslate` runs fully offline (~100 MB model). `extract_cti_threats.py` stays English-only; translation is a composable pre-processing flag (`--translate-from de`). Downside: translation quality affects extraction accuracy; adds model download to setup. **(3) spaCy German NER + verb extraction (more robust extraction gate):** Use `spaCy` with `de_core_news_sm` to extract sentences containing action verbs, replacing the hand-curated `BEHAVIOR_INDICATORS` list. Handles conjugations automatically. TECHNIQUE_KEYWORDS mapping still needs German terms, but the behaviour-indicator gate becomes language-agnostic. Higher setup cost; adds spaCy as a dependency. **(4) Language detection + routing (polyglot architecture):** Add `langdetect` or `lingua` to detect language per-page, then route through a language-specific extractor module. Makes the pipeline polyglot by design — future French/Dutch/Japanese reports require only a new extractor, not a fork of the main script. Best long-term architecture if more non-English reports are anticipated. **(5) Offline LLM extraction via Ollama (highest effort, most robust):** Run a local model (e.g. `mistral`, `llama3`) as a pre-processor that produces structured `{sentence, techniques[]}` JSON directly from each page. Handles language, paraphrase, and technique mapping in one pass. Consistent with the "no external LLM API calls" constraint. Highest setup cost; slowest at ingest time. **Recommended path:** Option 2 (argostranslate) for a quick win on the BSI report; Option 4 (language detection + routing) as the target architecture if additional non-English reports are added. Surfaced during live ingestion run (0 threats from BSI report — 364 German-language sentences extracted but none passed the English extraction gate). |
 | 4 | R2 | WP-134 | BSI Lagebericht 2025 ingestion as threat intelligence document | M | M | 1.0 | WP-108 | Ingest the BSI Lagebericht 2025 ("Die Lage der IT-Sicherheit in Deutschland 2025") as a ThreatReport document into the knowledge layer. The report is web-first (no single download PDF); primary URL: `https://medien.bsi.bund.de/lagebericht/`. Approach: (1) fetch the report's HTML pages via `ingest_document.py` or a custom web-scraping script, chunking by section; (2) create a `ThreatReport` document node and `Threat` nodes for named threat actor groups and attack categories mentioned; (3) wire `JEOPARDISES` edges from Threats to relevant Precept nodes (WP-113) and `MAPPED_TO_TECHNIQUE` edges to ATT&CK nodes where technique IDs are cited. The 8-page PDF handout (`/lagebericht/Lagebericht2025_Achtseiter.pdf`) can serve as a starting point for key statistics and threat categories before tackling full web ingestion. German language — multilingual embedding model handles this natively. |
@@ -42,17 +43,18 @@
 | 22 | R2 | WP-092 | Operation log size audit and rotation strategy | L | L | 1.0 | WP-056 ✅ | Review the real-world size and growth rate of `System.operation_log` under normal usage: measure byte size of the JSON property, estimate how quickly the 200-entry cap is reached, and assess read-modify-write overhead on lifecycle endpoints. Based on findings, decide on a rotation strategy — options include: lowering/tuning the cap per operation type, adding a time-based TTL alongside the count cap (e.g. drop entries older than N days), adding a `DELETE /memory/operation/log` or `POST /memory/operation/log/rotate` endpoint for explicit rotation, or splitting per-operation-type logs. Also review whether the same concern applies to `maintenance_log` (WP-054, currently capped at 100). Outcome: either confirm current approach is sufficient at expected scale, or implement the chosen rotation mechanism. |
 | 23 | R2 | WP-121 | 7 integration test files leave non-ephemeral artefacts on cleanup failure | L | L | 1.0 | WP-039 ✅ | Deferred from WP-039 integration test sweep. Seven test files write memories that cannot use `ephemeral=True` because they write-then-search (the search must find the memory they just wrote, so it cannot be excluded from retrieval). These tests rely on the `cleanup_nodes` fixture for cleanup. If `cleanup_nodes` fails or is skipped, artefacts remain in the live graph. Mitigation options: (1) add a post-test Cypher assertion that no tagged test nodes remain, raising clearly if cleanup was incomplete; (2) introduce a test-scoped `purge_ephemeral`-style fixture that sweeps by `agent_id=test-agent` after each session; (3) document as accepted risk since `cleanup_nodes` is reliable in practice. |
 | 24 | R2 | WP-SEC-ZWJ | ZWJ / zero-width character bypass in content filter | L | L | 1.0 | WP-SEC-2 ✅ | Zero-width joiner (U+200D), zero-width non-joiner (U+200C), and zero-width space (U+200B) can split banned literals across character boundaries (e.g. `<sy\u200Dstem>`), bypassing `contains_injection()`. Low-urgency given no evidence of live exploitation, but the bypass is well-known. Fix: strip all zero-width characters from text before checking `_INJECTION_LITERALS`, or add the ZWJ/ZWNJ/ZWS codepoints to the Unicode detection loop in `contains_injection()`. |
-| 25 | R2 | WP-133 | BSI Grundschutzkatalog ingestion | M | H | 0.6 | WP-132 ✅ | Ingest the BSI IT-Grundschutz Kompendium (available at `scripts/bsi-standard-2003_en_pdf.pdf` in the standards folder) as Framework nodes. BSI Grundschutz is Germany's federal standard for baseline IT security — structured as building blocks (Bausteine) covering infrastructure, organisation, and technical components. Expected strong embedding overlap with ISO 27001 Annex A controls (BSI aligns to ISO 27001 by design) and COBIT. The Kompendium is published in both German and English; ingest the English version for best cos-sim against existing English-language framework embeddings. The `Elementare_Gefaehrdungen.pdf` (elementary threats catalogue) is a companion document — ingest alongside as ThreatReport or separate Framework with JEOPARDISES edges to Grundschutz controls. |
-| 26 | R2 | WP-041 | Subject/object schema on Memory nodes | M | H | 0.6 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
-| 27 | R2 | WP-008 | API-based LLM provider abstraction | L | M | 0.33 | WP-007 ✅ | Replace the IDE-tied framing with a runtime `LLMClient` provider layer for Anthropic/OpenAI/Ollama. The goal is to let the fabric and future agents run outside VS Code while keeping provider choice swappable behind one interface. |
-| 28 | R2 | WP-009 | Headless agent runtime outside VS Code | L | M | 0.33 | WP-008 | Build `BaseAgent` on top of `memory_client` + `LLMClient` so scheduled/event-driven agents can run without an editor session. This is the execution foundation for all higher-level agents that should share the same fabric. |
-| 29 | R2 | WP-103 | Generalise `validate_node_ids` and `replace_edges` utilities | L | M | 0.33 | WP-072 ✅ | Simplify review (WP-072) found that `validate_controls`/`validate_documents` in `knowledge_bridge.py` are structurally identical (UNWIND + OPTIONAL MATCH null-filter), and `replace_control_edges`/`replace_doc_edges` duplicate the person/strand replace pattern in `memory_repo.update_memory`. Extract (1) `validate_node_ids(session, ids, label)` generic validator and (2) `replace_edges(session, memory_id, target_ids, edge_type, target_label, edge_properties)` generic replacer. Low priority — all current callers are correct; this is a maintenance-reducing refactor. (Renumbered from WP-096 in WP-102 to resolve ID collision.) |
-| 30 | R2 | WP-098 | Excel cross-standard mapping importer | L | M | 0.33 | — | Design a parser for Excel files mapping controls across frameworks (e.g. ISO 27001 ↔ NIST CSF). Format TBD — pending inspection of a real mapping file. Build once a real mapping spreadsheet is available. |
-| 31 | R2 | WP-131 | Retrieval feedback signal and observation ROI tracking | L | M | 0.33 | WP-126 | Add POST /memory/{id}/feedback endpoint (signal: retrieved/used/irrelevant), retrieval_count and last_retrieved_at properties on Memory nodes (auto-incremented by search), observation_tokens property for ROI tracking (set by WP-126 hook), and GET /memory/feedback/stats aggregate endpoint. Foundation for future reinforcement learning on retrieval quality. See detail below. |
-| 32 | R3 | WP-010 | Remote/mobile access | L | H | 0.2 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
-| 33 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.2 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
-| 34 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | L | H | 0.2 | WP-085, WP-047 ✅, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
-| 35 | R3 | WP-062 | Concept-drift analysis over time | L | H | 0.2 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
+| 25 | R2 | WP-143 | First-class Task nodes for commitment and backlog stewardship | M | H | 0.6 | — | Add `Task` as a first-class graph concept so the fabric can hold cross-project commitments, backlog items, and follow-through state without introducing a separate tracker. Scope: (1) define `Task` node schema (id, title, description, status, priority, urgency, due/snooze metadata, recurrence marker, created/updated timestamps); (2) add relationships such as `OWNED_BY` (Task→Agent/Person), `FOR_PROJECT` (Task→Project), `RELATES_TO` (Task→Memory/Knowledge nodes), and optional dependency edges between tasks; (3) expose CRUD + search/list endpoints and CLI/MCP surface; (4) support queries like "what should I work on next across all projects?" and "what open commitments belong to this project/agent?". Architectural rationale: minimise operational dependencies by consolidating commitment tracking into MemFabric itself. Follow-on dependency: the planned `commitment stewardship` skill should depend on this WP rather than on a separate task service. |
+| 26 | R2 | WP-133 | BSI Grundschutzkatalog ingestion | M | H | 0.6 | WP-132 ✅ | Ingest the BSI IT-Grundschutz Kompendium (available at `scripts/bsi-standard-2003_en_pdf.pdf` in the standards folder) as Framework nodes. BSI Grundschutz is Germany's federal standard for baseline IT security — structured as building blocks (Bausteine) covering infrastructure, organisation, and technical components. Expected strong embedding overlap with ISO 27001 Annex A controls (BSI aligns to ISO 27001 by design) and COBIT. The Kompendium is published in both German and English; ingest the English version for best cos-sim against existing English-language framework embeddings. The `Elementare_Gefaehrdungen.pdf` (elementary threats catalogue) is a companion document — ingest alongside as ThreatReport or separate Framework with JEOPARDISES edges to Grundschutz controls. |
+| 27 | R2 | WP-041 | Subject/object schema on Memory nodes | M | H | 0.6 | WP-028 ✅ | Add explicit `subject` and `object` fields. Required before multi-user or shared-memory scenarios. Avoid hard-coded subject assumptions in ingestion APIs. |
+| 28 | R2 | WP-008 | API-based LLM provider abstraction | L | M | 0.33 | WP-007 ✅ | Replace the IDE-tied framing with a runtime `LLMClient` provider layer for Anthropic/OpenAI/Ollama. The goal is to let the fabric and future agents run outside VS Code while keeping provider choice swappable behind one interface. |
+| 29 | R2 | WP-009 | Headless agent runtime outside VS Code | L | M | 0.33 | WP-008 | Build `BaseAgent` on top of `memory_client` + `LLMClient` so scheduled/event-driven agents can run without an editor session. This is the execution foundation for all higher-level agents that should share the same fabric. |
+| 30 | R2 | WP-103 | Generalise `validate_node_ids` and `replace_edges` utilities | L | M | 0.33 | WP-072 ✅ | Simplify review (WP-072) found that `validate_controls`/`validate_documents` in `knowledge_bridge.py` are structurally identical (UNWIND + OPTIONAL MATCH null-filter), and `replace_control_edges`/`replace_doc_edges` duplicate the person/strand replace pattern in `memory_repo.update_memory`. Extract (1) `validate_node_ids(session, ids, label)` generic validator and (2) `replace_edges(session, memory_id, target_ids, edge_type, target_label, edge_properties)` generic replacer. Low priority — all current callers are correct; this is a maintenance-reducing refactor. (Renumbered from WP-096 in WP-102 to resolve ID collision.) |
+| 31 | R2 | WP-098 | Excel cross-standard mapping importer | L | M | 0.33 | — | Design a parser for Excel files mapping controls across frameworks (e.g. ISO 27001 ↔ NIST CSF). Format TBD — pending inspection of a real mapping file. Build once a real mapping spreadsheet is available. |
+| 32 | R2 | WP-131 | Retrieval feedback signal and observation ROI tracking | L | M | 0.33 | WP-126 | Add POST /memory/{id}/feedback endpoint (signal: retrieved/used/irrelevant), retrieval_count and last_retrieved_at properties on Memory nodes (auto-incremented by search), observation_tokens property for ROI tracking (set by WP-126 hook), and GET /memory/feedback/stats aggregate endpoint. Foundation for future reinforcement learning on retrieval quality. See detail below. |
+| 33 | R3 | WP-010 | Remote/mobile access | L | H | 0.2 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
+| 34 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.2 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
+| 35 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | L | H | 0.2 | WP-085, WP-047 ✅, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
+| 36 | R3 | WP-062 | Concept-drift analysis over time | L | H | 0.2 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
 > **Note:** old backlog items once grouped under `v2+` are now part of the same continuous backlog with `Release` assignments.
 
 ---
@@ -63,7 +65,7 @@
 
 | WP | Title | Surface area | When to apply |
 |----|-------|-------------|---------------|
-| WP-014 | Docker resource limits | `docker-compose.yml` | When next touching compose config |
+| ~~WP-014~~ | ~~Docker resource limits~~ | ~~`docker-compose.yml`~~ | ✅ Applied in WP-144 (`mem_limit`, `cpus`, `pids_limit` on `api` and `caddy` services) |
 | WP-017 | Embedding cache eviction / size cap | `memory_service/` embedding utilities | When embedding perf or disk usage becomes a concern |
 | WP-024 | `cleanup_nodes` multi-id support | `tests/conftest.py` | Verify whether already done in WP-076; delete if complete |
 | WP-081 | Initialise `activation_count` and `last_activated_at` on auto-linked edges | `memory_repo.add_memory` | When next touching `add_memory` write path |
@@ -1705,3 +1707,97 @@ Three small improvements to `scripts/` surfaced from WP-108 and WP-073 simplify 
 - [ ] `ThreatCreate.embedding` optional field added; `extract_cti_threats.py` passes embedding on dedup hit
 - [ ] `chunk_markdown` flushes on `# ` H1 headings as well as `## ` and `### `
 - [ ] All existing ingest tests pass
+
+---
+
+### WP-142 — MemFabric service startup hardening
+
+#### Motivation
+
+Service startup is currently too brittle across environments. `docker compose up -d` starts the Memgraph containers, but does not by itself guarantee that the FastAPI memory service is actually reachable on port 8000. Separately, `python -m memory_service.main` only loads the app module and does not launch the HTTP server. This creates ambiguous operational state and makes Claude Code baseline verification look flaky even when recovery/import tooling is correct.
+
+#### Scope
+
+1. Define one canonical local startup path for the API service and document it explicitly.
+2. Provide a supported launcher for the HTTP service, for example `uvicorn memory_service.main:app --host 0.0.0.0 --port 8000`.
+3. Decide whether the API service should be part of `docker compose` or remain a separate host/venv process, then remove the ambiguity from docs and scripts.
+4. Add a health-check script or Make target that validates both Memgraph and the HTTP API are actually up.
+5. Update any Claude Code / Mara integration docs that still imply `python -m memory_service.main` is a valid service launcher.
+
+#### Definition of Success
+
+- [ ] One documented startup path brings the HTTP API up reliably on port 8000.
+- [ ] Health check clearly distinguishes container health from API-service health.
+- [ ] No baseline or recovery workflow depends on an implicit or incorrect launcher.
+
+---
+
+### WP-143 — First-class Task nodes for commitment and backlog stewardship
+
+#### Motivation
+
+Task and commitment state is currently fragmented across multiple project-specific backlogs and lists. That makes it hard to answer both "what is the right next task in this project?" and "what is the right project to work on at all?" A first-class `Task` node model inside MemFabric would consolidate active commitments into the existing core substrate, support cross-project prioritisation, and avoid adding a separate task service purely to enable follow-through and backlog stewardship.
+
+#### Scope
+
+1. Add a `Task` graph model with a stable `id` plus core fields such as `title`, `description`, `status`, `priority`, `urgency`, optional `due_at`, optional `snooze_until`, optional recurrence marker, and created/updated timestamps.
+2. Add relationships:
+   - `OWNED_BY` from `Task` to `Agent` and/or `Person`
+   - `FOR_PROJECT` from `Task` to `Project`
+   - `RELATES_TO` from `Task` to `Memory` and/or knowledge-layer nodes for context
+   - optional task-to-task dependency edges such as `BLOCKS` / `DEPENDS_ON`
+3. Expose CRUD and retrieval surfaces across API, CLI, and MCP so Claude-side skills can create, inspect, update, and prioritise tasks.
+4. Support practical queries such as:
+   - open tasks for the current project/agent
+   - open commitments across all projects
+   - highest-priority or highest-urgency open tasks
+   - blocked tasks and their blockers
+5. Keep the design aligned with the architectural principle of minimising operational dependencies: this WP exists so the future `commitment stewardship` skill can use MemFabric directly instead of requiring a separate tracker.
+
+#### Out of scope
+
+- Full Kanban or board UI
+- External sync with Notion/Jira/Todoist/etc.
+- Rich recurring-task scheduler semantics beyond a minimal recurrence marker
+
+#### Definition of Success
+
+- [ ] `Task` nodes exist as a first-class model with stable IDs and core state fields
+- [ ] Task ownership and project linkage are queryable through graph relationships
+- [ ] API, CLI, and MCP provide enough surface for Claude-side task retrieval and updates
+- [ ] Cross-project queries can identify what to work on next across projects, not just within one project
+- [ ] The planned `commitment stewardship` skill can be explicitly defined as depending on this WP rather than a separate tracking service
+
+---
+
+### WP-144 — Containerise API service + Caddy TLS
+
+#### Motivation
+
+The FastAPI/uvicorn memory service runs as a bare process launched by `scripts/start-local-stack.sh`. Memgraph and Memgraph Lab are Docker containers with `restart: unless-stopped` and compose health checks — they survive WSL2 restarts automatically. The API does not. This causes session hook failures, MCP timeouts, and silent degraded-mode operation across all Claude Code projects whenever the service is not running.
+
+Additionally, the API is HTTP-only (`http://localhost:8000`). Adding Caddy as a TLS reverse proxy gives a reliable `https://localhost:8443` endpoint alongside the existing HTTP one.
+
+These two problems share the same fix: containerise the API service and wire it into docker-compose.yml.
+
+#### Scope
+
+1. **Dockerfile** — single-stage `python:3.12-slim` image; bind-mount HF model cache read-only; `libgomp1` system dep for PyTorch CPU; no `.env` baked in.
+2. **Caddyfile** — `tls internal` local CA for `localhost:8443`; `auto_https off`; proxy to `api:8000` on Docker internal network.
+3. **docker-compose.yml** — add `api` service (with health check, `restart: unless-stopped`, resource limits per WP-014) and `caddy` service; add `caddy_data`/`caddy_config` volumes.
+4. **docker-compose.override.yml** — dev hot-reload override (git-ignored); bind-mounts source and adds `--reload`.
+5. **scripts/start-local-stack.sh** — replace bare uvicorn launch with pre-flight checks (port 8000 free, HF cache present) + `wait_for_api`.
+6. **Secret hygiene** — `env_file: .env` eliminated; only non-sensitive vars in compose `environment:` block; secrets passed at runtime via shell env.
+
+#### Security notes
+
+- `.env` is never injected via `env_file:` (avoids `docker inspect` leakage of crown jewels).
+- `caddy_data` volume persists the local CA — do not run `docker compose down -v` unless prepared to re-import the CA cert.
+- `docker-compose.override.yml` is git-ignored to prevent accidental production deployments with live-mounted source code.
+- WP-010 (remote access) must use a real cert, not `tls internal`.
+
+#### WP-014 ambient chore — applied here
+
+Resource limits applied to both new services in docker-compose.yml:
+- `api`: `mem_limit: 4g`, `cpus: "2.0"`, `pids_limit: 256`
+- `caddy`: `mem_limit: 128m`, `cpus: "0.25"`, `pids_limit: 64`

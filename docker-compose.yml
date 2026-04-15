@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   memgraph:
     image: memgraph/memgraph-mage:3.9.0
@@ -32,7 +30,65 @@ services:
       - QUICK_CONNECT_MG_HOST=memgraph
       - QUICK_CONNECT_MG_PORT=7687
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: memory-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MEMGRAPH_HOST=memgraph
+      - EMBEDDING_LOCAL_FILES_ONLY=true
+      - AGENT_ID=claude-code
+      - SCHEDULER_ENABLED=true
+      # Secrets (e.g. MEMGRAPH_PASSWORD) must be passed via shell env at
+      # compose-up time, not stored here. Example:
+      #   MEMGRAPH_PASSWORD=secret docker compose up -d
+    volumes:
+      - ${HF_CACHE_DIR:-/home/oliver/.cache/huggingface}:/root/.cache/huggingface:ro
+    depends_on:
+      memgraph:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    restart: unless-stopped
+    mem_limit: 4g
+    cpus: "2.0"
+    pids_limit: 256
+
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: memory-caddy
+    ports:
+      - "8443:8443"
+    environment:
+      # Passed from host shell env at compose-up time — never stored here.
+      # Set these in .env (read by your shell) before running docker compose up -d.
+      - CF_API_TOKEN=${CF_API_TOKEN}
+      - CF_ZONE_ID=${CF_ZONE_ID}
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-memfabric.carr-it.net}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: "0.25"
+    pids_limit: 64
+
 volumes:
   memgraph_lib:
   memgraph_log:
   memgraph_etc:
+  caddy_data:
+  caddy_config:

@@ -50,7 +50,7 @@ If you need to download the embedding model for the first time, run once with
 Verify:
 - Memgraph Lab UI: http://localhost:3000 (connect to `localhost:7687`)
 - Bolt port: `localhost:7687`
-- API health: http://localhost:8000/health
+- API health: https://memfabric.carr-it.net:8443/health
 
 ---
 
@@ -58,11 +58,11 @@ Verify:
 
 ```bash
 # Health check
-curl http://localhost:8000/health
+curl https://memfabric.carr-it.net:8443/health
 # → {"status":"ok"}
 
 # Interactive API docs
-open http://localhost:8000/docs
+open https://memfabric.carr-it.net:8443/docs
 ```
 
 ---

@@ -274,4 +274,4 @@ memory close-session
 - `close-session` is local-only — it requires no API connection.
 - `wake-up` requires the full local stack to be running (`./scripts/start-local-stack.sh` preferred).
 - `AGENT_ID` in `.env` identifies which agent produced each memory. Default: `claude-code`.
-- `API_BASE_URL` in `.env` points to the memory service. Default: `http://localhost:8000`.
+- `API_BASE_URL` in `.env` points to the memory service. Default: `https://memfabric.carr-it.net:8443`.

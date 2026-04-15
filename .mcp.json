@@ -3,7 +3,7 @@
     "memory": {
       "command": "memory-mcp",
       "env": {
-        "API_BASE_URL": "http://localhost:8000",
+        "API_BASE_URL": "https://memfabric.carr-it.net:8443",
         "AGENT_ID": "claude-code"
       }
     }
