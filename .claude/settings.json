@@ -81,8 +81,8 @@
       "Read(/mnt/c/Users/olive/**)",
       "Read(/tmp/**)",
       "Read(/proc/sys/vm/**)",
-      "Edit(/home/oliver/projects/**)",
-      "Write(/home/oliver/projects/**)",
+      "Edit(/home/oliver/projects/graph-memory-fabric/**)",
+      "Write(/home/oliver/projects/graph-memory-fabric/**)",
       "Edit(/home/oliver/.claude/skills/**)",
       "Edit(/home/oliver/.claude/plans/**)",
       "Write(/home/oliver/.claude/plans/**)",
@@ -132,28 +132,6 @@
       "/home/oliver/projects/graph-memory-fabric/.claude/skills/engineering",
       "/home/oliver/projects/graph-memory-fabric/.claude/skills",
       "/home/oliver/projects/graph-memory-fabric/.claude/skills/wp-executor"
-    ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/post_tool_use.py"
-          }
-        ]
-      }
     ]
   },
   "enabledPlugins": {

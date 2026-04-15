@@ -4,7 +4,7 @@
       "command": "memory-mcp",
       "env": {
         "API_BASE_URL": "https://memfabric.carr-it.net:8443",
-        "AGENT_ID": "claude-code"
+        "AGENT_ID": "graph-memory-fabric"
       }
     }
   }

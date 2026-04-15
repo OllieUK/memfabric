@@ -44,17 +44,16 @@ Key settings (all in `.env`):
 
 The scheduler runs `memory_repo.long_rest` and `memory_repo.short_rest` directly in-process (not via HTTP). Log output goes to the service logger (`memory_service.scheduler`).
 
-## Session startup
+## Memory operating model
 
-Before responding substantively in any new companion or user session:
+The shared Mara baseline now owns session wake-up, continuous memory checks, and close-down capture. Do not reintroduce repo-local SessionStart or PostToolUse memory hooks here unless the baseline proves insufficient and the change is explicitly approved.
 
-1. Read `memory_client/COMPANION.md`.
-2. Run `memory wake-up` or the MCP equivalent `memory_wake_up`.
-3. Treat the wake-up briefing as baseline context, then refresh the working set with memory search when the topic shifts.
-4. Store durable facts, decisions, insights, and todos as they arise rather than waiting until session end.
-5. Use `memory close-session` or the MCP equivalent `memory_close_session` before ending the session to review what should persist.
+For work inside this repo:
 
-The Graph Memory Fabric is part of the operating environment, not an optional add-on. Use it proactively and quietly so continuity does not depend on the user having to remind you.
+1. Treat the Graph Memory Fabric as part of the operating environment, not an optional add-on.
+2. Refresh the working set with memory search when the topic shifts or when implementation risk depends on prior project decisions.
+3. Store durable facts, decisions, insights, and todos as they arise rather than waiting until session end.
+4. Use `memory_client/COMPANION.md` as project reference material when you need the client-side operating contract, not as a duplicate startup ritual.
 
 ## Working norms
 
