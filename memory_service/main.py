@@ -1,6 +1,7 @@
 # memory_service/main.py
 
 import asyncio
+import logging
 import subprocess
 import uuid
 from contextlib import asynccontextmanager
@@ -18,6 +19,34 @@ from memory_service import memory_repo
 from memory_service.config import get_driver, settings
 from memory_service.embeddings import get_embedding, get_embedding_dimension
 from memory_service.scheduler import run_scheduler
+
+logger = logging.getLogger(__name__)
+
+
+async def _wait_for_memgraph(driver, *, max_wait: int = 60, initial_delay: float = 2.0) -> None:
+    """Retry Memgraph connectivity with exponential backoff until the database is ready.
+
+    Raises ServiceUnavailable if the database is still unreachable after max_wait seconds.
+    """
+    delay = initial_delay
+    elapsed = 0.0
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            await asyncio.get_event_loop().run_in_executor(None, driver.verify_connectivity)
+            logger.info("Memgraph ready after %.1fs (attempt %d)", elapsed, attempt)
+            return
+        except ServiceUnavailable:
+            if elapsed >= max_wait:
+                raise
+            logger.warning(
+                "Memgraph not ready (attempt %d, %.1fs elapsed) — retrying in %.1fs",
+                attempt, elapsed, delay,
+            )
+            await asyncio.sleep(delay)
+            elapsed += delay
+            delay = min(delay * 1.5, 10.0)
 
 
 
@@ -46,7 +75,7 @@ _BUILD_HASH = _get_build_hash()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     driver = get_driver(settings)
-    driver.verify_connectivity()
+    await _wait_for_memgraph(driver)
     if settings.embedding_preload_on_startup:
         get_embedding_dimension()
         if settings.enable_knowledge_layer:

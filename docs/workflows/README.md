@@ -26,6 +26,7 @@ Claude Code will read the file and execute the steps autonomously, pausing at ex
 | [propose-todos.md](propose-todos.md) | Surface action items from past memories | Planning a feature; weekly review |
 | [refine-edges.md](refine-edges.md) | Identify and add missing RELATED_TO links | After batch ingestion; before a Memgraph Lab session |
 | [strand-maintenance.md](strand-maintenance.md) | Assign memories to thematic Strands | After 20+ memories accumulated; before graph visualisation |
+| [task-stewardship.md](task-stewardship.md) | Create, maintain, and query Task nodes; cross-project commitment tracking | Start of any work session; when picking up or committing to a task |
 
 ---
 
