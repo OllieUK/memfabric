@@ -449,6 +449,10 @@ class WakeUpResponse(BaseModel):
     maintenance_status: MaintenanceStatus
     companion_anchors: Optional[List[WakeUpMemoryItem]] = None    # identity anchors for calling agent
     conversant_anchors: Optional[List[WakeUpMemoryItem]] = None   # person-specific context
+    global_mara_baseline: Optional[List[WakeUpMemoryItem]] = None
+    global_user_baseline: Optional[List[WakeUpMemoryItem]] = None
+    project_mara_persona: Optional[List[WakeUpMemoryItem]] = None
+    project_baseline: Optional[List[WakeUpMemoryItem]] = None
 
 
 @app.get("/memory/wake-up", response_model=WakeUpResponse)
@@ -456,9 +460,19 @@ async def wake_up(
     request: Request,
     limit: int = Query(default=20, ge=1, le=100),
     topic: Optional[str] = Query(default=None),
+    scope_profile: Optional[str] = Query(default=None),
+    global_agent_id: Optional[str] = Query(default=None),
+    project_agent_id: Optional[str] = Query(default=None),
     person_id: Optional[str] = Query(default=None),
+    project_id: Optional[str] = Query(default=None),
     companion_anchor_limit: Optional[int] = Query(default=None, ge=1, le=100),
     conversant_anchor_limit: Optional[int] = Query(default=None, ge=1, le=100),
+    global_mara_limit: Optional[int] = Query(default=None, ge=1, le=100),
+    global_user_limit: Optional[int] = Query(default=None, ge=1, le=100),
+    project_mara_limit: Optional[int] = Query(default=None, ge=1, le=100),
+    project_baseline_limit: Optional[int] = Query(default=None, ge=1, le=100),
+    walk_depth: int = Query(default=2, ge=1, le=3),
+    neighbour_cap: int = Query(default=6, ge=1, le=20),
 ) -> WakeUpResponse:
     # NOTE: wake-up intentionally does NOT call recall_increment.
     # Wake-up is passive context priming, not active recall. Strengthening nodes here
@@ -473,6 +487,10 @@ async def wake_up(
     eff_conv_limit = conversant_anchor_limit if conversant_anchor_limit is not None \
         else settings.wake_up_conversant_anchor_limit
     eff_person_id = person_id if person_id is not None else settings.wake_up_default_person_id
+    eff_global_mara_limit = global_mara_limit if global_mara_limit is not None else 4
+    eff_global_user_limit = global_user_limit if global_user_limit is not None else 4
+    eff_project_mara_limit = project_mara_limit if project_mara_limit is not None else 4
+    eff_project_baseline_limit = project_baseline_limit if project_baseline_limit is not None else 6
     try:
         with request.app.state.driver.session() as session:
             result = memory_repo.wake_up(
@@ -483,6 +501,16 @@ async def wake_up(
                 companion_anchor_limit=eff_comp_limit,
                 person_id=eff_person_id,
                 conversant_anchor_limit=eff_conv_limit,
+                scope_profile=scope_profile,
+                global_agent_id=global_agent_id,
+                project_agent_id=project_agent_id,
+                project_id=project_id,
+                global_mara_limit=eff_global_mara_limit,
+                global_user_limit=eff_global_user_limit,
+                project_mara_limit=eff_project_mara_limit,
+                project_baseline_limit=eff_project_baseline_limit,
+                walk_depth=walk_depth,
+                neighbour_cap=neighbour_cap,
             )
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
@@ -517,6 +545,22 @@ async def wake_up(
         [WakeUpMemoryItem(**r) for r in result["conversant_anchors"]]
         if result.get("conversant_anchors") else None
     )
+    global_mara_items = (
+        [WakeUpMemoryItem(**r) for r in result["global_mara_baseline"]]
+        if result.get("global_mara_baseline") else None
+    )
+    global_user_items = (
+        [WakeUpMemoryItem(**r) for r in result["global_user_baseline"]]
+        if result.get("global_user_baseline") else None
+    )
+    project_mara_items = (
+        [WakeUpMemoryItem(**r) for r in result["project_mara_persona"]]
+        if result.get("project_mara_persona") else None
+    )
+    project_baseline_items = (
+        [WakeUpMemoryItem(**r) for r in result["project_baseline"]]
+        if result.get("project_baseline") else None
+    )
 
     return WakeUpResponse(
         memories=[WakeUpMemoryItem(**r) for r in result["core"]],
@@ -524,6 +568,10 @@ async def wake_up(
         maintenance_status=MaintenanceStatus(**maintenance_status_data),
         companion_anchors=companion_items,
         conversant_anchors=conversant_items,
+        global_mara_baseline=global_mara_items,
+        global_user_baseline=global_user_items,
+        project_mara_persona=project_mara_items,
+        project_baseline=project_baseline_items,
     )
 
 

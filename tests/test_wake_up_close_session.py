@@ -44,6 +44,11 @@ runner = CliRunner()
 
 BASE = "http://localhost:8000"
 
+
+@pytest.fixture(autouse=True)
+def _patch_cli_api_base_url(monkeypatch):
+    monkeypatch.setattr("memory_client.cli.settings.api_base_url", BASE)
+
 _WAKE_UP_RESPONSE = {
     "memories": [
         {
@@ -205,6 +210,38 @@ class TestWakeUpSplitClient:
         assert result.get("conversant_anchors") is not None
         assert result["conversant_anchors"][0]["id"] == "conv-1"
         assert route.calls[0].request.url.params["person_id"] == "oliver-james"
+
+    @respx.mock
+    def test_forwards_mara_startup_v2_params(self):
+        """wake_up_split forwards structured wake-up parameters unchanged."""
+        route = respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json={"memories": [], "topic_memories": [], "maintenance_status": {}})
+        )
+        with MemoryClient(base_url=BASE) as client:
+            client.wake_up_split(
+                limit=12,
+                topic="startup topic",
+                scope_profile="mara_startup_v2",
+                global_agent_id="mara-global",
+                project_agent_id="mara-repo",
+                person_id="oliver-james",
+                project_id="mara-repo",
+                global_mara_limit=3,
+                global_user_limit=4,
+                project_mara_limit=5,
+                project_baseline_limit=6,
+                walk_depth=2,
+                neighbour_cap=7,
+            )
+        params = route.calls[0].request.url.params
+        assert params["scope_profile"] == "mara_startup_v2"
+        assert params["global_agent_id"] == "mara-global"
+        assert params["project_agent_id"] == "mara-repo"
+        assert params["project_id"] == "mara-repo"
+        assert params["global_mara_limit"] == "3"
+        assert params["project_baseline_limit"] == "6"
+        assert params["walk_depth"] == "2"
+        assert params["neighbour_cap"] == "7"
 
 
 # ---------------------------------------------------------------------------

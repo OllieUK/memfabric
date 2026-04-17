@@ -134,24 +134,55 @@ class MemoryClient:
         *,
         limit: int = 20,
         topic: str | None = None,
+        scope_profile: str | None = None,
+        global_agent_id: str | None = None,
+        project_agent_id: str | None = None,
         person_id: str | None = None,
+        project_id: str | None = None,
         companion_anchor_limit: int | None = None,
         conversant_anchor_limit: int | None = None,
+        global_mara_limit: int | None = None,
+        global_user_limit: int | None = None,
+        project_mara_limit: int | None = None,
+        project_baseline_limit: int | None = None,
+        walk_depth: int | None = None,
+        neighbour_cap: int | None = None,
     ) -> dict:
         """GET /memory/wake-up. Returns the full response dict.
 
         Keys always present: memories, topic_memories, maintenance_status
-        Keys present when populated: companion_anchors, conversant_anchors
+        Keys present when populated: companion_anchors, conversant_anchors,
+        global_mara_baseline, global_user_baseline, project_mara_persona, project_baseline
         """
         params: dict = {"limit": limit}
         if topic is not None:
             params["topic"] = topic
+        if scope_profile is not None:
+            params["scope_profile"] = scope_profile
+        if global_agent_id is not None:
+            params["global_agent_id"] = global_agent_id
+        if project_agent_id is not None:
+            params["project_agent_id"] = project_agent_id
         if person_id is not None:
             params["person_id"] = person_id
+        if project_id is not None:
+            params["project_id"] = project_id
         if companion_anchor_limit is not None:
             params["companion_anchor_limit"] = companion_anchor_limit
         if conversant_anchor_limit is not None:
             params["conversant_anchor_limit"] = conversant_anchor_limit
+        if global_mara_limit is not None:
+            params["global_mara_limit"] = global_mara_limit
+        if global_user_limit is not None:
+            params["global_user_limit"] = global_user_limit
+        if project_mara_limit is not None:
+            params["project_mara_limit"] = project_mara_limit
+        if project_baseline_limit is not None:
+            params["project_baseline_limit"] = project_baseline_limit
+        if walk_depth is not None:
+            params["walk_depth"] = walk_depth
+        if neighbour_cap is not None:
+            params["neighbour_cap"] = neighbour_cap
         response = self._http.get("/memory/wake-up", params=params)
         response.raise_for_status()
         return response.json()

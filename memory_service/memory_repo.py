@@ -532,6 +532,16 @@ def wake_up(
     companion_anchor_limit: int = 5,
     person_id: str | None = None,
     conversant_anchor_limit: int = 10,
+    scope_profile: str | None = None,
+    global_agent_id: str | None = None,
+    project_agent_id: str | None = None,
+    project_id: str | None = None,
+    global_mara_limit: int = 4,
+    global_user_limit: int = 4,
+    project_mara_limit: int = 4,
+    project_baseline_limit: int = 6,
+    walk_depth: int = 2,
+    neighbour_cap: int = 6,
 ) -> dict:
     """Return memories for session start as separate lists.
 
@@ -541,8 +551,199 @@ def wake_up(
           "topic"             — topic-only items (not in core); empty when no topic_embedding
           "companion_anchors" — memories ABOUT node with id=agent_id; None when absent/empty
           "conversant_anchors"— memories ABOUT node with id=person_id; None when absent/empty
+          "global_mara_baseline" — explicit global Mara startup section (v2 profile)
+          "global_user_baseline" — explicit user startup section (v2 profile)
+          "project_mara_persona" — project-specific Mara persona section (v2 profile)
+          "project_baseline"     — project-specific operating context section (v2 profile)
         Each item dict: id, text, type, tags, importance, created_at, strand_id
     """
+    def _memory_rank_clause(alias: str = "m") -> str:
+        return (
+            f"{alias}.importance DESC, "
+            f"coalesce({alias}.strength, 0.0) DESC, "
+            f"coalesce({alias}.reinforcement_count, 0) DESC, "
+            f"coalesce({alias}.recall_count, 0) DESC, "
+            f"{alias}.created_at DESC"
+        )
+
+    def _scoped_anchor(
+        *,
+        about_id: str | None,
+        about_label: str | None,
+        include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+    ) -> dict | None:
+        if not about_id:
+            return None
+
+        label_clause = f":{about_label}" if about_label else ""
+        result = session.run(
+            f"""
+            MATCH (m:Memory)-[:ABOUT]->(n{label_clause})
+            WHERE n.id = $about_id
+              AND (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH m, collect(DISTINCT s.id) AS strand_ids
+            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
+              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids[0] AS strand_id
+            ORDER BY {_memory_rank_clause("m")}
+            LIMIT 1
+            """,
+            about_id=about_id,
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+        )
+        record = result.single()
+        return _record_to_memory_dict(record) if record else None
+
+    def _expand_from_anchor(
+        *,
+        anchor_id: str | None,
+        about_id: str | None,
+        about_label: str | None,
+        include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+        section_limit: int,
+    ) -> list[dict]:
+        if not anchor_id or not about_id or section_limit <= 1:
+            return []
+
+        expansion_limit = max(0, min(section_limit - 1, neighbour_cap))
+        if expansion_limit == 0:
+            return []
+
+        label_clause = f":{about_label}" if about_label else ""
+        result = session.run(
+            f"""
+            MATCH (anchor:Memory {{id: $anchor_id}})
+            MATCH p=(anchor)-[:RELATED_TO|LEADS_TO*1..{walk_depth}]-(m:Memory)-[:ABOUT]->(n{label_clause})
+            WHERE n.id = $about_id
+              AND m.id <> $anchor_id
+              AND (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH m,
+                 collect(DISTINCT s.id) AS strand_ids,
+                 max(reduce(score = 1.0, rel IN relationships(p) | score * coalesce(rel.weight, 1.0))) AS path_score
+            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
+              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids[0] AS strand_id
+            ORDER BY path_score DESC, {_memory_rank_clause("m")}
+            LIMIT $limit
+            """,
+            anchor_id=anchor_id,
+            about_id=about_id,
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+            limit=expansion_limit,
+        )
+        return [_record_to_memory_dict(r) for r in result]
+
+    def _scoped_topic_refinement(
+        *,
+        about_id: str | None,
+        about_label: str | None,
+        include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+        existing_ids: set[str],
+        section_limit: int,
+    ) -> list[dict]:
+        if topic_embedding is None or not about_id or section_limit <= len(existing_ids):
+            return []
+
+        remaining = max(0, min(section_limit - len(existing_ids), neighbour_cap))
+        if remaining == 0:
+            return []
+
+        label_clause = f":{about_label}" if about_label else ""
+        result = session.run(
+            f"""
+            CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
+            YIELD node AS m, distance
+            WITH m, distance
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            MATCH (m)-[:ABOUT]->(n{label_clause})
+            WHERE n.id = $about_id
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH m,
+                 collect(DISTINCT s.id) AS strand_ids,
+                 min(distance) AS dist
+            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
+              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids[0] AS strand_id
+            ORDER BY dist ASC, {_memory_rank_clause("m")}
+            LIMIT $limit
+            """,
+            query_vec=topic_embedding,
+            about_id=about_id,
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+            limit=remaining,
+        )
+        return [_record_to_memory_dict(r) for r in result if r["id"] not in existing_ids]
+
+    def _build_scoped_section(
+        *,
+        about_id: str | None,
+        about_label: str | None,
+        include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+        section_limit: int,
+    ) -> list[dict] | None:
+        anchor = _scoped_anchor(
+            about_id=about_id,
+            about_label=about_label,
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+        )
+        if anchor is None:
+            return None
+
+        items = [anchor]
+        items.extend(
+            _expand_from_anchor(
+                anchor_id=anchor["id"],
+                about_id=about_id,
+                about_label=about_label,
+                include_strands=include_strands,
+                exclude_strands=exclude_strands,
+                section_limit=section_limit,
+            )
+        )
+        existing_ids = {item["id"] for item in items}
+        items.extend(
+            _scoped_topic_refinement(
+                about_id=about_id,
+                about_label=about_label,
+                include_strands=include_strands,
+                exclude_strands=exclude_strands,
+                existing_ids=existing_ids,
+                section_limit=section_limit,
+            )
+        )
+        return items[:section_limit] if items else None
+
+    def _dedupe_priority(sections: list[tuple[str, list[dict] | None]]) -> dict[str, list[dict] | None]:
+        deduped: dict[str, list[dict] | None] = {}
+        seen_ids: set[str] = set()
+        for name, values in sections:
+            if values is None:
+                deduped[name] = None
+                continue
+            filtered = [m for m in values if m["id"] not in seen_ids]
+            seen_ids.update(m["id"] for m in filtered)
+            deduped[name] = filtered if filtered else None
+        return deduped
+
     result = session.run(
         """
         MATCH (m:Memory)
@@ -646,11 +847,91 @@ def wake_up(
         conversant_anchors = [m for m in conversant_anchors if m["id"] not in seen_ids]
         conversant_anchors = conversant_anchors if conversant_anchors else None
 
+    global_mara_baseline = None
+    global_user_baseline = None
+    project_mara_persona = None
+    project_baseline = None
+
+    if scope_profile == "mara_startup_v2":
+        global_mara_include = [
+            "strand-companion-ai-anchor",
+            "strand-companion-protocols-systems",
+        ]
+        global_user_include = ["strand-companion-human-anchor"]
+        project_mara_include = [
+            "strand-companion-ai-anchor",
+            "strand-companion-protocols-systems",
+            "strand-companion-current-projects",
+            "strand-companion-memory-macro",
+        ]
+        project_baseline_exclude = [
+            "strand-companion-ai-anchor",
+            "strand-companion-human-anchor",
+            "strand-companion-protocols-systems",
+            "strand-companion-memory-macro",
+            "strand-companion-roleplay",
+            "strand-session-activity",
+        ]
+
+        effective_global_agent_id = global_agent_id or "mara-global"
+        effective_project_agent_id = project_agent_id or agent_id
+        effective_project_id = project_id or effective_project_agent_id
+
+        deduped_sections = _dedupe_priority(
+            [
+                (
+                    "global_mara_baseline",
+                    _build_scoped_section(
+                        about_id=effective_global_agent_id,
+                        about_label=None,
+                        include_strands=global_mara_include,
+                        section_limit=global_mara_limit,
+                    ),
+                ),
+                (
+                    "global_user_baseline",
+                    _build_scoped_section(
+                        about_id=person_id,
+                        about_label="Person",
+                        include_strands=global_user_include,
+                        section_limit=global_user_limit,
+                    ),
+                ),
+                (
+                    "project_mara_persona",
+                    _build_scoped_section(
+                        about_id=effective_project_agent_id,
+                        about_label=None,
+                        include_strands=project_mara_include,
+                        exclude_strands=["strand-session-activity"],
+                        section_limit=project_mara_limit,
+                    ),
+                ),
+                (
+                    "project_baseline",
+                    _build_scoped_section(
+                        about_id=effective_project_id,
+                        about_label="Project",
+                        exclude_strands=project_baseline_exclude,
+                        section_limit=project_baseline_limit,
+                    ),
+                ),
+            ]
+        )
+        global_mara_baseline = deduped_sections["global_mara_baseline"]
+        global_user_baseline = deduped_sections["global_user_baseline"]
+        project_mara_persona = deduped_sections["project_mara_persona"]
+        project_baseline = deduped_sections["project_baseline"]
+
     return {
         "core": core,
         "topic": topic,
         "companion_anchors": companion_anchors,
         "conversant_anchors": conversant_anchors,
+        "global_mara_baseline": global_mara_baseline,
+        "global_user_baseline": global_user_baseline,
+        "project_mara_persona": project_mara_persona,
+        "project_baseline": project_baseline,
     }
 
 

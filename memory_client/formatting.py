@@ -5,7 +5,12 @@ result. The CLI uses it with plain=False (Rich markup). The SessionStart hook
 uses it with plain=True (stripped plain text).
 """
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 from itertools import groupby
+import re
+
+
+SEMANTIC_DUPLICATE_THRESHOLD = 0.9
 
 
 def _format_timestamp(created_at: str | None) -> str | None:
@@ -55,6 +60,67 @@ def _render_section(items: list, plain: bool) -> str:
     return "\n".join(lines)
 
 
+def _normalize_for_similarity(text: str) -> str:
+    normalized = re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", (text or "").lower())).strip()
+    return normalized
+
+
+def _is_semantic_duplicate(a: dict, b: dict) -> bool:
+    text_a = _normalize_for_similarity(a.get("text", ""))
+    text_b = _normalize_for_similarity(b.get("text", ""))
+    if not text_a or not text_b:
+        return False
+    if text_a == text_b:
+        return True
+    return SequenceMatcher(None, text_a, text_b).ratio() >= SEMANTIC_DUPLICATE_THRESHOLD
+
+
+def _compress_section_items(items: list[dict]) -> list[dict]:
+    compressed: list[dict] = []
+    for item in items:
+        matched = None
+        for existing in compressed:
+            if _is_semantic_duplicate(existing, item):
+                matched = existing
+                break
+        if matched is None:
+            cloned = dict(item)
+            cloned["_source_ids"] = [item.get("id")]
+            compressed.append(cloned)
+            continue
+
+        source_ids = matched.setdefault("_source_ids", [matched.get("id")])
+        if item.get("id") not in source_ids:
+            source_ids.append(item.get("id"))
+        if (item.get("importance") or 0) > (matched.get("importance") or 0):
+            matched.update({k: v for k, v in item.items() if not k.startswith("_")})
+            matched["_source_ids"] = source_ids
+    return compressed
+
+
+def _compress_mara_startup_sections(result: dict) -> dict:
+    section_order = [
+        "global_mara_baseline",
+        "global_user_baseline",
+        "project_mara_persona",
+        "project_baseline",
+    ]
+    seen_items: list[dict] = []
+    compressed = dict(result)
+    for key in section_order:
+        items = compressed.get(key)
+        if not items:
+            continue
+        filtered: list[dict] = []
+        for item in items:
+            if any(_is_semantic_duplicate(item, seen) for seen in seen_items):
+                continue
+            filtered.append(item)
+            seen_items.append(item)
+        compressed[key] = _compress_section_items(filtered) if filtered else None
+    return compressed
+
+
 def format_wake_up(
     result: dict,
     topic: str | None = None,
@@ -74,13 +140,30 @@ def format_wake_up(
         A multi-line string ready to print or inject.
     """
     topic_label = topic if topic else "general session"
+    has_mara_startup_sections = any(
+        result.get(key) is not None
+        for key in ("global_mara_baseline", "global_user_baseline", "project_mara_persona", "project_baseline")
+    )
+
+    lines = []
+    if has_mara_startup_sections:
+        compressed = _compress_mara_startup_sections(result)
+        lines.append(_heading(f"## Memory briefing — {topic_label}", plain, bold_only=True))
+        lines.append(_heading("\n### Global Mara baseline", plain))
+        lines.append(_render_section(compressed.get("global_mara_baseline") or [], plain=plain))
+        lines.append(_heading("\n### Global user baseline", plain))
+        lines.append(_render_section(compressed.get("global_user_baseline") or [], plain=plain))
+        lines.append(_heading("\n### Project Mara persona", plain))
+        lines.append(_render_section(compressed.get("project_mara_persona") or [], plain=plain))
+        lines.append(_heading("\n### Project baseline", plain))
+        lines.append(_render_section(compressed.get("project_baseline") or [], plain=plain))
+        return "\n".join(lines)
 
     core = result.get("memories", [])
     topic_memories = result.get("topic_memories", [])
     companion_anchors = result.get("companion_anchors")
     conversant_anchors = result.get("conversant_anchors")
 
-    lines = []
     lines.append(_heading(f"## Memory briefing — {topic_label}", plain, bold_only=True))
     lines.append(_heading("\n### Core context", plain))
     lines.append(_render_section(core, plain=plain))

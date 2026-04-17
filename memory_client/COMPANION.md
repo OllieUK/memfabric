@@ -101,14 +101,37 @@ This document defines how a companion agent (Claude Code or other) should open a
 
 At the beginning of every session, run a wake-up **before responding to the user's first message**. Do not send a generic greeting or ask a clarifying question first — the wake-up briefing is what tells you what context you are walking into.
 
-Recommended default: use a two-phase wake-up when the session has a clear work theme.
+Recommended default for Mara-on workspaces: use the structured startup profile so the wake-up separates always-on continuity from project-specific context.
 
 ```bash
-memory wake-up --limit 10
-memory wake-up --topic "job finding and landing project" --limit 10
+memory wake-up \
+  --scope-profile mara_startup_v2 \
+  --global-agent-id mara-global \
+  --project-agent-id <project-agent-id> \
+  --project-id <project-id> \
+  --person-id <person-id>
 ```
 
-Use a plain general wake-up when there is no clear topic yet:
+This returns four startup sections:
+
+- Global Mara baseline
+- Global user baseline
+- Project Mara persona
+- Project baseline
+
+Optional topic refinement can still be layered onto the same call when the first prompt already has a clear focus:
+
+```bash
+memory wake-up \
+  --scope-profile mara_startup_v2 \
+  --global-agent-id mara-global \
+  --project-agent-id <project-agent-id> \
+  --project-id <project-id> \
+  --person-id <person-id> \
+  --topic "authentication bug triage"
+```
+
+Use a plain general wake-up only for legacy callers or when the workspace does not have the structured identities available yet:
 
 ```bash
 memory wake-up
@@ -120,6 +143,11 @@ Optional flags:
 |------|---------|
 | `--topic "..."` | Focus the briefing on a specific topic (runs semantic search + merges with importance-ranked results) |
 | `--limit N` | Cap total memories returned (default 20) |
+| `--scope-profile mara_startup_v2` | Use the structured Mara startup split |
+| `--global-agent-id ...` | Agent id for the global Mara baseline (`mara-global`) |
+| `--project-agent-id ...` | Current project-specific Mara persona id |
+| `--project-id ...` | Dedicated `Project` node id for project baseline context |
+| `--person-id ...` | Conversant `Person` id for user baseline context |
 
 **Examples:**
 
@@ -127,18 +155,18 @@ Optional flags:
 memory wake-up
 memory wake-up --limit 10
 memory wake-up --topic "health and ADHD management"
-memory wake-up --topic "job finding and landing project" --limit 10
-memory wake-up --topic "coding project graph-memory-fabric" --limit 30
+memory wake-up --scope-profile mara_startup_v2 --global-agent-id mara-global --project-agent-id mara-repo --project-id mara-repo --person-id oliver-james
+memory wake-up --scope-profile mara_startup_v2 --global-agent-id mara-global --project-agent-id graph-memory-fabric --project-id graph-memory-fabric --person-id oliver-james --topic "coding project graph-memory-fabric"
 ```
 
 > **Note — `### Relevant to today` suppression:** On small or sparse graphs (roughly fewer than 50 memories, or any brand-new installation), the `### Relevant to today` section is omitted entirely from wake-up output. This is expected — topic-based semantic search only produces a distinct, useful result set once the graph has enough memories for meaningful recall. Its absence is not an error; proceed with the core memories that were returned. As the fabric grows, the section will appear automatically.
 
 Recommended pattern:
 
-- Load core continuity first with a general wake-up
-- Then load the active domain or project with a topic wake-up
-- Default budget: `10` general + `10` topic
-- Use a single general wake-up when the topic is not yet clear
+- Prefer one structured wake-up for startup continuity
+- Let the structured sections carry the baseline split
+- Use topic refinement only when the initial user prompt clearly narrows the current work
+- Fall back to the legacy general/topic sequence only for older callers
 
 The output is a structured briefing grouped by strand. Read it fully before responding to the user's first message. It establishes:
 

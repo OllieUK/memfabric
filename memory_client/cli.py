@@ -588,14 +588,38 @@ def status() -> None:
 def wake_up(
     topic: Optional[str] = typer.Option(None, "--topic", "-t", help="Topic to focus the session on"),
     limit: int = typer.Option(20, "--limit", "-n", min=1, max=100, help="Max memories to return"),
+    scope_profile: Optional[str] = typer.Option(None, "--scope-profile", help="Structured wake-up profile"),
+    global_agent_id: Optional[str] = typer.Option(None, "--global-agent-id", help="Global agent id for structured wake-up"),
+    project_agent_id: Optional[str] = typer.Option(None, "--project-agent-id", help="Project agent id for structured wake-up"),
     person_id: Optional[str] = typer.Option(
         None, "--person-id", help="Person ID for conversant anchors"
     ),
+    project_id: Optional[str] = typer.Option(None, "--project-id", help="Project node id for structured wake-up"),
+    global_mara_limit: Optional[int] = typer.Option(None, "--global-mara-limit", min=1, max=100, help="Global Mara section limit"),
+    global_user_limit: Optional[int] = typer.Option(None, "--global-user-limit", min=1, max=100, help="Global user section limit"),
+    project_mara_limit: Optional[int] = typer.Option(None, "--project-mara-limit", min=1, max=100, help="Project Mara persona section limit"),
+    project_baseline_limit: Optional[int] = typer.Option(None, "--project-baseline-limit", min=1, max=100, help="Project baseline section limit"),
+    walk_depth: Optional[int] = typer.Option(None, "--walk-depth", min=1, max=3, help="Graph walk depth for structured wake-up"),
+    neighbour_cap: Optional[int] = typer.Option(None, "--neighbour-cap", min=1, max=20, help="Expansion cap per structured section"),
 ) -> None:
     """Print a memory briefing for session start."""
     try:
         with _make_client() as client:
-            result = client.wake_up_split(limit=limit, topic=topic, person_id=person_id)
+            result = client.wake_up_split(
+                limit=limit,
+                topic=topic,
+                scope_profile=scope_profile,
+                global_agent_id=global_agent_id,
+                project_agent_id=project_agent_id,
+                person_id=person_id,
+                project_id=project_id,
+                global_mara_limit=global_mara_limit,
+                global_user_limit=global_user_limit,
+                project_mara_limit=project_mara_limit,
+                project_baseline_limit=project_baseline_limit,
+                walk_depth=walk_depth,
+                neighbour_cap=neighbour_cap,
+            )
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)

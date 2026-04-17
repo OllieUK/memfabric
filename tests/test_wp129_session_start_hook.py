@@ -23,9 +23,9 @@ def _make_result(
     }
 
 
-def _make_mem(text="some fact", importance=3, type="fact", strand_id="strand-core"):
+def _make_mem(text="some fact", importance=3, type="fact", strand_id="strand-core", id="abc"):
     return {
-        "id": "abc",
+        "id": id,
         "text": text,
         "type": type,
         "importance": importance,
@@ -152,6 +152,46 @@ def test_format_wake_up_rich_output_matches_cli_structure():
     assert "core fact" in output
     assert "topic fact" in output
     assert "companion fact" in output
+
+
+def test_format_wake_up_mara_startup_v2_sections_render():
+    result = {
+        "memories": [],
+        "topic_memories": [],
+        "global_mara_baseline": [_make_mem(text="global mara fact", strand_id="strand-companion-ai-anchor", id="gm-1")],
+        "global_user_baseline": [_make_mem(text="global user fact", strand_id="strand-companion-human-anchor", id="gu-1")],
+        "project_mara_persona": [_make_mem(text="project persona fact", strand_id="strand-companion-current-projects", id="pm-1")],
+        "project_baseline": [_make_mem(text="project baseline fact", strand_id="strand-core-work-career", id="pb-1")],
+    }
+    output = format_wake_up(result, topic="mara startup", plain=True)
+    assert "Global Mara baseline" in output
+    assert "Global user baseline" in output
+    assert "Project Mara persona" in output
+    assert "Project baseline" in output
+    assert "global mara fact" in output
+    assert "project baseline fact" in output
+
+
+def test_format_wake_up_mara_startup_v2_compresses_semantic_duplicates():
+    duplicate_a = _make_mem(
+        text="Project baseline: backlog maintenance is currently the top priority.",
+        strand_id="strand-core-work-career",
+    )
+    duplicate_b = _make_mem(
+        text="Project baseline backlog maintenance is currently the top priority",
+        strand_id="strand-companion-current-projects",
+    )
+    duplicate_b["id"] = "def"
+    result = {
+        "memories": [],
+        "topic_memories": [],
+        "global_mara_baseline": [duplicate_a],
+        "global_user_baseline": None,
+        "project_mara_persona": [duplicate_b],
+        "project_baseline": None,
+    }
+    output = format_wake_up(result, plain=True)
+    assert output.count("backlog maintenance is currently the top priority") == 1
 
 
 # --- Hook script tests ---
