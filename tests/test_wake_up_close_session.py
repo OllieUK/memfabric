@@ -39,6 +39,7 @@ from typer.testing import CliRunner
 
 from memory_client.cli import app
 from memory_client.client import MemoryClient
+from memory_client.config import resolve_startup_context
 
 runner = CliRunner()
 
@@ -204,12 +205,12 @@ class TestWakeUpSplitClient:
             return_value=httpx.Response(200, json=response_data)
         )
         with MemoryClient(base_url=BASE) as client:
-            result = client.wake_up_split(person_id="oliver-james")
+            result = client.wake_up_split(person_id="oliver")
         assert result.get("companion_anchors") is not None
         assert result["companion_anchors"][0]["id"] == "comp-1"
         assert result.get("conversant_anchors") is not None
         assert result["conversant_anchors"][0]["id"] == "conv-1"
-        assert route.calls[0].request.url.params["person_id"] == "oliver-james"
+        assert route.calls[0].request.url.params["person_id"] == "oliver"
 
     @respx.mock
     def test_forwards_mara_startup_v2_params(self):
@@ -222,9 +223,9 @@ class TestWakeUpSplitClient:
                 limit=12,
                 topic="startup topic",
                 scope_profile="mara_startup_v2",
-                global_agent_id="mara-global",
+                global_agent_id="mara",
                 project_agent_id="mara-repo",
-                person_id="oliver-james",
+        person_id="oliver",
                 project_id="mara-repo",
                 global_mara_limit=3,
                 global_user_limit=4,
@@ -235,13 +236,97 @@ class TestWakeUpSplitClient:
             )
         params = route.calls[0].request.url.params
         assert params["scope_profile"] == "mara_startup_v2"
-        assert params["global_agent_id"] == "mara-global"
+        assert params["global_agent_id"] == "mara"
         assert params["project_agent_id"] == "mara-repo"
         assert params["project_id"] == "mara-repo"
         assert params["global_mara_limit"] == "3"
         assert params["project_baseline_limit"] == "6"
         assert params["walk_depth"] == "2"
         assert params["neighbour_cap"] == "7"
+
+    @respx.mock
+    def test_applies_mara_startup_defaults_from_settings(self, monkeypatch):
+        route = respx.get(f"{BASE}/memory/wake-up").mock(
+            return_value=httpx.Response(200, json={"memories": [], "topic_memories": [], "maintenance_status": {}})
+        )
+        monkeypatch.setattr(
+            "memory_client.client.resolve_startup_context",
+            lambda: {
+                "global_companion_id": "mara",
+                "global_user_id": "oliver",
+                "project_id": "mara-repo",
+                "project_persona_id": "mara-repo",
+                "wake_up_topic": None,
+                "startup_mode": "mara",
+            },
+        )
+        monkeypatch.setattr("memory_client.client.settings.wake_up_scope_profile", "mara_startup_v2")
+        monkeypatch.setattr("memory_client.client.settings.wake_up_global_agent_id", "mara")
+        monkeypatch.setattr("memory_client.client.settings.agent_id", "mara-repo")
+        monkeypatch.setattr("memory_client.client.settings.wake_up_project_id", None)
+        monkeypatch.setattr("memory_client.client.settings.wake_up_person_id", "oliver")
+        with MemoryClient(base_url=BASE) as client:
+            client.wake_up_split(limit=5)
+        params = route.calls[0].request.url.params
+        assert params["scope_profile"] == "mara_startup_v2"
+        assert params["global_agent_id"] == "mara"
+        assert params["project_agent_id"] == "mara-repo"
+        assert params["project_id"] == "mara-repo"
+        assert params["person_id"] == "oliver"
+
+
+class TestStartupContextResolution:
+    def test_reads_global_and_project_scope_identity_files(self, tmp_path, monkeypatch):
+        global_file = tmp_path / "home" / ".claude" / "startup.json"
+        global_file.parent.mkdir(parents=True)
+        global_file.write_text(
+            '{"companion_id":"mara","user_id":"oliver"}',
+            encoding="utf-8",
+        )
+
+        project_file = tmp_path / "repo" / ".claude" / "startup.json"
+        project_file.parent.mkdir(parents=True)
+        project_file.write_text(
+            '{"project_id":"graph-memory-fabric","project_persona_id":"graph-memory-fabric","wake_up_topic":"startup graph"}',
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr("memory_client.config.global_startup_config_path", lambda: global_file)
+        monkeypatch.setattr(
+            "memory_client.config.find_project_startup_config_path",
+            lambda start_path=None: project_file,
+        )
+
+        context = resolve_startup_context(tmp_path / "repo")
+        assert context["global_companion_id"] == "mara"
+        assert context["global_user_id"] == "oliver"
+        assert context["project_id"] == "graph-memory-fabric"
+        assert context["project_persona_id"] == "graph-memory-fabric"
+        assert context["wake_up_topic"] == "startup graph"
+
+    def test_global_only_project_mode_degrades_cleanly(self, tmp_path, monkeypatch):
+        global_file = tmp_path / "home" / ".claude" / "startup.json"
+        global_file.parent.mkdir(parents=True)
+        global_file.write_text(
+            '{"companion_id":"mara","user_id":"oliver"}',
+            encoding="utf-8",
+        )
+
+        project_file = tmp_path / "repo" / ".claude" / "startup.json"
+        project_file.parent.mkdir(parents=True)
+        project_file.write_text('{"startup_mode":"global-only"}', encoding="utf-8")
+
+        monkeypatch.setattr("memory_client.config.global_startup_config_path", lambda: global_file)
+        monkeypatch.setattr(
+            "memory_client.config.find_project_startup_config_path",
+            lambda start_path=None: project_file,
+        )
+
+        context = resolve_startup_context(tmp_path / "repo")
+        assert context["global_companion_id"] == "mara"
+        assert context["global_user_id"] == "oliver"
+        assert context["project_id"] is None
+        assert context["project_persona_id"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -681,10 +766,10 @@ class TestWakeUpCLIAnchors:
         route = respx.get(f"{BASE}/memory/wake-up").mock(
             return_value=httpx.Response(200, json=_WAKE_UP_WITH_ANCHORS)
         )
-        result = runner.invoke(app, ["wake-up", "--person-id", "oliver-james"])
+        result = runner.invoke(app, ["wake-up", "--person-id", "oliver"])
         assert result.exit_code == 0
         params = route.calls[0].request.url.params
-        assert params["person_id"] == "oliver-james"
+        assert params["person_id"] == "oliver"
 
     @respx.mock
     def test_u19_companion_section_rendered(self):
@@ -703,7 +788,7 @@ class TestWakeUpCLIAnchors:
         respx.get(f"{BASE}/memory/wake-up").mock(
             return_value=httpx.Response(200, json=_WAKE_UP_WITH_ANCHORS)
         )
-        result = runner.invoke(app, ["wake-up", "--person-id", "oliver-james"])
+        result = runner.invoke(app, ["wake-up", "--person-id", "oliver"])
         assert result.exit_code == 0
         assert "### Conversant" in result.output
         assert "Oliver prefers short feedback loops" in result.output

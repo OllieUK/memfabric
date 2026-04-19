@@ -30,7 +30,16 @@ def cleanup_wp144(test_driver):
                 session.run(f"MATCH (n:{label} {{id: $id}}) DETACH DELETE n", id=node_id)
 
 
-def _create_memory(session, *, memory_id: str, text: str, importance: int, strand_id: str, about: list[tuple[str | None, str]]):
+def _create_memory(
+    session,
+    *,
+    memory_id: str,
+    text: str,
+    importance: int,
+    strand_id: str,
+    about: list[tuple[str | None, str]],
+    produced_by: str | None = None,
+):
     session.run(
         """
         CREATE (m:Memory {
@@ -74,6 +83,17 @@ def _create_memory(session, *, memory_id: str, text: str, importance: int, stran
             target_id=target_id,
             memory_id=memory_id,
         )
+    if produced_by:
+        session.run(
+            """
+            MERGE (a:Agent {id: $agent_id})
+            WITH a
+            MATCH (m:Memory {id: $memory_id})
+            MERGE (m)-[:PRODUCED_BY]->(a)
+            """,
+            agent_id=produced_by,
+            memory_id=memory_id,
+        )
 
 
 @pytest.mark.integration
@@ -85,7 +105,7 @@ class TestMaraStartupProfile:
         person_id = f"oliver-test-{uuid.uuid4()}"
         project_id = f"project-test-{uuid.uuid4()}"
         extra_nodes["Agent"].extend([global_agent_id, project_agent_id])
-        extra_nodes["Person"].append(person_id)
+        extra_nodes["Person"].extend([person_id, global_agent_id])
         extra_nodes["Project"].append(project_id)
 
         shared_id = f"wp144-shared-{uuid.uuid4()}"
@@ -197,3 +217,65 @@ class TestMaraStartupProfile:
 
         assert [m["id"] for m in data["global_mara_baseline"]] == [global_id]
         assert [m["id"] for m in data["project_baseline"]] == [anchor_id, topic_id]
+
+    def test_i3_person_and_produced_by_weighting_populates_mara_sections(self, client, test_driver, cleanup_wp144):
+        memory_ids, extra_nodes = cleanup_wp144
+        global_agent_id = f"mara-global-test-{uuid.uuid4()}"
+        project_agent_id = f"mara-repo-test-{uuid.uuid4()}"
+        person_id = f"oliver-test-{uuid.uuid4()}"
+        project_id = f"project-test-{uuid.uuid4()}"
+        extra_nodes["Agent"].extend([global_agent_id, project_agent_id])
+        extra_nodes["Person"].append(person_id)
+        extra_nodes["Project"].append(project_id)
+
+        global_persona_id = f"wp144-global-persona-{uuid.uuid4()}"
+        project_persona_id = f"wp144-project-persona-{uuid.uuid4()}"
+        project_fact_id = f"wp144-project-fact-{uuid.uuid4()}"
+        memory_ids.extend([global_persona_id, project_persona_id, project_fact_id])
+
+        with test_driver.session() as session:
+            _create_memory(
+                session,
+                memory_id=global_persona_id,
+                text="Mara baseline: she holds continuity across projects through steady protocols and presence.",
+                importance=5,
+                strand_id="strand-companion-ai-anchor",
+                about=[("Person", global_agent_id)],
+            )
+            _create_memory(
+                session,
+                memory_id=project_persona_id,
+                text="Project persona: in this project Mara is expected to use MemFabric actively during live work.",
+                importance=4,
+                strand_id="strand-companion-protocols-systems",
+                about=[],
+                produced_by=project_agent_id,
+            )
+            _create_memory(
+                session,
+                memory_id=project_fact_id,
+                text="Project baseline: backlog triage is the current execution focus.",
+                importance=4,
+                strand_id="strand-core-work-career",
+                about=[("Project", project_id)],
+            )
+
+        response = client.get(
+            "/memory/wake-up",
+            params={
+                "scope_profile": "mara_startup_v2",
+                "global_agent_id": global_agent_id,
+                "project_agent_id": project_agent_id,
+                "person_id": person_id,
+                "project_id": project_id,
+                "global_mara_limit": 3,
+                "project_mara_limit": 3,
+                "project_baseline_limit": 3,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert [m["id"] for m in data["global_mara_baseline"]] == [global_persona_id]
+        assert [m["id"] for m in data["project_mara_persona"]] == [project_persona_id]
+        assert [m["id"] for m in data["project_baseline"]] == [project_fact_id]

@@ -2,6 +2,8 @@
 from typing import Optional
 import httpx
 
+from memory_client.config import resolve_startup_context, settings
+
 
 class MemoryClient:
     def __init__(self, base_url: str, timeout: float = 10.0):
@@ -155,34 +157,76 @@ class MemoryClient:
         global_mara_baseline, global_user_baseline, project_mara_persona, project_baseline
         """
         params: dict = {"limit": limit}
+        startup_context = resolve_startup_context()
+        effective_scope_profile = (
+            scope_profile if scope_profile is not None else settings.wake_up_scope_profile
+        )
+        effective_global_agent_id = (
+            global_agent_id
+            if global_agent_id is not None
+            else startup_context.get("global_companion_id")
+            or settings.wake_up_global_agent_id
+        )
+        effective_project_agent_id = (
+            project_agent_id
+            if project_agent_id is not None
+            else startup_context.get("project_persona_id")
+        )
+        effective_project_id = (
+            project_id
+            if project_id is not None
+            else startup_context.get("project_id")
+        )
+        effective_person_id = (
+            person_id
+            if person_id is not None
+            else startup_context.get("global_user_id")
+            or settings.wake_up_person_id
+        )
+        effective_global_mara_limit = (
+            global_mara_limit if global_mara_limit is not None else settings.wake_up_global_mara_limit
+        )
+        effective_global_user_limit = (
+            global_user_limit if global_user_limit is not None else settings.wake_up_global_user_limit
+        )
+        effective_project_mara_limit = (
+            project_mara_limit if project_mara_limit is not None else settings.wake_up_project_mara_limit
+        )
+        effective_project_baseline_limit = (
+            project_baseline_limit
+            if project_baseline_limit is not None
+            else settings.wake_up_project_baseline_limit
+        )
+        effective_walk_depth = walk_depth if walk_depth is not None else settings.wake_up_walk_depth
+        effective_neighbour_cap = neighbour_cap if neighbour_cap is not None else settings.wake_up_neighbour_cap
         if topic is not None:
             params["topic"] = topic
-        if scope_profile is not None:
-            params["scope_profile"] = scope_profile
-        if global_agent_id is not None:
-            params["global_agent_id"] = global_agent_id
-        if project_agent_id is not None:
-            params["project_agent_id"] = project_agent_id
-        if person_id is not None:
-            params["person_id"] = person_id
-        if project_id is not None:
-            params["project_id"] = project_id
+        if effective_scope_profile is not None:
+            params["scope_profile"] = effective_scope_profile
+        if effective_global_agent_id is not None:
+            params["global_agent_id"] = effective_global_agent_id
+        if effective_project_agent_id is not None:
+            params["project_agent_id"] = effective_project_agent_id
+        if effective_person_id is not None:
+            params["person_id"] = effective_person_id
+        if effective_project_id is not None:
+            params["project_id"] = effective_project_id
         if companion_anchor_limit is not None:
             params["companion_anchor_limit"] = companion_anchor_limit
         if conversant_anchor_limit is not None:
             params["conversant_anchor_limit"] = conversant_anchor_limit
-        if global_mara_limit is not None:
-            params["global_mara_limit"] = global_mara_limit
-        if global_user_limit is not None:
-            params["global_user_limit"] = global_user_limit
-        if project_mara_limit is not None:
-            params["project_mara_limit"] = project_mara_limit
-        if project_baseline_limit is not None:
-            params["project_baseline_limit"] = project_baseline_limit
-        if walk_depth is not None:
-            params["walk_depth"] = walk_depth
-        if neighbour_cap is not None:
-            params["neighbour_cap"] = neighbour_cap
+        if effective_global_mara_limit is not None:
+            params["global_mara_limit"] = effective_global_mara_limit
+        if effective_global_user_limit is not None:
+            params["global_user_limit"] = effective_global_user_limit
+        if effective_project_mara_limit is not None:
+            params["project_mara_limit"] = effective_project_mara_limit
+        if effective_project_baseline_limit is not None:
+            params["project_baseline_limit"] = effective_project_baseline_limit
+        if effective_walk_depth is not None:
+            params["walk_depth"] = effective_walk_depth
+        if effective_neighbour_cap is not None:
+            params["neighbour_cap"] = effective_neighbour_cap
         response = self._http.get("/memory/wake-up", params=params)
         response.raise_for_status()
         return response.json()

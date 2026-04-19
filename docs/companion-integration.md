@@ -21,12 +21,12 @@ The fabric is local-first and requires no external LLM API. All embeddings run l
 ```
 [Session start]
   ↓
-memory wake-up --scope-profile mara_startup_v2 ...
-                           → load global Mara baseline, user baseline,
-                             project Mara persona, and project baseline
+  memory wake-up
+                            → load global Mara baseline, user baseline,
+                              project Mara persona, and project baseline
   ↓
-[Optional] memory wake-up --scope-profile mara_startup_v2 --topic ...
-                           → add a focused project-topic refinement when needed
+ [Optional] memory wake-up --topic ...
+                            → add a focused project-topic refinement when needed
   ↓
 [Companion reads both layers, responds to user]
   ↓
@@ -38,6 +38,13 @@ memory close-session        → structured scaffold prompts final memory capture
 ```
 
 Each session begins with a briefing drawn from the graph, and ends with new memories added back. Over time the fabric accumulates a rich, queryable model of Oliver's context.
+
+The normal caller surface stays simple. Startup identities should be resolved from:
+
+- `~/.claude/startup.json` for global companion/user identity
+- `<repo>/.claude/startup.json` for project identity and project persona
+
+If the project file is missing, startup should degrade gracefully to the global baseline rather than fail.
 
 ---
 
@@ -54,7 +61,7 @@ Each session begins with a briefing drawn from the graph, and ends with new memo
 
 | Capability | Status |
 |-----------|--------|
-| `memory wake-up` | Working — legacy wake-up plus structured `mara_startup_v2` startup profile |
+| `memory wake-up` | Working — plain caller surface with structured `mara_startup_v2` resolved behind it |
 | `memory add-memory` | Working — stores to graph with strand/tag/importance |
 | `memory search-memory` | Working — vector similarity search |
 | `memory list-strands` | Working — lists available strands |
@@ -72,11 +79,7 @@ Each session begins with a briefing drawn from the graph, and ends with new memo
 
 # 2. At session start
 memory wake-up \
-  --scope-profile mara_startup_v2 \
-  --global-agent-id mara-global \
-  --project-agent-id graph-memory-fabric \
-  --project-id graph-memory-fabric \
-  --person-id oliver-james
+  --topic "graph-memory-fabric"  # optional refinement only when needed
 
 # 3. Store a memory
 memory add-memory \

@@ -537,7 +537,7 @@ def wake_up(
     project_agent_id: str | None = None,
     project_id: str | None = None,
     global_mara_limit: int = 4,
-    global_user_limit: int = 4,
+    global_user_limit: int = 6,
     project_mara_limit: int = 4,
     project_baseline_limit: int = 6,
     walk_depth: int = 2,
@@ -566,16 +566,164 @@ def wake_up(
             f"{alias}.created_at DESC"
         )
 
-    def _scoped_anchor(
+    def _weighted_section_query(topic_mode: bool = False) -> str:
+        topic_pref_expr = "CASE WHEN $topic_mode THEN (1.0 - dist) * $topic_weight ELSE 0.0 END"
+        topic_return = ", dist" if topic_mode else ", 1.0 AS dist"
+        topic_match = """
+            CALL vector_search.search("mem_embedding_idx", $vector_limit, $query_vec)
+            YIELD node AS m, distance
+            WITH m, min(distance) AS dist
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+        """ if topic_mode else """
+            MATCH (m:Memory)
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            WITH m, 1.0 AS dist
+        """
+        return f"""
+            {topic_match}
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH m, dist, collect(DISTINCT s.id) AS strand_ids
+            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
+              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+            OPTIONAL MATCH (m)-[:ABOUT]->(about_agent:Agent {{id: $about_agent_id}})
+            OPTIONAL MATCH (m)-[:ABOUT]->(about_person:Person {{id: $about_person_id}})
+            OPTIONAL MATCH (m)-[:ABOUT]->(about_project:Project {{id: $about_project_id}})
+            OPTIONAL MATCH (m)-[:PRODUCED_BY]->(prod_agent:Agent {{id: $produced_agent_id}})
+            WITH m, strand_ids, dist,
+                 CASE WHEN about_agent IS NULL THEN 0 ELSE $about_agent_weight END AS about_agent_score,
+                 CASE WHEN about_person IS NULL THEN 0 ELSE $about_person_weight END AS about_person_score,
+                 CASE WHEN about_project IS NULL THEN 0 ELSE $about_project_weight END AS about_project_score,
+                 CASE WHEN prod_agent IS NULL THEN 0 ELSE $produced_agent_weight END AS produced_agent_score
+            WITH m, strand_ids, dist,
+                 about_agent_score,
+                 about_person_score,
+                 about_project_score,
+                 produced_agent_score,
+                 (about_agent_score + about_person_score + about_project_score + produced_agent_score) AS scope_score,
+                 ({topic_pref_expr}) AS topic_score
+            WHERE scope_score > 0
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids[0] AS strand_id,
+                   scope_score, topic_score{topic_return}
+            ORDER BY (scope_score + topic_score) DESC,
+                     scope_score DESC,
+                     {_memory_rank_clause("m")}
+            LIMIT $limit
+        """
+
+    def _query_weighted_section(
         *,
-        about_id: str | None,
-        about_label: str | None,
         include_strands: list[str] | None = None,
         exclude_strands: list[str] | None = None,
-    ) -> dict | None:
-        if not about_id:
-            return None
+        section_limit: int,
+        about_agent_id: str | None = None,
+        about_agent_weight: int = 0,
+        about_person_id: str | None = None,
+        about_person_weight: int = 0,
+        about_project_id: str | None = None,
+        about_project_weight: int = 0,
+        produced_agent_id: str | None = None,
+        produced_agent_weight: int = 0,
+        topic_weight: float = 0.0,
+        topic_mode: bool = False,
+    ) -> list[dict]:
+        if section_limit <= 0:
+            return []
 
+        params = {
+            "include_strands": include_strands,
+            "exclude_strands": exclude_strands,
+            "about_agent_id": about_agent_id,
+            "about_person_id": about_person_id,
+            "about_project_id": about_project_id,
+            "produced_agent_id": produced_agent_id,
+            "about_agent_weight": about_agent_weight,
+            "about_person_weight": about_person_weight,
+            "about_project_weight": about_project_weight,
+            "produced_agent_weight": produced_agent_weight,
+            "limit": section_limit,
+            "topic_mode": topic_mode,
+            "topic_weight": topic_weight,
+            "query_vec": topic_embedding,
+            "vector_limit": max(section_limit * 4, neighbour_cap * 2, 12),
+        }
+        query = _weighted_section_query(topic_mode=topic_mode)
+        result = session.run(query, **params)
+        return [_record_to_memory_dict(r) for r in result]
+
+    def _build_weighted_section(
+        *,
+        include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+        section_limit: int,
+        about_agent_id: str | None = None,
+        about_agent_weight: int = 0,
+        about_person_id: str | None = None,
+        about_person_weight: int = 0,
+        about_project_id: str | None = None,
+        about_project_weight: int = 0,
+        produced_agent_id: str | None = None,
+        produced_agent_weight: int = 0,
+        topic_weight: float = 0.0,
+    ) -> list[dict] | None:
+        base_items = _query_weighted_section(
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+            section_limit=section_limit,
+            about_agent_id=about_agent_id,
+            about_agent_weight=about_agent_weight,
+            about_person_id=about_person_id,
+            about_person_weight=about_person_weight,
+            about_project_id=about_project_id,
+            about_project_weight=about_project_weight,
+            produced_agent_id=produced_agent_id,
+            produced_agent_weight=produced_agent_weight,
+            topic_weight=0.0,
+            topic_mode=False,
+        )
+        if topic_embedding is None or len(base_items) >= section_limit:
+            return base_items[:section_limit] if base_items else None
+
+        topic_items = _query_weighted_section(
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+            section_limit=section_limit,
+            about_agent_id=about_agent_id,
+            about_agent_weight=about_agent_weight,
+            about_person_id=about_person_id,
+            about_person_weight=about_person_weight,
+            about_project_id=about_project_id,
+            about_project_weight=about_project_weight,
+            produced_agent_id=produced_agent_id,
+            produced_agent_weight=produced_agent_weight,
+            topic_weight=topic_weight,
+            topic_mode=True,
+        )
+        merged = list(base_items)
+        seen_ids = {item["id"] for item in merged}
+        for item in topic_items:
+            if item["id"] in seen_ids:
+                continue
+            merged.append(item)
+            seen_ids.add(item["id"])
+            if len(merged) >= section_limit:
+                break
+        return merged[:section_limit] if merged else None
+
+    def _query_exact_about_section(
+        *,
+        about_id: str | None,
+        about_label: str | None = None,
+        include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+        allowed_types: list[str] | None = None,
+        section_limit: int,
+    ) -> list[dict]:
+        if not about_id or section_limit <= 0:
+            return []
         label_clause = f":{about_label}" if about_label else ""
         result = session.run(
             f"""
@@ -583,100 +731,108 @@ def wake_up(
             WHERE n.id = $about_id
               AND (m.status IS NULL OR m.status = 'active')
               AND (m.ephemeral IS NULL OR m.ephemeral = false)
-            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-            WITH m, collect(DISTINCT s.id) AS strand_ids
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(all_s:Strand)
+            WITH m, collect(DISTINCT all_s.id) AS strand_ids
             WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
               AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+              AND ($allowed_types IS NULL OR m.type IN $allowed_types)
             RETURN m.id AS id, m.text AS text, m.type AS type,
                    m.tags AS tags, m.importance AS importance,
                    m.created_at AS created_at, strand_ids[0] AS strand_id
             ORDER BY {_memory_rank_clause("m")}
-            LIMIT 1
-            """,
-            about_id=about_id,
-            include_strands=include_strands,
-            exclude_strands=exclude_strands,
-        )
-        record = result.single()
-        return _record_to_memory_dict(record) if record else None
-
-    def _expand_from_anchor(
-        *,
-        anchor_id: str | None,
-        about_id: str | None,
-        about_label: str | None,
-        include_strands: list[str] | None = None,
-        exclude_strands: list[str] | None = None,
-        section_limit: int,
-    ) -> list[dict]:
-        if not anchor_id or not about_id or section_limit <= 1:
-            return []
-
-        expansion_limit = max(0, min(section_limit - 1, neighbour_cap))
-        if expansion_limit == 0:
-            return []
-
-        label_clause = f":{about_label}" if about_label else ""
-        result = session.run(
-            f"""
-            MATCH (anchor:Memory {{id: $anchor_id}})
-            MATCH p=(anchor)-[:RELATED_TO|LEADS_TO*1..{walk_depth}]-(m:Memory)-[:ABOUT]->(n{label_clause})
-            WHERE n.id = $about_id
-              AND m.id <> $anchor_id
-              AND (m.status IS NULL OR m.status = 'active')
-              AND (m.ephemeral IS NULL OR m.ephemeral = false)
-            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-            WITH m,
-                 collect(DISTINCT s.id) AS strand_ids,
-                 max(reduce(score = 1.0, rel IN relationships(p) | score * coalesce(rel.weight, 1.0))) AS path_score
-            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
-              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
-            RETURN m.id AS id, m.text AS text, m.type AS type,
-                   m.tags AS tags, m.importance AS importance,
-                   m.created_at AS created_at, strand_ids[0] AS strand_id
-            ORDER BY path_score DESC, {_memory_rank_clause("m")}
             LIMIT $limit
             """,
-            anchor_id=anchor_id,
             about_id=about_id,
             include_strands=include_strands,
             exclude_strands=exclude_strands,
-            limit=expansion_limit,
+            allowed_types=allowed_types,
+            limit=section_limit,
         )
         return [_record_to_memory_dict(r) for r in result]
 
-    def _scoped_topic_refinement(
+    def _query_exact_produced_by_section(
         *,
-        about_id: str | None,
-        about_label: str | None,
+        agent_id: str | None,
         include_strands: list[str] | None = None,
+        exclude_strands: list[str] | None = None,
+        allowed_types: list[str] | None = None,
+        section_limit: int,
+    ) -> list[dict]:
+        if not agent_id or section_limit <= 0:
+            return []
+        result = session.run(
+            f"""
+            MATCH (m:Memory)-[:PRODUCED_BY]->(:Agent {{id: $agent_id}})
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(all_s:Strand)
+            WITH m, collect(DISTINCT all_s.id) AS strand_ids
+            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
+              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+              AND ($allowed_types IS NULL OR m.type IN $allowed_types)
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids[0] AS strand_id
+            ORDER BY {_memory_rank_clause("m")}
+            LIMIT $limit
+            """,
+            agent_id=agent_id,
+            include_strands=include_strands,
+            exclude_strands=exclude_strands,
+            allowed_types=allowed_types,
+            limit=section_limit,
+        )
+        return [_record_to_memory_dict(r) for r in result]
+
+    def _query_exact_project_section(
+        *,
+        project_id: str | None,
+        exclude_strands: list[str] | None = None,
+        section_limit: int,
+    ) -> list[dict]:
+        if not project_id or section_limit <= 0:
+            return []
+        result = session.run(
+            f"""
+            MATCH (m:Memory)-[:ABOUT]->(:Project {{id: $project_id}})
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(all_s:Strand)
+            WITH m, collect(DISTINCT all_s.id) AS strand_ids
+            WHERE ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+            RETURN m.id AS id, m.text AS text, m.type AS type,
+                   m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids[0] AS strand_id
+            ORDER BY {_memory_rank_clause("m")}
+            LIMIT $limit
+            """,
+            project_id=project_id,
+            exclude_strands=exclude_strands,
+            limit=section_limit,
+        )
+        return [_record_to_memory_dict(r) for r in result]
+
+    def _query_topic_project_section(
+        *,
+        project_id: str | None,
         exclude_strands: list[str] | None = None,
         existing_ids: set[str],
         section_limit: int,
     ) -> list[dict]:
-        if topic_embedding is None or not about_id or section_limit <= len(existing_ids):
+        if topic_embedding is None or not project_id or section_limit <= len(existing_ids):
             return []
-
-        remaining = max(0, min(section_limit - len(existing_ids), neighbour_cap))
-        if remaining == 0:
-            return []
-
-        label_clause = f":{about_label}" if about_label else ""
+        remaining = section_limit - len(existing_ids)
         result = session.run(
             f"""
             CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
             YIELD node AS m, distance
-            WITH m, distance
+            WITH m, min(distance) AS dist
             WHERE (m.status IS NULL OR m.status = 'active')
               AND (m.ephemeral IS NULL OR m.ephemeral = false)
-            MATCH (m)-[:ABOUT]->(n{label_clause})
-            WHERE n.id = $about_id
-            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-            WITH m,
-                 collect(DISTINCT s.id) AS strand_ids,
-                 min(distance) AS dist
-            WHERE ($include_strands IS NULL OR any(sid IN strand_ids WHERE sid IN $include_strands))
-              AND ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
+            MATCH (m)-[:ABOUT]->(:Project {{id: $project_id}})
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(all_s:Strand)
+            WITH m, dist, collect(DISTINCT all_s.id) AS strand_ids
+            WHERE ($exclude_strands IS NULL OR none(sid IN strand_ids WHERE sid IN $exclude_strands))
             RETURN m.id AS id, m.text AS text, m.type AS type,
                    m.tags AS tags, m.importance AS importance,
                    m.created_at AS created_at, strand_ids[0] AS strand_id
@@ -684,53 +840,24 @@ def wake_up(
             LIMIT $limit
             """,
             query_vec=topic_embedding,
-            about_id=about_id,
-            include_strands=include_strands,
+            project_id=project_id,
             exclude_strands=exclude_strands,
-            limit=remaining,
+            limit=max(remaining * 4, remaining),
         )
-        return [_record_to_memory_dict(r) for r in result if r["id"] not in existing_ids]
+        return [_record_to_memory_dict(r) for r in result if r["id"] not in existing_ids][:remaining]
 
-    def _build_scoped_section(
-        *,
-        about_id: str | None,
-        about_label: str | None,
-        include_strands: list[str] | None = None,
-        exclude_strands: list[str] | None = None,
-        section_limit: int,
-    ) -> list[dict] | None:
-        anchor = _scoped_anchor(
-            about_id=about_id,
-            about_label=about_label,
-            include_strands=include_strands,
-            exclude_strands=exclude_strands,
-        )
-        if anchor is None:
-            return None
-
-        items = [anchor]
-        items.extend(
-            _expand_from_anchor(
-                anchor_id=anchor["id"],
-                about_id=about_id,
-                about_label=about_label,
-                include_strands=include_strands,
-                exclude_strands=exclude_strands,
-                section_limit=section_limit,
-            )
-        )
-        existing_ids = {item["id"] for item in items}
-        items.extend(
-            _scoped_topic_refinement(
-                about_id=about_id,
-                about_label=about_label,
-                include_strands=include_strands,
-                exclude_strands=exclude_strands,
-                existing_ids=existing_ids,
-                section_limit=section_limit,
-            )
-        )
-        return items[:section_limit] if items else None
+    def _merge_section_lists(*sections: list[dict], section_limit: int) -> list[dict] | None:
+        merged: list[dict] = []
+        seen_ids: set[str] = set()
+        for section in sections:
+            for item in section:
+                if item["id"] in seen_ids:
+                    continue
+                merged.append(item)
+                seen_ids.add(item["id"])
+                if len(merged) >= section_limit:
+                    return merged
+        return merged if merged else None
 
     def _dedupe_priority(sections: list[tuple[str, list[dict] | None]]) -> dict[str, list[dict] | None]:
         deduped: dict[str, list[dict] | None] = {}
@@ -853,15 +980,13 @@ def wake_up(
     project_baseline = None
 
     if scope_profile == "mara_startup_v2":
-        global_mara_include = [
-            "strand-companion-ai-anchor",
-            "strand-companion-protocols-systems",
-        ]
-        global_user_include = ["strand-companion-human-anchor"]
+        global_mara_primary = ["strand-companion-ai-anchor"]
+        global_mara_supplement = ["strand-companion-protocols-systems"]
+        global_user_primary = ["strand-companion-human-anchor"]
+        global_user_supplement = ["strand-companion-protocols-systems"]
         project_mara_include = [
             "strand-companion-ai-anchor",
             "strand-companion-protocols-systems",
-            "strand-companion-current-projects",
             "strand-companion-memory-macro",
         ]
         project_baseline_exclude = [
@@ -873,48 +998,90 @@ def wake_up(
             "strand-session-activity",
         ]
 
-        effective_global_agent_id = global_agent_id or "mara-global"
+        effective_global_agent_id = global_agent_id or "mara"
         effective_project_agent_id = project_agent_id or agent_id
         effective_project_id = project_id or effective_project_agent_id
+
+        global_mara_section = _merge_section_lists(
+            _query_exact_about_section(
+                about_id=effective_global_agent_id,
+                include_strands=global_mara_primary,
+                section_limit=global_mara_limit,
+            ),
+            _query_exact_about_section(
+                about_id=effective_global_agent_id,
+                include_strands=global_mara_supplement,
+                allowed_types=["fact", "insight", "observation"],
+                section_limit=min(2, global_mara_limit),
+            ),
+            section_limit=global_mara_limit,
+        )
+        if global_mara_section is None and effective_project_agent_id:
+            global_mara_section = _query_exact_produced_by_section(
+                agent_id=effective_project_agent_id,
+                include_strands=project_mara_include,
+                allowed_types=["fact", "insight", "decision", "observation"],
+                section_limit=global_mara_limit,
+            )
+
+        global_user_section = _merge_section_lists(
+            _query_exact_about_section(
+                about_id=person_id,
+                about_label="Person",
+                include_strands=global_user_primary,
+                section_limit=global_user_limit,
+            ),
+            _query_exact_about_section(
+                about_id=person_id,
+                about_label="Person",
+                include_strands=global_user_supplement,
+                allowed_types=["fact", "insight", "observation"],
+                section_limit=min(2, global_user_limit),
+            ),
+            section_limit=global_user_limit,
+        )
+
+        project_mara_section = _query_exact_produced_by_section(
+            agent_id=effective_project_agent_id,
+            include_strands=project_mara_include,
+            exclude_strands=["strand-session-activity"],
+            allowed_types=["fact", "insight", "decision", "observation"],
+            section_limit=project_mara_limit,
+        )
+
+        project_baseline_section = _query_exact_project_section(
+            project_id=effective_project_id,
+            exclude_strands=project_baseline_exclude,
+            section_limit=project_baseline_limit,
+        )
+        project_baseline_section = _merge_section_lists(
+            project_baseline_section,
+            _query_topic_project_section(
+                project_id=effective_project_id,
+                exclude_strands=project_baseline_exclude,
+                existing_ids={m["id"] for m in project_baseline_section},
+                section_limit=project_baseline_limit,
+            ),
+            section_limit=project_baseline_limit,
+        )
 
         deduped_sections = _dedupe_priority(
             [
                 (
                     "global_mara_baseline",
-                    _build_scoped_section(
-                        about_id=effective_global_agent_id,
-                        about_label=None,
-                        include_strands=global_mara_include,
-                        section_limit=global_mara_limit,
-                    ),
+                    global_mara_section,
                 ),
                 (
                     "global_user_baseline",
-                    _build_scoped_section(
-                        about_id=person_id,
-                        about_label="Person",
-                        include_strands=global_user_include,
-                        section_limit=global_user_limit,
-                    ),
+                    global_user_section,
                 ),
                 (
                     "project_mara_persona",
-                    _build_scoped_section(
-                        about_id=effective_project_agent_id,
-                        about_label=None,
-                        include_strands=project_mara_include,
-                        exclude_strands=["strand-session-activity"],
-                        section_limit=project_mara_limit,
-                    ),
+                    project_mara_section,
                 ),
                 (
                     "project_baseline",
-                    _build_scoped_section(
-                        about_id=effective_project_id,
-                        about_label="Project",
-                        exclude_strands=project_baseline_exclude,
-                        section_limit=project_baseline_limit,
-                    ),
+                    project_baseline_section,
                 ),
             ]
         )

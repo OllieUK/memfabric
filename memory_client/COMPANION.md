@@ -101,15 +101,10 @@ This document defines how a companion agent (Claude Code or other) should open a
 
 At the beginning of every session, run a wake-up **before responding to the user's first message**. Do not send a generic greeting or ask a clarifying question first — the wake-up briefing is what tells you what context you are walking into.
 
-Recommended default for Mara-on workspaces: use the structured startup profile so the wake-up separates always-on continuity from project-specific context.
+Recommended default for Mara-on workspaces: run a plain `memory wake-up`. The client/service resolve the structured startup profile in code so the call surface stays simple.
 
 ```bash
-memory wake-up \
-  --scope-profile mara_startup_v2 \
-  --global-agent-id mara-global \
-  --project-agent-id <project-agent-id> \
-  --project-id <project-id> \
-  --person-id <person-id>
+memory wake-up
 ```
 
 This returns four startup sections:
@@ -119,16 +114,17 @@ This returns four startup sections:
 - Project Mara persona
 - Project baseline
 
+Identity resolution should come from scope-local startup config:
+
+- global: `~/.claude/startup.json`
+- project: `<repo>/.claude/startup.json`
+
+Those files should declare the global companion identity, the global user identity, the project identity, and the project persona. The caller should not need to pass those explicitly during normal startup.
+
 Optional topic refinement can still be layered onto the same call when the first prompt already has a clear focus:
 
 ```bash
-memory wake-up \
-  --scope-profile mara_startup_v2 \
-  --global-agent-id mara-global \
-  --project-agent-id <project-agent-id> \
-  --project-id <project-id> \
-  --person-id <person-id> \
-  --topic "authentication bug triage"
+memory wake-up --topic "authentication bug triage"
 ```
 
 Use a plain general wake-up only for legacy callers or when the workspace does not have the structured identities available yet:
@@ -143,11 +139,11 @@ Optional flags:
 |------|---------|
 | `--topic "..."` | Focus the briefing on a specific topic (runs semantic search + merges with importance-ranked results) |
 | `--limit N` | Cap total memories returned (default 20) |
-| `--scope-profile mara_startup_v2` | Use the structured Mara startup split |
-| `--global-agent-id ...` | Agent id for the global Mara baseline (`mara-global`) |
-| `--project-agent-id ...` | Current project-specific Mara persona id |
-| `--project-id ...` | Dedicated `Project` node id for project baseline context |
-| `--person-id ...` | Conversant `Person` id for user baseline context |
+| `--scope-profile ...` | Optional override/debug control for the startup profile |
+| `--global-agent-id ...` | Optional override/debug control for the global Mara baseline id |
+| `--project-agent-id ...` | Optional override/debug control for the project persona id |
+| `--project-id ...` | Optional override/debug control for the project baseline id |
+| `--person-id ...` | Optional override/debug control for the conversant `Person` id |
 
 **Examples:**
 
@@ -155,16 +151,16 @@ Optional flags:
 memory wake-up
 memory wake-up --limit 10
 memory wake-up --topic "health and ADHD management"
-memory wake-up --scope-profile mara_startup_v2 --global-agent-id mara-global --project-agent-id mara-repo --project-id mara-repo --person-id oliver-james
-memory wake-up --scope-profile mara_startup_v2 --global-agent-id mara-global --project-agent-id graph-memory-fabric --project-id graph-memory-fabric --person-id oliver-james --topic "coding project graph-memory-fabric"
+memory wake-up
+memory wake-up --topic "coding project graph-memory-fabric"
 ```
 
 > **Note — `### Relevant to today` suppression:** On small or sparse graphs (roughly fewer than 50 memories, or any brand-new installation), the `### Relevant to today` section is omitted entirely from wake-up output. This is expected — topic-based semantic search only produces a distinct, useful result set once the graph has enough memories for meaningful recall. Its absence is not an error; proceed with the core memories that were returned. As the fabric grows, the section will appear automatically.
 
 Recommended pattern:
 
-- Prefer one structured wake-up for startup continuity
-- Let the structured sections carry the baseline split
+- Prefer one plain `wake-up` for startup continuity
+- Let the structured sections be resolved behind that call
 - Use topic refinement only when the initial user prompt clearly narrows the current work
 - Fall back to the legacy general/topic sequence only for older callers
 
