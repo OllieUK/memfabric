@@ -87,3 +87,6 @@ volumes:
   memgraph_log:
   memgraph_etc:
   hf_cache:
+  # On fresh installs, Compose creates these volumes automatically.
+  # On the homeserver, they were pre-created and populated via volume import
+  # (data migration). Compose adopts them regardless — warnings are harmless.
