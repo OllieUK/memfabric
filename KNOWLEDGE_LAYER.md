@@ -156,7 +156,7 @@ business_attributes: []
 1. Confirm the service is running:
 
    ```
-   curl https://memfabric.carr-it.net:8443/health
+   curl https://memfabric.carr-it.net/health
    # {"status": "ok"}
    ```
 

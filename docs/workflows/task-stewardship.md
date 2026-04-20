@@ -240,7 +240,7 @@ memory next-task --limit 10
 
 # Stale commitments
 # (no CLI command yet — use API directly or MCP task_stale)
-curl https://memfabric.carr-it.net:8443/task/stale
+curl https://memfabric.carr-it.net/task/stale
 ```
 
 ---

@@ -3,7 +3,7 @@
     "memory": {
       "command": "memory-mcp",
       "env": {
-        "API_BASE_URL": "https://memfabric.carr-it.net:8443",
+        "API_BASE_URL": "https://memfabric.carr-it.net",
         "AGENT_ID": "graph-memory-fabric"
       }
     }

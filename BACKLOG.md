@@ -1833,7 +1833,7 @@ Resource limits applied to both new services in docker-compose.yml:
 - `api`: `mem_limit: 4g`, `cpus: "2.0"`, `pids_limit: 256`
 - `caddy`: `mem_limit: 128m`, `cpus: "0.25"`, `pids_limit: 64`
 
-> **Completed 2026-04-15.** Commit `5e0b770` on `master`. API containerised with `restart: unless-stopped`; Caddy v2.11.2 with Cloudflare DNS-01 plugin serving `https://memfabric.carr-it.net:8443` with a real Let's Encrypt cert. All runtime URL references migrated from `http://localhost:8000`. `.env.example` crown-jewel restriction corrected in global and project settings.
+> **Completed 2026-04-15.** Commit `5e0b770` on `master`. API containerised with `restart: unless-stopped`; Caddy v2.11.2 with Cloudflare DNS-01 plugin serving `https://memfabric.carr-it.net` with a real Let's Encrypt cert. All runtime URL references migrated from `http://localhost:8000`. `.env.example` crown-jewel restriction corrected in global and project settings.
 >
 
 ---

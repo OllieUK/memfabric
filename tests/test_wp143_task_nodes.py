@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 from memory_client.cli import app as cli_app
 from memory_client.client import MemoryClient
 
-_BASE_URL = "https://memfabric.carr-it.net:8443"
+_BASE_URL = "https://memfabric.carr-it.net"
 
 _TASK_ID_A = "11111111-1111-1111-1111-111111111143"
 _TASK_ID_B = "22222222-2222-2222-2222-222222222143"

@@ -24,7 +24,7 @@ How to connect a companion environment to the Graph Memory Fabric.
 `.env` at the repo root:
 
 ```env
-API_BASE_URL=https://memfabric.carr-it.net:8443   # memory service URL
+API_BASE_URL=https://memfabric.carr-it.net   # memory service URL
 AGENT_ID=claude-code                 # identifies which agent produced a memory
 ```
 
@@ -77,7 +77,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
     "memory": {
       "command": "memory-mcp",
       "env": {
-        "API_BASE_URL": "https://memfabric.carr-it.net:8443",
+        "API_BASE_URL": "https://memfabric.carr-it.net",
         "AGENT_ID": "claude-desktop"
       }
     }
@@ -94,7 +94,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
       "command": "/path/to/venv/bin/python",
       "args": ["-m", "mcp_server.server"],
       "env": {
-        "API_BASE_URL": "https://memfabric.carr-it.net:8443",
+        "API_BASE_URL": "https://memfabric.carr-it.net",
         "AGENT_ID": "claude-desktop"
       }
     }
@@ -113,7 +113,7 @@ Restart Claude Desktop after editing. Verify: a hammer icon (🔨) should appear
 | Integration path | How |
 |-----------------|-----|
 | Shell / Claude Code bash | Use the `memory` CLI directly |
-| HTTP/S | Call the REST API at `https://memfabric.carr-it.net:8443` (interactive docs at `/docs`) |
+| HTTP/S | Call the REST API at `https://memfabric.carr-it.net` (interactive docs at `/docs`) |
 | Python | Import `MemoryClient` from `memory_client.client` |
 
 For remote (non-localhost) access, see WP-010 in BACKLOG.md (future: HTTP transport WP).
