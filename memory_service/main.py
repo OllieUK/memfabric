@@ -11,11 +11,12 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from typing import List, Literal, Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request, Response
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request, Response
 from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from memory_service import memory_repo
+from memory_service.auth import verify_api_key
 from memory_service.config import get_driver, settings
 from memory_service.embeddings import get_embedding, get_embedding_dimension
 from memory_service.scheduler import run_scheduler
@@ -103,6 +104,7 @@ app = FastAPI(
     description="Local graph + vector memory API backed by Memgraph",
     version="0.1.0",
     lifespan=lifespan,
+    dependencies=[Depends(verify_api_key)],
 )
 
 

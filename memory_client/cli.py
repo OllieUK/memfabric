@@ -21,7 +21,7 @@ err_console = Console(stderr=True)
 
 
 def _make_client() -> MemoryClient:
-    return MemoryClient(base_url=settings.api_base_url)
+    return MemoryClient(base_url=settings.api_base_url, api_key=settings.api_key)
 
 
 @app.command("add-memory")

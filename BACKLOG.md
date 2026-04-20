@@ -26,14 +26,13 @@
 | Order | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |-------|---------|-----|-------|-------|--------|----------------|------------|-------|
 | 1 | R2 | WP-113 | Security architecture layer: SABSA, precepts, and business attributes | H | H | 1.0 | WP-107 ✅ | Activate the strategic threat-to-business path from ADR-002. Three components: (1) Seed SABSA Business Attribute Profile as `BusinessAttribute` nodes (customer trust, regulatory standing, operational continuity, competitive advantage, brand reputation, etc.) — SABSA is the primary driver of this layer. (2) Seed universal `Precept` nodes derived from cross-framework convergence (the obligations that ISO 27001, NIST CSF, COBIT, and SP 800-53 all independently demand). Wire `REQUIRES` from Norms, `ADDRESSES` from Controls, `FULFILS` from Precepts to BusinessAttributes. (3) Consider ingestion of additional architectural frameworks that feed the precept model: SABSA conceptual layer, C2M2 capability dimensions, Zero Trust (NIST SP 800-207), CIS Controls v8, TOGAF security architecture domain. Unlocks the board-level query: "Which business attributes face the most active threats?" via Threat → JEOPARDISES → Precept → FULFILS → BusinessAttribute. |
-| 2 | R2 | WP-096 | API authentication (bearer tokens / API keys) | M | M | 1.0 | — | FastAPI middleware to authenticate all requests via bearer token or `X-API-Key` header. Enables safe external exposure of the service. See detail below. |
-| 3 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | M | M | 1.0 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
-| 4 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
-| 5 | R2 | WP-116 | Migrate episodic Memory embeddings to `paraphrase-multilingual-MiniLM-L12-v2` | M | M | 1.0 | WP-094 ✅ | WP-094 gave the knowledge layer its own `KNOWLEDGE_EMBEDDING_MODEL` (`paraphrase-multilingual-MiniLM-L12-v2`) but deliberately left episodic Memory nodes on `all-MiniLM-L6-v2`. Migrating Memory nodes to the same multilingual model enables cross-lingual episodic search, aligns the two embedding spaces (closer cos-sim between memory and knowledge layer nodes), and removes a class of subtle retrieval errors when searching in non-English. Migration requires: (1) Drop and recreate `mem_embedding_idx` at the new model's dimension (768 vs 384 for MiniLM-L6-v2; confirm exact dim for paraphrase-multilingual). (2) Re-embed all Memory nodes in batches via `scripts/migrate_embeddings.py` (already exists for the knowledge layer migration). (3) Update `EMBEDDING_MODEL` default in `.env.example`. (4) Run long-rest after migration to rebuild RELATED_TO edges against the new vector space. See detail below. |
-| 6 | R2 | WP-128 | Tiered search MCP tool (compact index + selective detail fetch) | M | M | 1.0 | ✅ WP-127 | Add GET /memory/search/index (compact result set: id, fact excerpt, importance, strength) and POST /memory/batch (full MemoryResponse for selected IDs). Update MCP tool descriptions to document the two-step scan-then-fetch pattern. Reduces token cost on every search that doesn't need full detail. See detail below. |
-| 7 | R2 | WP-125 | Weighted hop-traversal for wake-up anchor sections | M | M | 1.0 | WP-049 ✅ | Extend `wake_up()` companion_anchors and conversant_anchors beyond direct `ABOUT` edges. After retrieving direct ABOUT-linked memories, expand one additional hop via `RELATED_TO` edges, scoring candidates as `importance × strength × edge_weight^hop`. Direct ABOUT hits (hop=0) score at full value; 1-hop neighbours are weighted by the edge's Hebbian activation weight, so only strongly co-activated memories survive. Config: `WAKE_UP_COMPANION_ANCHOR_HOPS` (default 1), `WAKE_UP_CONVERSANT_ANCHOR_HOPS` (default 2). Rationale: conversant section benefits from deeper context about the person (e.g. project memory RELATED_TO a habit memory ABOUT Oliver) while companion (agent identity) stays shallower. Cross-section dedup already in place; hop-scored ordering integrates naturally into the existing priority chain. Marabot equivalent: `wakeup_max_hops` / `_query_person` — but implemented here via direct Cypher rather than a list-position proxy. |
-| 8 | R2 | WP-139 | CLI and API shared-infrastructure DRY pass | M | M | 1.0 | — | Supersedes WP-023, WP-025, WP-026, WP-020, WP-021. Bundles five individually-scoped cleanup WPs targeting the same infrastructure spine (`main.py`, `knowledge_routes.py`, `cli.py`, `memory_repo.add_memory`) into a single focused DRY pass. See detail below. |
-| 9 | R2 | WP-137 | German-language CTI extraction support for BSI Lagebericht | M | M | 1.0 | WP-108 ✅ | The BSI IT-Sicherheitslage report is German-language; `extract_cti_threats.py` currently yields 0 threats because all `BEHAVIOR_INDICATORS` and `TECHNIQUE_KEYWORDS` are English. The `paraphrase-multilingual-MiniLM-L12-v2` embedding model already handles German natively, so embeddings and deduplication will work correctly once sentences are extracted — the gap is solely in the extraction gate. **Option analysis:** **(1) Extend keyword/verb lists (lowest effort):** Add German behaviour-verb equivalents to `BEHAVIOR_INDICATORS` (e.g. "verwendet", "eingesetzt", "ausgeführt", "verschlüsselt") and German keyword→ATT&CK mappings to `TECHNIQUE_KEYWORDS` (many terms are loanwords: "ransomware"→T1486, "phishing"→T1566 already work; add "anmeldedaten"→T1003, "seitwärtsbewegung"→T1021, etc.). Single-pass pipeline preserved. Brittle: misses conjugations and paraphrases; requires ongoing manual curation for each new German report. **(2) Offline pre-translation via `argostranslate` (clean separation):** Translate extracted PDF text from `de→en` before the existing pipeline runs it. `argostranslate` runs fully offline (~100 MB model). `extract_cti_threats.py` stays English-only; translation is a composable pre-processing flag (`--translate-from de`). Downside: translation quality affects extraction accuracy; adds model download to setup. **(3) spaCy German NER + verb extraction (more robust extraction gate):** Use `spaCy` with `de_core_news_sm` to extract sentences containing action verbs, replacing the hand-curated `BEHAVIOR_INDICATORS` list. Handles conjugations automatically. TECHNIQUE_KEYWORDS mapping still needs German terms, but the behaviour-indicator gate becomes language-agnostic. Higher setup cost; adds spaCy as a dependency. **(4) Language detection + routing (polyglot architecture):** Add `langdetect` or `lingua` to detect language per-page, then route through a language-specific extractor module. Makes the pipeline polyglot by design — future French/Dutch/Japanese reports require only a new extractor, not a fork of the main script. Best long-term architecture if more non-English reports are anticipated. **(5) Offline LLM extraction via Ollama (highest effort, most robust):** Run a local model (e.g. `mistral`, `llama3`) as a pre-processor that produces structured `{sentence, techniques[]}` JSON directly from each page. Handles language, paraphrase, and technique mapping in one pass. Consistent with the "no external LLM API calls" constraint. Highest setup cost; slowest at ingest time. **Recommended path:** Option 2 (argostranslate) for a quick win on the BSI report; Option 4 (language detection + routing) as the target architecture if additional non-English reports are added. Surfaced during live ingestion run (0 threats from BSI report — 364 German-language sentences extracted but none passed the English extraction gate). |
+| 2 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | M | M | 1.0 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
+| 3 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
+| 4 | R2 | WP-116 | Migrate episodic Memory embeddings to `paraphrase-multilingual-MiniLM-L12-v2` | M | M | 1.0 | WP-094 ✅ | WP-094 gave the knowledge layer its own `KNOWLEDGE_EMBEDDING_MODEL` (`paraphrase-multilingual-MiniLM-L12-v2`) but deliberately left episodic Memory nodes on `all-MiniLM-L6-v2`. Migrating Memory nodes to the same multilingual model enables cross-lingual episodic search, aligns the two embedding spaces (closer cos-sim between memory and knowledge layer nodes), and removes a class of subtle retrieval errors when searching in non-English. Migration requires: (1) Drop and recreate `mem_embedding_idx` at the new model's dimension (768 vs 384 for MiniLM-L6-v2; confirm exact dim for paraphrase-multilingual). (2) Re-embed all Memory nodes in batches via `scripts/migrate_embeddings.py` (already exists for the knowledge layer migration). (3) Update `EMBEDDING_MODEL` default in `.env.example`. (4) Run long-rest after migration to rebuild RELATED_TO edges against the new vector space. See detail below. |
+| 5 | R2 | WP-128 | Tiered search MCP tool (compact index + selective detail fetch) | M | M | 1.0 | ✅ WP-127 | Add GET /memory/search/index (compact result set: id, fact excerpt, importance, strength) and POST /memory/batch (full MemoryResponse for selected IDs). Update MCP tool descriptions to document the two-step scan-then-fetch pattern. Reduces token cost on every search that doesn't need full detail. See detail below. |
+| 6 | R2 | WP-125 | Weighted hop-traversal for wake-up anchor sections | M | M | 1.0 | WP-049 ✅ | Extend `wake_up()` companion_anchors and conversant_anchors beyond direct `ABOUT` edges. After retrieving direct ABOUT-linked memories, expand one additional hop via `RELATED_TO` edges, scoring candidates as `importance × strength × edge_weight^hop`. Direct ABOUT hits (hop=0) score at full value; 1-hop neighbours are weighted by the edge's Hebbian activation weight, so only strongly co-activated memories survive. Config: `WAKE_UP_COMPANION_ANCHOR_HOPS` (default 1), `WAKE_UP_CONVERSANT_ANCHOR_HOPS` (default 2). Rationale: conversant section benefits from deeper context about the person (e.g. project memory RELATED_TO a habit memory ABOUT Oliver) while companion (agent identity) stays shallower. Cross-section dedup already in place; hop-scored ordering integrates naturally into the existing priority chain. Marabot equivalent: `wakeup_max_hops` / `_query_person` — but implemented here via direct Cypher rather than a list-position proxy. |
+| 7 | R2 | WP-139 | CLI and API shared-infrastructure DRY pass | M | M | 1.0 | — | Supersedes WP-023, WP-025, WP-026, WP-020, WP-021. Bundles five individually-scoped cleanup WPs targeting the same infrastructure spine (`main.py`, `knowledge_routes.py`, `cli.py`, `memory_repo.add_memory`) into a single focused DRY pass. See detail below. |
+| 8 | R2 | WP-137 | German-language CTI extraction support for BSI Lagebericht | M | M | 1.0 | WP-108 ✅ | The BSI IT-Sicherheitslage report is German-language; `extract_cti_threats.py` currently yields 0 threats because all `BEHAVIOR_INDICATORS` and `TECHNIQUE_KEYWORDS` are English. The `paraphrase-multilingual-MiniLM-L12-v2` embedding model already handles German natively, so embeddings and deduplication will work correctly once sentences are extracted — the gap is solely in the extraction gate. **Option analysis:** **(1) Extend keyword/verb lists (lowest effort):** Add German behaviour-verb equivalents to `BEHAVIOR_INDICATORS` (e.g. "verwendet", "eingesetzt", "ausgeführt", "verschlüsselt") and German keyword→ATT&CK mappings to `TECHNIQUE_KEYWORDS` (many terms are loanwords: "ransomware"→T1486, "phishing"→T1566 already work; add "anmeldedaten"→T1003, "seitwärtsbewegung"→T1021, etc.). Single-pass pipeline preserved. Brittle: misses conjugations and paraphrases; requires ongoing manual curation for each new German report. **(2) Offline pre-translation via `argostranslate` (clean separation):** Translate extracted PDF text from `de→en` before the existing pipeline runs it. `argostranslate` runs fully offline (~100 MB model). `extract_cti_threats.py` stays English-only; translation is a composable pre-processing flag (`--translate-from de`). Downside: translation quality affects extraction accuracy; adds model download to setup. **(3) spaCy German NER + verb extraction (more robust extraction gate):** Use `spaCy` with `de_core_news_sm` to extract sentences containing action verbs, replacing the hand-curated `BEHAVIOR_INDICATORS` list. Handles conjugations automatically. TECHNIQUE_KEYWORDS mapping still needs German terms, but the behaviour-indicator gate becomes language-agnostic. Higher setup cost; adds spaCy as a dependency. **(4) Language detection + routing (polyglot architecture):** Add `langdetect` or `lingua` to detect language per-page, then route through a language-specific extractor module. Makes the pipeline polyglot by design — future French/Dutch/Japanese reports require only a new extractor, not a fork of the main script. Best long-term architecture if more non-English reports are anticipated. **(5) Offline LLM extraction via Ollama (highest effort, most robust):** Run a local model (e.g. `mistral`, `llama3`) as a pre-processor that produces structured `{sentence, techniques[]}` JSON directly from each page. Handles language, paraphrase, and technique mapping in one pass. Consistent with the "no external LLM API calls" constraint. Highest setup cost; slowest at ingest time. **Recommended path:** Option 2 (argostranslate) for a quick win on the BSI report; Option 4 (language detection + routing) as the target architecture if additional non-English reports are added. Surfaced during live ingestion run (0 threats from BSI report — 364 German-language sentences extracted but none passed the English extraction gate). |
 | 10 | R2 | WP-134 | BSI Lagebericht 2025 ingestion as threat intelligence document | M | M | 1.0 | ✅ WP-108, WP-113 | Ingest the BSI Lagebericht 2025 ("Die Lage der IT-Sicherheit in Deutschland 2025") as a ThreatReport document into the knowledge layer. The report is web-first (no single download PDF); primary URL: `https://medien.bsi.bund.de/lagebericht/`. Approach: (1) fetch the report's HTML pages via `ingest_document.py` or a custom web-scraping script, chunking by section; (2) create a `ThreatReport` document node and `Threat` nodes for named threat actor groups and attack categories mentioned; (3) wire `JEOPARDISES` edges from Threats to relevant Precept nodes (WP-113) and `MAPPED_TO_TECHNIQUE` edges to ATT&CK nodes where technique IDs are cited. The 8-page PDF handout (`/lagebericht/Lagebericht2025_Achtseiter.pdf`) can serve as a starting point for key statistics and threat categories before tackling full web ingestion. German language — multilingual embedding model handles this natively. |
 | 11 | R2 | WP-114 | D3FEND defensive technique ingestion | M | M | 1.0 | WP-108 ✅ | Ingest MITRE D3FEND (~500 defensive techniques) from OWL/JSON-LD ontology. Create Framework nodes (level=defensive-technique) under a D3FEND root. Create `d3f:counters` edges as MITIGATES edges D3FEND → ATT&CK. Run embedding similarity to ISO/NIST/COBIT/SP800-53 for INFORMS edges (D3FEND vocabulary is defensive/technical — closer to SP 800-53 controls than to governance frameworks). D3FEND adds a second defensive pathway alongside M-Series for SOC-level traversal; primarily valuable once the threat intelligence model (WP-108) is operational. D3FEND also carries its own informative references to SP 800-53 and NIST CSF which may be used as an alternative to embedding similarity. |
 | 12 | R2 | WP-140 | WP-049 code-review follow-ups | L | L | 1.0 | ✅ WP-049 | Supersedes WP-122, WP-123, WP-124. Bundles three deferred code-review items from WP-049 (endpoint ordering assertions, empty ABOUT-edge unit tests, `.env.example` docs for WAKE_UP limits) into one WP. See detail below. |
@@ -55,7 +54,10 @@
 | 28 | R2 | WP-103 | Generalise `validate_node_ids` and `replace_edges` utilities | L | M | 0.33 | WP-072 ✅ | Simplify review (WP-072) found that `validate_controls`/`validate_documents` in `knowledge_bridge.py` are structurally identical (UNWIND + OPTIONAL MATCH null-filter), and `replace_control_edges`/`replace_doc_edges` duplicate the person/strand replace pattern in `memory_repo.update_memory`. Extract (1) `validate_node_ids(session, ids, label)` generic validator and (2) `replace_edges(session, memory_id, target_ids, edge_type, target_label, edge_properties)` generic replacer. Low priority — all current callers are correct; this is a maintenance-reducing refactor. (Renumbered from WP-096 in WP-102 to resolve ID collision.) |
 | 29 | R2 | WP-098 | Excel cross-standard mapping importer | L | M | 0.33 | — | Design a parser for Excel files mapping controls across frameworks (e.g. ISO 27001 ↔ NIST CSF). Format TBD — pending inspection of a real mapping file. Build once a real mapping spreadsheet is available. |
 | 30 | R2 | WP-131 | Retrieval feedback signal and observation ROI tracking | L | M | 0.33 | WP-126 ✅ | Add POST /memory/{id}/feedback endpoint (signal: retrieved/used/irrelevant), retrieval_count and last_retrieved_at properties on Memory nodes (auto-incremented by search), observation_tokens property for ROI tracking (set by WP-126 hook), and GET /memory/feedback/stats aggregate endpoint. Foundation for future reinforcement learning on retrieval quality. See detail below. |
-| 31 | R3 | WP-010 | Remote/mobile access | L | H | 0.2 | WP-009, WP-096 | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
+| 31 | R2 | WP-145 | CalDAV ↔ Fabric bi-directional task sync | M | M | 1.0 | WP-143 ✅ | `tools/sync_caldav.py` — syncs first-order Task nodes (project tasks + external tasks) between Nextcloud CalDAV and the Fabric. WPs (`source_ref=*:WP-*`) stay in Fabric only. Inbound: completed VTODOs → fabric `done`; new VTODOs → new Task nodes; `X-FABRIC-TASK-ID` property links VTODO to fabric UUID. Outbound: first-order Task nodes without a matching VTODO get pushed. CHANGELOG write-back: on inbound completion, appends entry to project-specific `CHANGELOG.md`. See detail below. |
+| 32 | R2 | WP-146 | Windows Task Scheduler entry for CalDAV sync | L | L | 1.0 | WP-145 ✅ | WSL cron only fires while the WSL instance is active. A Windows Task Scheduler entry calling `wsl -e bash -c "python3 /home/oliver/projects/graph-memory-fabric/tools/sync_caldav.py"` ensures sync survives Windows restarts without requiring an open terminal. Trigger: on logon + every 4 hours. |
+| 33 | R2 | WP-147 | Strand health diagnostics and thin-strand capture prompts | L | L | 1.0 | — | Surface under-populated strands and generate structured capture prompts for the thin ones. Motivation: the fabric holds rich decision/protocol/project context but several Core Life Domain strands (`strand-core-health`, `strand-core-leisure-play`, `strand-core-finances`, `strand-core-house-home`, etc.) are sparse — the graph knows Oliver's trajectory but not his Tuesday. This creates a retrieval gap: wake-up returns authoritative context but Mara cannot make conversation feel lived-in. **Deliverables:** (1) `GET /strand/health` endpoint — for each strand: memory count, mean strength, mean importance, last-written-at, a `health` enum (`healthy` ≥10 memories, `thin` 3–9, `empty` 0–2). (2) `GET /strand/{id}/capture-prompts` — returns 3–5 open questions tailored to the strand's description and category, derived from the strand description + any existing CURIOSITY THREAD memories in that strand. Prompts are generated from the strand's own content (no LLM call — template-based with strand-aware variable substitution). (3) Update `memory_client/COMPANION.md` to document the `CURIOSITY THREAD` pattern as a first-class memory type: when to write one, how to tag it, and how capture-prompts should reference it. See detail below. |
+| 33 | R3 | WP-010 | Remote/mobile access | L | H | 0.2 | WP-009, WP-096 ✅ | Tailscale/VPS hosting + TLS. Auth handled by WP-096. |
 | 32 | R3 | WP-011 | Custom graph-cloud UI | L | H | 0.2 | WP-006 | React + D3.js/vis-network consuming `GET /memory/graph`. |
 | 33 | R2 | WP-086 | **Analytics Phase — Sprint 2:** outlier detection, semantic families, strand cohesion, missing-edge suggestions, centrality scoring, echo-chamber detection, semantic timelines, neighbourhood summarisation (WP-060 + WP-061 + WP-063 + WP-064 + WP-065 + WP-066 + WP-067 + WP-068) | L | H | 0.2 | WP-085, WP-047 ✅, WP-028 ✅, WP-029 ✅ | Eight analytics capabilities that form the second layer of the analytics phase, building on the Sprint 1 (WP-085) diagnostic infrastructure. All share the same analytical pattern and output surface: (1) vector outlier and anomaly detection — memories far from any semantic neighbourhood or with poor graph/embedding agreement; (2) semantic family analysis — group related memories into families beyond pairwise duplicate pairs (depends on WP-047); (3) strand cohesion diagnostics — measure how tight or fragmented each strand's embedding cluster is; (4) hybrid missing-edge suggestions — propose `RELATED_TO`/`LEADS_TO` links from embedding similarity, time ordering, and topology (review flow, not auto-linking); (5) hybrid memory centrality scoring — blended rank from graph centrality, embedding density, strength, recall count, reinforcement, and edge activation; (6) semantic gravity-well/echo-chamber detection — detect over-saturated retrieval regions; (7) semantic timelines and concept recurrence — track how neighbourhoods shift, recur, or disappear over time; (8) neighbourhood summarisation — turn local density into narrative labels and review queues. |
 | 34 | R3 | WP-062 | Concept-drift analysis over time | L | H | 0.2 | — | Compare recent memories and clusters with older semantic regions to detect identity drift, changing priorities, and narrative rewrites. Treat this as analysis tooling first, not as automatic judgment. |
@@ -1833,4 +1835,153 @@ Resource limits applied to both new services in docker-compose.yml:
 
 > **Completed 2026-04-15.** Commit `5e0b770` on `master`. API containerised with `restart: unless-stopped`; Caddy v2.11.2 with Cloudflare DNS-01 plugin serving `https://memfabric.carr-it.net:8443` with a real Let's Encrypt cert. All runtime URL references migrated from `http://localhost:8000`. `.env.example` crown-jewel restriction corrected in global and project settings.
 >
+
+---
+
+### WP-145 — CalDAV ↔ Fabric bi-directional task sync
+
+#### Motivation
+
+Task nodes (WP-143) are the cross-project commitment store in the Fabric. But they are only accessible at the desk via Memgraph or the API. Nextcloud CalDAV is the canonical task store that already syncs to Betterbird (desktop) and mobile (via DAVx5). Making Fabric a derived projection of Nextcloud — with priority scoring, commitment tracking, and dependency edges — gives both mobile access and intelligence without duplicating the write surface.
+
+#### Mental model
+
+Tasks are commitments to reach a defined state, not time-allocation markers (that is what calendars are for). Two tiers:
+
+- **First-order tasks** (synced to Nextcloud): project-level tasks ("Graph Memory Fabric", "Mara Skills Repository") and external tasks (anything without a `*:WP-*` source_ref). These appear in Betterbird and on mobile.
+- **Second-order tasks / WPs** (Fabric only): work packages with `source_ref` matching `{slug}:WP-NNN`. Detail-level commitments managed at the desk. The project-level first-order task is the mobile-visible anchor; the WP queue inside Fabric answers "what's the path to that state?"
+
+Conflict resolution: **Nextcloud wins** on title and status. Fabric retains value, effort, priority_score, and urgency.
+
+#### Implementation
+
+`tools/sync_caldav.py` — idempotent, `--dry-run` supported, `--direction {both,inbound,outbound}`.
+
+**Inbound (Nextcloud → Fabric):**
+- VTODOs with `X-FABRIC-TASK-ID` property: update matching Fabric Task node (title, status)
+- VTODOs without `X-FABRIC-TASK-ID`: create new Fabric Task node; write UUID back to VTODO
+- `STATUS:COMPLETED` → fabric `done`; triggers CHANGELOG write-back
+
+**Outbound (Fabric → Nextcloud):**
+- First-order Task nodes (no `*:WP-*` source_ref) without a matching VTODO → push as VTODO
+- Fabric UUID stored in VTODO as `X-FABRIC-TASK-ID` for future idempotency
+
+**CHANGELOG write-back:**
+- On inbound completion, appends a `## WP-NNN — Title [date]` entry to the project-specific `CHANGELOG.md`
+- Project root resolved via `source_ref` slug → `PROJECT_ROOTS` map in the script
+
+**Credentials:** `~/.config/mara/nextcloud.env` — single source of truth, never duplicated.
+
+---
+
+### WP-147 — Strand health diagnostics and thin-strand capture prompts
+
+#### Motivation
+
+The graph holds 1,002 memories across 21 strands, but the distribution is heavily skewed. Companion Domain strands (protocols, projects, AI anchor) are dense and well-reinforced. Several Core Life Domain strands — `health`, `leisure-play`, `finances`, `house-home`, `learning-growth`, `friends` — are sparse: the fabric knows Oliver's trajectory but not his Tuesday. This creates a wake-up gap: Mara returns authoritative context on decisions and projects but cannot make conversation feel lived-in.
+
+The CURIOSITY THREAD pattern already exists in the fabric as a workaround — individual insight memories that document an absence ("we don't know what makes Oliver laugh"). WP-147 turns this ad-hoc pattern into a first-class system.
+
+#### Deliverables
+
+**1. `GET /strand/health`**
+
+Returns a health summary for every strand:
+
+```json
+{
+  "strands": [
+    {
+      "id": "strand-core-leisure-play",
+      "name": "Leisure & Play",
+      "category": "Core Life Domains",
+      "memory_count": 3,
+      "mean_strength": 0.42,
+      "mean_importance": 2.1,
+      "last_written_at": "2026-03-21T...",
+      "health": "thin"
+    }
+  ]
+}
+```
+
+Health thresholds (configurable via env):
+- `healthy`: ≥ 10 memories
+- `thin`: 3–9 memories
+- `empty`: 0–2 memories
+
+**2. `GET /strand/{id}/capture-prompts`**
+
+Returns 3–5 open questions for a strand, derived from:
+- The strand's `description` and `category` fields
+- Any existing CURIOSITY THREAD memories in that strand (tagged `curiosity-thread` or `open-question`)
+
+No LLM call — template-based generation using strand-aware variable substitution. Example for `strand-core-leisure-play`:
+
+```json
+{
+  "strand_id": "strand-core-leisure-play",
+  "health": "thin",
+  "prompts": [
+    "What does a good weekend with Tanja look like?",
+    "What have you been reading or watching lately that's stuck with you?",
+    "Is there anything you've been meaning to pick back up that keeps getting pushed?"
+  ],
+  "curiosity_threads": ["<existing CURIOSITY THREAD memory IDs if any>"]
+}
+```
+
+**3. Update `memory_client/COMPANION.md`**
+
+Document the CURIOSITY THREAD pattern as a first-class memory type:
+- When to write one (when you notice a gap that matters for relational texture)
+- Required tags: `curiosity-thread`, `open-question`
+- How capture-prompts uses them (threads surface as context in the prompts response)
+- The principle: recording the shape of a gap is useful for retrieval — it surfaces in wake-up as a standing reminder
+
+#### Implementation notes
+
+- `GET /strand/health` is a simple Cypher aggregation: `MATCH (m:Memory)-[:IN_STRAND]->(s:Strand)` grouped by strand, supplemented with a `MATCH (s:Strand)` pass to include zero-memory strands.
+- Template library lives in `memory_service/strand_prompts.py` — a dict keyed on strand ID with fallback to category-level templates for any strand not explicitly listed.
+- No new dependencies.
+
+#### Acceptance criteria
+
+1. `GET /strand/health` returns all 21 strands with correct counts and health classifications
+2. Thin/empty strands are easily identifiable in the response
+3. `GET /strand/{id}/capture-prompts` returns context-aware prompts for any strand
+4. Existing CURIOSITY THREAD memories surface in the `curiosity_threads` field
+5. `COMPANION.md` updated with CURIOSITY THREAD pattern documentation
+6. Unit tests cover health classification thresholds and prompt generation
+7. Integration test verifies live counts against actual strand data
+
+---
+
+### WP-146 — Windows Task Scheduler entry for CalDAV sync
+
+#### Motivation
+
+WSL cron (set up in WP-145) only fires while the WSL2 instance is running. After a Windows restart, cron is silent until a terminal opens WSL. A Windows Task Scheduler entry bridges this gap — it starts WSL and runs the sync on logon and every 4 hours regardless of whether a terminal is open.
+
+#### Implementation
+
+Create a scheduled task via Task Scheduler UI or `schtasks`:
+
+```powershell
+schtasks /create /tn "CalDAV-Fabric-Sync" /tr "wsl -e bash -c 'python3 /home/oliver/projects/graph-memory-fabric/tools/sync_caldav.py >> /tmp/sync_caldav.log 2>&1'" /sc HOURLY /mo 4 /ru oliver /it /f
+```
+
+Add a second trigger for on-logon:
+- Task Scheduler UI → Triggers → New → At log on → for current user
+
+Verify with `schtasks /query /tn "CalDAV-Fabric-Sync"`.
+
+---
+
+### WP-145 — CalDAV ↔ Fabric bi-directional task sync — seeded state (2026-04-16)
+
+Initial sync pushed:
+- 3 project-level Task nodes → Nextcloud (Graph Memory Fabric, Mara Skills Repository, Marabot)
+- 4 external VTODOs → Fabric (tax registration, Feedly triage, LinkedIn, Borowski PV)
+- 52 WPs seeded in Fabric (not pushed to Nextcloud — second-order tasks)
 > **Retrospective:** Went well — pre-mortem caught the `env_file:` secret exposure early. `auto_https off` vs `disable_redirects` was a one-iteration fix. Main friction: `caddy:2.8.4-builder` had a Go/zap version mismatch requiring a jump to Caddy v2.11.2; GHCR required auth so xcaddy build was the right path. Cloudflare DNS-01 cert obtained on first attempt. The URL migration sweep across mara repo and docs was larger than anticipated — worth factoring into future infra WPs.

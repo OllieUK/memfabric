@@ -4,6 +4,14 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-096: API authentication (bearer tokens / API keys) — 2026-04-20
+
+Added a lightweight, stateless auth layer to the FastAPI service: `Authorization: Bearer <token>` (primary) and `X-Api-Key: <token>` (fallback) accepted on all endpoints except `GET /health`. Keys stored as a `frozenset[str]` in `API_KEYS` (comma-separated in `.env`); empty = open / dev mode. Applied at app level via `dependencies=[Depends(verify_api_key)]` in the `FastAPI()` constructor so no individual route handler needed changing. `memory_client/client.py`, `memory_client/config.py`, `memory_client/cli.py`, and `mcp_server/config.py` + `server.py` all updated to read and forward `API_KEY` automatically. 10 unit tests + 5 integration tests written; unit tests pass; integration tests require `API_KEYS` to be set in `.env` and the service restarted.
+
+**Retrospective:** The app-level `dependencies=` pattern is the cleanest FastAPI approach — zero changes to individual route handlers. The open-path list (`_OPEN_PATHS = frozenset({"/health"})`) is a good pattern for exemptions. Key debugging challenge: `test_wp070.py` uses `importlib.reload(cfg_mod)` inside its `app_client` fixture, which silently creates a new `Settings` singleton and invalidates any pre-imported `settings` references. The fix was to patch via `memory_service.config as cfg_mod` (module attribute) rather than a pre-bound `settings` name. Simplify pass upgraded `api_keys: list[str]` to `frozenset[str]` for O(1) membership checks; clarified the comment. To activate auth: add `API_KEYS=<token>` to `.env`, restart the service, set `API_KEY=<same-token>` in the client environment.
+
+---
+
 ### WP-143: First-class Task nodes for commitment and backlog stewardship — 2026-04-15
 
 Added `Task` as a first-class graph node — the canonical cross-project commitment store replacing fragmented per-project BACKLOG.md files. Full stack: API (8 endpoints), CLI (5 commands), MCP (7 tools), client. Task nodes carry value/effort scoring (`priority_score = V/E` with H=3, M=2, L=1), a staleness signal (`committed_at` set but `updated_at = created_at`), and recurring-task support via `is_template` parent nodes. `GET /task/next` returns a cross-project priority queue sorted by `priority_score × project.weight DESC`. Project nodes extended with `slug` (source_ref namespace) and `weight` (priority multiplier). `source_ref` convention: `{project-slug}:WP-NNN`. 34 unit tests + 23 integration tests all passing against the live stack.

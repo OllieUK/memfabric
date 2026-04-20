@@ -6,8 +6,11 @@ from memory_client.config import resolve_startup_context, settings
 
 
 class MemoryClient:
-    def __init__(self, base_url: str, timeout: float = 10.0):
-        self._http = httpx.Client(base_url=base_url, timeout=timeout)
+    def __init__(self, base_url: str, timeout: float = 10.0, api_key: str | None = None):
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        self._http = httpx.Client(base_url=base_url, timeout=timeout, headers=headers)
 
     def close(self) -> None:
         self._http.close()

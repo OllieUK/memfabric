@@ -237,6 +237,46 @@ The question to ask at write time: *"If a future session has no knowledge of thi
 
 Run `memory list-strands` if strand IDs are uncertain. Always use an existing strand ID — never invent one.
 
+---
+
+### Weekly priority stack and commitment pressure
+
+Two scheduling constructs live in the fabric alongside Tasks. They are distinct and should not be conflated.
+
+#### Weekly priority stack
+
+A single memory tagged `priority-stack` that declares which project domains get first claim on discretionary time this week. Set every Monday at Week Start. Overwrite the previous week's entry — only the current stack matters.
+
+```bash
+memory add-memory \
+  --text "Week of 2026-04-20 priority stack: JFLP > CARR Cyber > Systems. Sanity (gym, lunch, recovery) is non-negotiable and sits outside the stack." \
+  --type decision \
+  --strand-id strand-companion-protocols-systems \
+  --tag priority-stack \
+  --importance 4
+```
+
+**How it differs from Tasks:** Tasks answer *"what needs doing and by when."* The priority stack answers *"when two things compete for the same slot, which wins."* Tasks are granular and numerous; the priority stack is a single short-lived declaration. Do not mix them.
+
+The morning brief should surface the current priority stack at the top of the day view so both Oliver and Mara know the allocation lens for the day.
+
+#### Commitment pressure signals
+
+When a hard commitment is made inside a project — e.g. "application out by EOB today" in JFLP — write it to the fabric as a `todo` with an explicit deadline. This is separate from the project's internal task tracker; it is the signal that crosses the project boundary into Mara's scheduling awareness.
+
+```bash
+memory add-memory \
+  --text "JFLP: submit Contilia application by EOB 2026-04-20. Hard deadline — committed." \
+  --type todo \
+  --strand-id strand-core-work-career \
+  --tag commitment-pressure \
+  --importance 4
+```
+
+The morning brief must query for `commitment-pressure` tagged todos due today and promote them above the priority stack in the day view. If the schedule does not have sufficient protected time for a due-today commitment, flag it explicitly — do not silently leave it unprotected.
+
+**Relationship to JFLP DB:** JFLP's SQLite pipeline DB tracks internal project commitments. The fabric `commitment-pressure` tag is the bridge that surfaces project-level deadlines into Mara's cross-project scheduling view. Both are needed; they serve different scopes.
+
 ### Wording convention
 
 Use the person's established name once identity is known. In this graph, write memory content with "Oliver" as subject: *"Oliver prefers short feedback loops over long planning phases."* Use *"The User"* only as a generic placeholder before identity has been established. Do not use "you" as subject because it is ambiguous when read by an LLM.

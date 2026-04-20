@@ -19,6 +19,10 @@ from mcp_server.config import settings
 mcp = FastMCP("graph-memory-fabric")
 
 
+def _client() -> MemoryClient:
+    """Create a MemoryClient with auth pre-configured from settings."""
+    return MemoryClient(base_url=settings.api_base_url, api_key=settings.api_key)
+
 
 @mcp.tool
 def memory_add(
@@ -51,7 +55,7 @@ def memory_add(
     flagged for review; re-thread it via memory_update() once you know the
     correct strand.
     """
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         result = client.add_memory(
             fact,
             type,
@@ -90,7 +94,7 @@ def memory_search(
     Pass person_ids to restrict results to memories linked via ABOUT edges
     to the specified Person nodes (e.g. ["mara", "oliver"]).
     """
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.search_memory(
             query,
             tags=tags,
@@ -108,7 +112,7 @@ def memory_wake_up(
     person_id: str | None = None,
 ) -> str:
     """Return the session wake-up briefing as plain text. Read fully before responding to the user."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         result = client.wake_up_split(limit=limit, topic=topic, person_id=person_id)
 
     lines = []
@@ -130,28 +134,28 @@ def memory_list_strands() -> list[dict]:
     Call this before memory_add or memory_update to get current strand IDs,
     names, descriptions, and categories. Do not guess or hard-code strand IDs.
     """
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.list_strands()
 
 
 @mcp.tool
 def memory_list_persons() -> list[dict]:
     """Return all Person nodes. Use person IDs when calling memory_add."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.list_persons()
 
 
 @mcp.tool
 def memory_create_person(person_id: str, name: str, description: str | None = None) -> dict:
     """Create or merge a Person node. Returns the person dict."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.create_person(person_id, name, description=description)
 
 
 @mcp.tool
 def memory_list_projects() -> list[dict]:
     """Return all Project nodes. Use project IDs when calling memory_add."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.list_projects()
 
 
@@ -166,7 +170,7 @@ def memory_create_project(
     """Create or merge a Project node. slug is a short alias for source_ref namespace (e.g. 'gmf').
     weight is a cross-project priority multiplier (default 1.0, must be > 0).
     Returns the project dict."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.create_project(project_id, name, description=description, slug=slug, weight=weight)
 
 
@@ -193,7 +197,7 @@ def task_add(
     source_ref format: '{project-slug}:WP-NNN' (e.g. 'gmf:WP-143').
     committed_at starts the accountability clock; committed_by records which agent made the commitment.
     Returns the task dict including computed priority_score."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.create_task(
             title, agent_id,
             description=description, status=status,
@@ -217,7 +221,7 @@ def task_list(
     """List Task nodes. Filter by status (open|active|blocked|done|abandoned),
     agent_id, project_id, or committed_only (tasks with committed_at set).
     Templates are excluded. Returns list of task dicts."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.list_tasks(
             status=status, agent_id=agent_id,
             project_id=project_id, committed_only=committed_only,
@@ -227,7 +231,7 @@ def task_list(
 @mcp.tool
 def task_get(task_id: str) -> dict:
     """Get a single Task node by UUID. Returns the task dict or raises 404."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.get_task(task_id)
 
 
@@ -251,7 +255,7 @@ def task_update(
         "due_at": due_at, "committed_at": committed_at, "committed_by": committed_by,
         "last_checked_at": last_checked_at, "source_ref": source_ref,
     }.items() if v is not None}
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.update_task(task_id, **kwargs)
 
 
@@ -259,7 +263,7 @@ def task_update(
 def task_complete(task_id: str) -> dict:
     """Mark a Task as done. Shorthand for task_update(task_id, status='done').
     Returns the updated task dict."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.update_task(task_id, status="done")
 
 
@@ -267,7 +271,7 @@ def task_complete(task_id: str) -> dict:
 def task_stale() -> list[dict]:
     """Return tasks with committed_at set but no status update since — the accountability cron signal.
     Returns list of task dicts ordered by committed_at ASC (oldest commitment first)."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.list_stale_tasks()
 
 
@@ -276,21 +280,21 @@ def task_next(limit: int = 10) -> list[dict]:
     """Return the cross-project prioritised task queue: open/active tasks sorted by
     priority_score × project.weight DESC, then due_at ASC.
     Use this to answer 'what should I work on next?' across all projects."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.list_next_tasks(limit=limit)
 
 
 @mcp.tool
 def memory_reinforce(memory_id: str, co_recalled_ids: list[str] | None = None) -> dict:
     """Explicitly reinforce a memory. Pass co_recalled_ids for Hebbian edge strengthening."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.reinforce_memory(memory_id, co_recalled_ids=co_recalled_ids)
 
 
 @mcp.tool
 def memory_run_decay() -> dict:
     """Trigger a full-graph decay pass. Returns nodes_updated and edges_updated counts."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.run_decay()
 
 
@@ -298,7 +302,7 @@ def memory_run_decay() -> dict:
 def memory_short_rest(dry_run: bool = False) -> str:
     """Run Short Rest decay pass on recently-active memories.
     Returns a plain-text summary. Use dry_run=True to preview without writing."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         result = client.short_rest(dry_run=dry_run)
     dr = " (dry-run)" if result.get("dry_run") else ""
     return (
@@ -312,7 +316,7 @@ def memory_long_rest(dry_run: bool = False, prune: bool = False) -> str:
     """Run Long Rest: full decay + edge rediscovery + optional prune.
     Returns a plain-text summary. Use dry_run=True to preview without writing.
     Use prune=True to hard-delete eligible weak edges (only when dry_run=False)."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         result = client.long_rest(dry_run=dry_run, prune=prune)
     dr = " (dry-run)" if result.get("dry_run") else ""
     util_pct = result.get("index_utilisation_pct")
@@ -335,14 +339,14 @@ def memory_long_rest(dry_run: bool = False, prune: bool = False) -> str:
 @mcp.tool
 def memory_maintenance_stats() -> dict:
     """Return a health snapshot of the memory fabric including node/edge stats and maintenance timestamps."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.maintenance_stats()
 
 
 @mcp.tool
 def memory_operation_log() -> str:
     """Return the operation log (update/merge/archive/restore events) as plain text, most recent first."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         entries = client.operation_log()
 
     if not entries:
@@ -368,7 +372,7 @@ def memory_operation_log() -> str:
 @mcp.tool
 def memory_maintenance_log() -> str:
     """Return the maintenance audit log as plain text (most recent runs first)."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         entries = client.maintenance_log()
 
     if not entries:
@@ -437,7 +441,7 @@ def memory_update(
     replacements (existing edges are removed and recreated). control_ids and doc_ids replace
     cross-layer edges to knowledge controls and documents respectively.
     Returns {memory_id, updated_at}."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.update_memory(
             memory_id,
             fact=fact,
@@ -457,14 +461,14 @@ def memory_update(
 def memory_archive(memory_id: str) -> dict:
     """Archive a memory. Archived memories are excluded from search and wake-up.
     Use memory_restore to make it active again. Returns {memory_id, archived_at}."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.archive_memory(memory_id)
 
 
 @mcp.tool
 def memory_restore(memory_id: str) -> dict:
     """Restore an archived memory to active status. Returns {memory_id, status}."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.restore_memory(memory_id)
 
 
@@ -475,7 +479,7 @@ def memory_delete(memory_id: str) -> str:
     This is irreversible — use memory_archive if you want a reversible path.
     Returns a plain-text confirmation string.
     """
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         client.delete_memory(memory_id)
     return f"Deleted memory {memory_id}"
 
@@ -485,7 +489,7 @@ def memory_merge(source_id: str, target_id: str) -> dict:
     """Merge source memory into target. The source is marked merged and its edges
     (ABOUT, IN_STRAND, LEADS_TO, RELATED_TO) are rewired to the target.
     Returns {source_id, target_id}."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.merge_memory(source_id, target_id)
 
 
@@ -494,7 +498,7 @@ def memory_find_duplicates(
     threshold: float | None = None, limit: int | None = None
 ) -> list[dict]:
     """Find near-duplicate memory pairs above a similarity threshold for review and merge."""
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         return client.find_duplicates(threshold=threshold, limit=limit)
 
 
@@ -508,7 +512,7 @@ def memory_purge_ephemeral() -> str:
     Warning: deletes ALL ephemeral memories globally — not safe for concurrent
     test sessions against the same Memgraph instance.
     """
-    with MemoryClient(base_url=settings.api_base_url) as client:
+    with _client() as client:
         result = client.purge_ephemeral()
     return f"Purged {result['deleted']} ephemeral memories."
 
@@ -537,7 +541,7 @@ if settings.enable_knowledge_layer:
         Requires ENABLE_KNOWLEDGE_LAYER=true and at least one framework loaded via
         ingest_framework.py.
         """
-        with MemoryClient(base_url=settings.api_base_url) as client:
+        with _client() as client:
             return client.search_controls(query, limit=limit, framework_id=framework_id)
 
     @mcp.tool
@@ -556,7 +560,7 @@ if settings.enable_knowledge_layer:
         Do NOT use this for searching episodic memories — call memory_search instead.
         Requires ENABLE_KNOWLEDGE_LAYER=true and at least one document ingested.
         """
-        with MemoryClient(base_url=settings.api_base_url) as client:
+        with _client() as client:
             return client.search_chunks(query, limit=limit, doc_id=doc_id)
 
     @mcp.tool
@@ -571,7 +575,7 @@ if settings.enable_knowledge_layer:
         text, use knowledge_search_controls (norms are linked to controls via
         IMPLEMENTS edges; searching controls surfaces related norms indirectly).
         """
-        with MemoryClient(base_url=settings.api_base_url) as client:
+        with _client() as client:
             return client.list_norms()
 
     @mcp.tool
@@ -582,7 +586,7 @@ if settings.enable_knowledge_layer:
         and needs its full details: name, description, framework_id, and created_at.
         Returns 404 detail if the control does not exist.
         """
-        with MemoryClient(base_url=settings.api_base_url) as client:
+        with _client() as client:
             return client.get_control(control_id)
 
     @mcp.tool
@@ -593,7 +597,7 @@ if settings.enable_knowledge_layer:
         and needs its full details: name, text, status, and effective_date.
         Returns 404 detail if the norm does not exist.
         """
-        with MemoryClient(base_url=settings.api_base_url) as client:
+        with _client() as client:
             return client.get_norm(norm_id)
 
 

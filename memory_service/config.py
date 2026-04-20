@@ -71,6 +71,11 @@ class Settings(BaseSettings):
 
     auto_merge_threshold: float | None = None
 
+    # Authentication (WP-096): valid bearer tokens / API keys.
+    # pydantic-settings parses API_KEYS as a JSON array or comma-separated string.
+    # Empty = unauthenticated (dev / localhost mode).
+    api_keys: frozenset[str] = frozenset()
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 

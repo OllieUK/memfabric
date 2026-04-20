@@ -10,6 +10,7 @@ STARTUP_CONFIG_FILENAME = "startup.json"
 
 class ClientSettings(BaseSettings):
     api_base_url: str = "https://memfabric.carr-it.net:8443"
+    api_key: str | None = None  # API_KEY env var — sent as Authorization: Bearer header
     agent_id: str = "claude-code"
     wake_up_scope_profile: str | None = "mara_startup_v2"
     wake_up_global_agent_id: str | None = "mara"
