@@ -107,6 +107,7 @@ app = FastAPI(
     dependencies=[Depends(verify_api_key)],
 )
 
+from starlette.middleware import Middleware  # noqa: E402
 from memory_service.mcp_auth import BearerTokenMiddleware  # noqa: E402
 from mcp_server.server import mcp as _mcp_server  # noqa: E402
 
@@ -114,7 +115,7 @@ _mcp_asgi = _mcp_server.http_app(
     path="/",
     transport="streamable-http",
     stateless_http=True,
-    middleware=[BearerTokenMiddleware],
+    middleware=[Middleware(BearerTokenMiddleware)],
 )
 app.mount("/mcp", _mcp_asgi)
 
