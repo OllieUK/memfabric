@@ -1696,6 +1696,57 @@ def _parse_iso(ts: str) -> datetime:
     return dt
 
 
+def compute_maintenance_status(
+    last_short_rest_at: str | None,
+    last_long_rest_at: str | None,
+    now_iso: str,
+    short_rest_recency_days: int,
+    long_rest_recency_days: int,
+) -> dict:
+    """Compute structured maintenance status for the wake-up response.
+
+    Returns a dict with keys: short_rest_overdue, long_rest_overdue,
+    short_rest_days_ago, long_rest_days_ago, recommended_action.
+    recommended_action is None when no action is needed.
+    """
+    now = _parse_iso(now_iso)
+
+    def _days_since(ts: str | None) -> float | None:
+        if ts is None:
+            return None
+        try:
+            return (now - _parse_iso(ts)).total_seconds() / 86400.0
+        except (ValueError, TypeError):
+            return None
+
+    short_days = _days_since(last_short_rest_at)
+    long_days = _days_since(last_long_rest_at)
+
+    short_overdue = short_days is None or short_days > short_rest_recency_days
+    long_overdue = long_days is None or long_days > long_rest_recency_days
+
+    if last_long_rest_at is None:
+        action = "long-rest has never run — run `memory long-rest` before this session"
+    elif last_short_rest_at is None:
+        action = "short-rest has never run — run `memory short-rest`"
+    elif short_overdue and long_overdue:
+        action = "both short-rest and long-rest are overdue — run `memory long-rest` (covers both)"
+    elif long_overdue:
+        action = f"long-rest is overdue ({long_days:.0f}d) — run `memory long-rest`"
+    elif short_overdue:
+        action = f"short-rest is overdue ({short_days:.0f}d) — run `memory short-rest`"
+    else:
+        action = None
+
+    return {
+        "short_rest_overdue": short_overdue,
+        "long_rest_overdue": long_overdue,
+        "short_rest_days_ago": round(short_days, 1) if short_days is not None else None,
+        "long_rest_days_ago": round(long_days, 1) if long_days is not None else None,
+        "recommended_action": action,
+    }
+
+
 def _apply_decay(current: float, rate: float, days: float, min_strength: float = 0.0) -> float:
     """Return decayed value clamped to [min_strength, 1]."""
     return max(min_strength, min(1.0, current * math.exp(-rate * days)))

@@ -1,10 +1,10 @@
 {
   "mcpServers": {
     "memory": {
-      "command": "memory-mcp",
-      "env": {
-        "API_BASE_URL": "https://memfabric.carr-it.net",
-        "AGENT_ID": "graph-memory-fabric"
+      "type": "http",
+      "url": "https://memfabric.carr-it.net/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MEMFABRIC_API_KEY}"
       }
     }
   }

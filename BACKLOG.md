@@ -11,6 +11,7 @@
 
 | ID | Title | Started |
 |----|-------|---------|
+| WP-105 | Streamable HTTP MCP transport (ADR-003) | 2026-04-21 |
 
 ---
 

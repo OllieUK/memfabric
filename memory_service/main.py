@@ -107,6 +107,16 @@ app = FastAPI(
     dependencies=[Depends(verify_api_key)],
 )
 
+from memory_service.mcp_auth import BearerTokenMiddleware  # noqa: E402
+from mcp_server.server import mcp as _mcp_server  # noqa: E402
+
+_mcp_asgi = _mcp_server.http_app(
+    transport="streamable-http",
+    stateless_http=True,
+    middleware=[BearerTokenMiddleware],
+)
+app.mount("/mcp", _mcp_asgi)
+
 
 class MemoryType(str, Enum):
     fact = "fact"
@@ -395,54 +405,7 @@ class MaintenanceStatus(BaseModel):
     recommended_action: Optional[str] = None
 
 
-def _compute_maintenance_status(
-    last_short_rest_at: Optional[str],
-    last_long_rest_at: Optional[str],
-    now_iso: str,
-    short_rest_recency_days: int,
-    long_rest_recency_days: int,
-) -> dict:
-    """Compute structured maintenance status for the wake-up response.
-
-    Returns a dict matching MaintenanceStatus fields.
-    recommended_action is None when no action is needed.
-    """
-    now = memory_repo._parse_iso(now_iso)
-
-    def _days_since(ts: Optional[str]) -> Optional[float]:
-        if ts is None:
-            return None
-        try:
-            return (now - memory_repo._parse_iso(ts)).total_seconds() / 86400.0
-        except (ValueError, TypeError):
-            return None
-
-    short_days = _days_since(last_short_rest_at)
-    long_days = _days_since(last_long_rest_at)
-
-    short_overdue = short_days is None or short_days > short_rest_recency_days
-    long_overdue = long_days is None or long_days > long_rest_recency_days
-
-    if last_long_rest_at is None:
-        action = "long-rest has never run — run `memory long-rest` before this session"
-    elif last_short_rest_at is None:
-        action = "short-rest has never run — run `memory short-rest`"
-    elif short_overdue and long_overdue:
-        action = "both short-rest and long-rest are overdue — run `memory long-rest` (covers both)"
-    elif long_overdue:
-        action = f"long-rest is overdue ({long_days:.0f}d) — run `memory long-rest`"
-    elif short_overdue:
-        action = f"short-rest is overdue ({short_days:.0f}d) — run `memory short-rest`"
-    else:
-        action = None
-
-    return {
-        "short_rest_overdue": short_overdue,
-        "long_rest_overdue": long_overdue,
-        "short_rest_days_ago": round(short_days, 1) if short_days is not None else None,
-        "long_rest_days_ago": round(long_days, 1) if long_days is not None else None,
-        "recommended_action": action,
-    }
+_compute_maintenance_status = memory_repo.compute_maintenance_status
 
 
 class WakeUpResponse(BaseModel):
