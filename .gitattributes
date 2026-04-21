@@ -1,0 +1,17 @@
+# Normalise all text files to LF in the repository.
+# Git will convert to LF on checkin and leave as-is on checkout
+# (both WSL and Windows Git will see consistent line endings).
+* text=auto eol=lf
+
+# Explicitly binary — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.whl binary
+*.pyc binary
