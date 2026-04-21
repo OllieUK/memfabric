@@ -71,6 +71,9 @@ Run an **Explore agent** to read the relevant files first. Never propose changes
 ### Bash commands
 Never chain shell commands with `&&`, `;`, or `|` unless the pipeline is the natural form of the command (e.g. `grep ... | sort`). Run each logical step as a separate `Bash` call. Chained commands (e.g. `cd ~/projects && git push`) trigger unnecessary safety prompts.
 
+### Git commits
+Always create commits from **Git Bash on Windows** (or PowerShell with git), not from inside WSL. The global git config sets `gpg.ssh.program` to `op-ssh-sign.exe` (a Windows PE binary). When WSL tries to execute it, the shell sees the `MZ` magic bytes and fails with `MZ: not found`. Git Bash runs it as a native Windows process and signing works correctly.
+
 ### Parallelism
 Where a work package has independent sub-tasks, launch **parallel agents** in a single message to reduce wall-clock time.
 
