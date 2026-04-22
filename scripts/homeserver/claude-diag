@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+# claude-diag — restricted read-only diagnostic wrapper for Claude (graph-memory-fabric)
+#
+# Invoked via SSH ForceCommand on homeserver. The authorized_keys line for the
+# claude-diag user pins every SSH connection to run /usr/local/bin/claude-diag,
+# which reads $SSH_ORIGINAL_COMMAND and runs exactly one allow-listed action.
+#
+# Install: copy to /usr/local/bin/claude-diag, chown root:root, chmod 0755.
+# See docs/operations/homeserver-ssh-diag.md for full deployment instructions.
+
+set -euo pipefail
+
+COMPOSE_DIR="${CLAUDE_DIAG_COMPOSE_DIR:-/opt/stacks/deploy/memfabric}"
+COMPOSE_FILE="${CLAUDE_DIAG_COMPOSE_FILE:-compose.yml}"
+ENV_FILE="${CLAUDE_DIAG_ENV_FILE:-/opt/stacks/env/services-env/memfabric.env}"
+SERVICE="memfabric-api"
+MCP_PATH="/mcp"
+SCRIPT_VERSION="1.4.0"
+
+# Read the requested subcommand. If the user opens an interactive shell we land
+# here with an empty SSH_ORIGINAL_COMMAND — treat that as an error.
+RAW="${SSH_ORIGINAL_COMMAND:-}"
+if [[ -z "$RAW" ]]; then
+  echo "claude-diag: no command supplied. Allowed: status | logs [N] | mcp-probe | routes | version | help" >&2
+  exit 2
+fi
+
+# Split into command + args. Intentionally no eval, no shell expansion.
+read -r -a ARGS <<<"$RAW"
+CMD="${ARGS[0]}"
+
+# Refuse anything containing shell metacharacters. Belt + braces; ForceCommand
+# already prevents chaining, but a defensive check costs nothing.
+if [[ "$RAW" =~ [\;\&\|\`\$\(\)\<\>] ]]; then
+  echo "claude-diag: metacharacters not allowed" >&2
+  exit 2
+fi
+
+compose() {
+  # Use the plugin form with the stack's env file so compose variable
+  # substitution (e.g. ${CF_TUNNEL_TOKEN}) resolves without warnings.
+  local args=(-f "$COMPOSE_DIR/$COMPOSE_FILE")
+  if [[ -r "$ENV_FILE" ]]; then
+    args+=(--env-file "$ENV_FILE")
+  fi
+  docker compose "${args[@]}" "$@"
+}
+
+cmd_status() {
+  compose ps
+}
+
+cmd_logs() {
+  local n="${ARGS[1]:-200}"
+  # Only allow a plain integer for the tail count.
+  if ! [[ "$n" =~ ^[0-9]+$ ]]; then
+    echo "claude-diag: logs tail count must be an integer" >&2
+    exit 2
+  fi
+  if (( n > 2000 )); then n=2000; fi
+  compose logs --tail="$n" --no-color "$SERVICE"
+}
+
+cmd_routes() {
+  # Fetch the OpenAPI doc from inside the container. No auth needed for /openapi.json.
+  compose exec -T "$SERVICE" \
+    sh -c 'command -v curl >/dev/null 2>&1 && curl -sS http://127.0.0.1:8000/openapi.json || wget -qO- http://127.0.0.1:8000/openapi.json'
+}
+
+cmd_mcp_probe() {
+  # Probe the MCP mount from inside the container, bypassing any reverse proxy.
+  # This tells us whether the 307/500 originates in the app or in the edge.
+  # Token comes from the container's own environment — we never receive it here.
+  compose exec -T "$SERVICE" sh -s <<'INNER'
+set -e
+TOKEN="${MCP_BEARER_TOKEN:-}"
+if [ -z "$TOKEN" ]; then
+  echo "# MCP_BEARER_TOKEN not set in container env"
+fi
+for url in http://127.0.0.1:8000/mcp http://127.0.0.1:8000/mcp/; do
+  echo "=== $url ==="
+  # -i prints headers, --max-redirs 0 stops us at the first 307 so we can see it
+  if command -v curl >/dev/null 2>&1; then
+    curl -sS -i --max-redirs 0 \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "Accept: application/json, text/event-stream" \
+      "$url" || true
+  else
+    # Fallback to wget — no -i equivalent; dump headers separately
+    wget -q -S --header="Authorization: Bearer ${TOKEN}" \
+               --header="Accept: application/json, text/event-stream" \
+               --max-redirect=0 -O - "$url" 2>&1 || true
+  fi
+  echo
+done
+INNER
+}
+
+cmd_version() {
+  echo "claude-diag script version: $SCRIPT_VERSION"
+  echo "host: $(hostname)"
+  echo "compose dir: $COMPOSE_DIR"
+  echo "compose file: $COMPOSE_FILE"
+  echo "env file: $ENV_FILE (readable: $([[ -r "$ENV_FILE" ]] && echo yes || echo no))"
+  echo "service: $SERVICE"
+  echo "date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+
+cmd_mcp_initialize() {
+  # Send a valid MCP `initialize` JSON-RPC request using the first API key
+  # from the container's $API_KEYS env var. If API_KEYS is JSON-array or
+  # comma-separated, we take the first token. No secrets touch this wrapper.
+  compose exec -T "$SERVICE" sh -s <<'INNER'
+set -e
+RAW="${API_KEYS:-}"
+if [ -z "$RAW" ]; then
+  echo "# API_KEYS not set in container env — cannot run authed probe" >&2
+  exit 1
+fi
+
+# Extract first token. Handles:  tok         -> tok
+#                                 ["a","b"]   -> a
+#                                 a,b,c       -> a
+TOK=$(printf '%s' "$RAW" | sed -e 's/^\[//' -e 's/\]$//' -e 's/"//g' -e 's/,.*//' -e "s/^[[:space:]]*//" -e "s/[[:space:]]*$//")
+
+BODY='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"claude-diag","version":"1.0"}}}'
+
+echo "=== POST /mcp/  (authed, initialize) ==="
+curl -sS -i -L \
+  -H "Authorization: Bearer ${TOK}" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Content-Type: application/json" \
+  -d "$BODY" \
+  http://127.0.0.1:8000/mcp/ | head -c 4096
+echo
+INNER
+}
+
+cmd_inspect_main() {
+  # Read the MCP mount block from the running container's copy of main.py.
+  # Tells us exactly which version of the middleware-wiring code is live.
+  compose exec -T "$SERVICE" sh -c \
+    'grep -n -A2 -B1 "Middleware\|http_app\|app.mount" /app/memory_service/main.py || echo "(main.py not found)"'
+}
+
+cmd_image_info() {
+  # Image metadata: which image the running container was created from,
+  # image creation timestamp, labels, and the first few MBs of file times
+  # so we can tell how recently the code inside was updated.
+  local cid
+  cid=$(compose ps -q "$SERVICE")
+  if [[ -z "$cid" ]]; then
+    echo "no running container for $SERVICE" >&2
+    exit 1
+  fi
+  docker inspect --format 'image: {{.Image}}
+image_id: {{.Config.Image}}
+container_created: {{.Created}}' "$cid"
+  local img
+  img=$(docker inspect --format '{{.Image}}' "$cid")
+  docker inspect --format 'image_created: {{.Created}}
+image_labels: {{json .Config.Labels}}' "$img"
+}
+
+cmd_help() {
+  cat <<EOF
+claude-diag — allow-listed SSH diagnostic commands
+
+Usage (via ssh homeserver-diag <command>):
+
+  status         docker compose ps
+  logs [N]       last N lines of $SERVICE logs (default 200, max 2000)
+  routes         GET /openapi.json from inside the container
+  mcp-probe      curl /mcp and /mcp/ from inside the container (no-redirect)
+  mcp-initialize POST a valid MCP initialize JSON-RPC request (uses API_KEYS from container env)
+  inspect-main   grep Middleware / http_app / app.mount in running main.py
+  image-info     image ID, container + image creation timestamps, labels
+  version        print script + host info
+  help           this message
+
+All commands are read-only. No writes, no shell, no port-forwarding.
+EOF
+}
+
+case "$CMD" in
+  status)       cmd_status ;;
+  logs)         cmd_logs ;;
+  routes)       cmd_routes ;;
+  mcp-probe)      cmd_mcp_probe ;;
+  mcp-initialize) cmd_mcp_initialize ;;
+  inspect-main)   cmd_inspect_main ;;
+  image-info)   cmd_image_info ;;
+  version)      cmd_version ;;
+  help|-h|--help) cmd_help ;;
+  *)
+    echo "claude-diag: unknown command '$CMD'. Try: help" >&2
+    exit 2
+    ;;
+esac
