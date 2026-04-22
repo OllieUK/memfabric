@@ -73,40 +73,6 @@ except PackageNotFoundError:
 _BUILD_HASH = _get_build_hash()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    driver = get_driver(settings)
-    await _wait_for_memgraph(driver)
-    if settings.embedding_preload_on_startup:
-        get_embedding_dimension()
-        if settings.enable_knowledge_layer:
-            get_embedding_dimension(settings.knowledge_embedding_model)
-    app.state.driver = driver
-
-    scheduler_task = None
-    if settings.scheduler_enabled:
-        scheduler_task = asyncio.create_task(run_scheduler(driver, settings))
-
-    try:
-        yield
-    finally:
-        if scheduler_task is not None:
-            scheduler_task.cancel()
-            try:
-                await scheduler_task
-            except asyncio.CancelledError:
-                pass
-        driver.close()
-
-
-app = FastAPI(
-    title="Graph Memory Service",
-    description="Local graph + vector memory API backed by Memgraph",
-    version="0.1.0",
-    lifespan=lifespan,
-    dependencies=[Depends(verify_api_key)],
-)
-
 from starlette.middleware import Middleware  # noqa: E402
 from memory_service.mcp_auth import BearerTokenMiddleware  # noqa: E402
 from mcp_server.server import mcp as _mcp_server  # noqa: E402
@@ -117,6 +83,46 @@ _mcp_asgi = _mcp_server.http_app(
     stateless_http=True,
     middleware=[Middleware(BearerTokenMiddleware)],
 )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Enter the FastMCP sub-app's lifespan so its StreamableHTTPSessionManager
+    # task group is initialised before we accept traffic on /mcp. Starlette
+    # does not propagate lifespans to mounted sub-apps, so we nest it here.
+    async with _mcp_asgi.lifespan(app):
+        driver = get_driver(settings)
+        await _wait_for_memgraph(driver)
+        if settings.embedding_preload_on_startup:
+            get_embedding_dimension()
+            if settings.enable_knowledge_layer:
+                get_embedding_dimension(settings.knowledge_embedding_model)
+        app.state.driver = driver
+
+        scheduler_task = None
+        if settings.scheduler_enabled:
+            scheduler_task = asyncio.create_task(run_scheduler(driver, settings))
+
+        try:
+            yield
+        finally:
+            if scheduler_task is not None:
+                scheduler_task.cancel()
+                try:
+                    await scheduler_task
+                except asyncio.CancelledError:
+                    pass
+            driver.close()
+
+
+app = FastAPI(
+    title="Graph Memory Service",
+    description="Local graph + vector memory API backed by Memgraph",
+    version="0.1.0",
+    lifespan=lifespan,
+    dependencies=[Depends(verify_api_key)],
+)
+
 app.mount("/mcp", _mcp_asgi)
 
 
