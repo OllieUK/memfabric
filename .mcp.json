@@ -2,7 +2,7 @@
   "mcpServers": {
     "memory": {
       "type": "http",
-      "url": "https://memfabric.carr-it.net/mcp",
+      "url": "https://memfabric.carr-it.net/mcp/",
       "headers": {
         "Authorization": "Bearer ${MEMFABRIC_API_KEY}"
       }
