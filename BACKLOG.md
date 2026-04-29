@@ -11,7 +11,7 @@
 
 | ID | Title | Started |
 |----|-------|---------|
-| — | (none) | — |
+| _none_ | | |
 
 ---
 
@@ -1996,3 +1996,7 @@ Initial sync pushed:
 Deleted `_PERSON_SEARCH_QUERY_TEMPLATE` and its dispatch branch. Person-filtered searches now route through the unified vector path (`_SEARCH_QUERY_TEMPLATE`) which already carried an `OPTIONAL MATCH … person` predicate that was previously unreachable. Added `_PERSON_OVERFETCH_MULTIPLIER = 5` and `_PERSON_OVERFETCH_CAP = 200` so person-linked memories outside the natural top-K are still recoverable. `min_score` now applies on person-filtered searches. Rewrote two WP-093 tests that locked in the null-score behaviour; added two new semantic-ranking tests. Live probe confirmed `score=0.8358` (float, not None) for a person-linked memory queried with matching text.
 
 **Retrospective:** Mostly a deletion — ~35 lines of net change. The unused `$person_ids` predicate was already scaffolded in the vector template by WP-093 but never wired up. The hardest part was the test environment: the Memgraph container needed port 7687 published (not in the default compose file), `API_KEYS` had to be cleared, and the pre-existing `StreamableHTTPSessionManager.run()` singleton issue from WP-105 required each integration test to be run in its own `pytest` invocation. All four WP-149 tests and all WP-037 membership tests pass. See CHANGELOG for the breaking-change note.
+
+---
+
+_(WP-150 description block moved to `docs/CHANGELOG.md` on completion 2026-04-29.)_

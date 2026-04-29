@@ -18,6 +18,7 @@ from types import SimpleNamespace
 
 from fastmcp import FastMCP
 
+from mcp_server._coercion import StrList
 from memory_client.formatting import format_wake_up
 from memory_service import memory_repo
 from memory_service.config import get_driver, settings
@@ -45,15 +46,15 @@ def memory_add(
     fact: str,
     agent_id: str,
     type: str = "fact",
-    strand_ids: list[str] | None = None,
-    tags: list[str] | None = None,
+    strand_ids: StrList = None,
+    tags: StrList = None,
     importance: int = 3,
     so_what: str | None = None,
-    cause_ids: list[str] | None = None,
-    effect_ids: list[str] | None = None,
-    person_ids: list[str] | None = None,
-    control_ids: list[str] | None = None,
-    doc_ids: list[str] | None = None,
+    cause_ids: StrList = None,
+    effect_ids: StrList = None,
+    person_ids: StrList = None,
+    control_ids: StrList = None,
+    doc_ids: StrList = None,
     control_relationship_type: str | None = None,
     org_id: str | None = None,
 ) -> dict:
@@ -149,9 +150,9 @@ def memory_add(
 @mcp.tool
 def memory_search(
     query: str,
-    tags: list[str] | None = None,
-    agent_ids: list[str] | None = None,
-    person_ids: list[str] | None = None,
+    tags: StrList = None,
+    agent_ids: StrList = None,
+    person_ids: StrList = None,
     limit: int = 10,
     traversal_direction: str = "none",
 ) -> list[dict]:
@@ -317,7 +318,7 @@ def task_add(
     committed_by: str | None = None,
     source_ref: str | None = None,
     project_id: str | None = None,
-    memory_ids: list[str] | None = None,
+    memory_ids: StrList = None,
     recurrence: str | None = None,
     is_template: bool = False,
 ) -> dict:
@@ -442,7 +443,7 @@ def task_next(limit: int = 10) -> list[dict]:
 
 
 @mcp.tool
-def memory_reinforce(memory_id: str, co_recalled_ids: list[str] | None = None) -> dict:
+def memory_reinforce(memory_id: str, co_recalled_ids: StrList = None) -> dict:
     """Explicitly reinforce a memory. Pass co_recalled_ids for Hebbian edge strengthening."""
     now_iso = datetime.now(tz=timezone.utc).isoformat()
     with _driver().session() as session:
@@ -628,12 +629,12 @@ def memory_update(
     memory_id: str,
     fact: str | None = None,
     so_what: str | None = None,
-    tags: list[str] | None = None,
+    tags: StrList = None,
     importance: int | None = None,
-    person_ids: list[str] | None = None,
-    strand_ids: list[str] | None = None,
-    control_ids: list[str] | None = None,
-    doc_ids: list[str] | None = None,
+    person_ids: StrList = None,
+    strand_ids: StrList = None,
+    control_ids: StrList = None,
+    doc_ids: StrList = None,
     control_relationship_type: str | None = None,
     org_id: str | None = None,
 ) -> dict:
