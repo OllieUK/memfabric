@@ -79,6 +79,8 @@
 | WP-115 | Refactor COBIT→ISO/NIST blocks to loop | `scripts/create_cross_framework_informs.py` | When next touching that script |
 | WP-120 | `get_memory_for_update` ephemeral filter | `memory_repo.get_memory_for_update` | Before ephemeral semantics are extended to prod use |
 | WP-SEC-R15b | Add SHA-256 pin verification to `ingest_attack_mitigations.py` | `scripts/ingest_attack_mitigations.py` | When next touching that script (same pattern as WP-SEC-R15 in `ingest_attack.py`) |
+| WP-151 | Update WP-105 integration test scaffolding for SSE-aware MCP HTTP transport | `tests/test_wp105_*.py`, `_mcp_call` helper | Surfaced 2026-04-29 in WP-150 implementation. Current FastMCP HTTP transport requires `Accept: application/json, text/event-stream` and frames responses as Server-Sent Events. Existing WP-105 integration tests use the older single-`Accept` JSON-only pattern and would fail against the live build. WP-150 added an SSE-aware variant locally; this WP back-fills the WP-105 tests with the same helper. Pick up next time a WP touches the MCP HTTP transport. |
+| WP-152 | Re-evaluate `make_list_coercer` factory in `mcp_server/_coercion.py` | `mcp_server/_coercion.py` | Surfaced 2026-04-29 in WP-150 `/simplify` review. The factory is unused in production (all current MCP list params are `list[str]`). Has a slight smell — post-processes `_coerce_str_list` output to undo the bare-string wrap when the inner type isn't `str`. Re-evaluate after 6 months: if no `list[int]`/`list[dict]` MCP parameter materialised, delete the factory under YAGNI; if one did, decide whether to keep it generic or specialise. |
 
 ---
 
