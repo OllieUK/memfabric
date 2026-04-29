@@ -939,7 +939,7 @@ All endpoints are added to `analytics_routes.py` (from WP-085). No new routers n
 
 ---
 
-### WP-093 — Agent-optimised search: score exposure, min_score filter, associative expansion
+### WP-093 — Agent-optimised search: score exposure, min_score filter, associative expansion *(person-path scoring semantics superseded by WP-149)*
 
 #### Motivation
 
@@ -969,7 +969,7 @@ Add `neighbour_cap: int = 3` to `SearchMemoryRequest`. For each primary hit, fol
 
 Deduplication: a node that appears as a primary hit is excluded from all `associated` lists.
 
-Person-anchored path (`person_ids` set): returns `associated: []`, ignores `min_score`.
+Person-anchored path (`person_ids` set): returns `associated: []`, ignores `min_score`. *(WP-149 supersedes: `min_score` is now applied on the person-anchored path too; score is numeric, not null.)*
 
 **4. `MemoryClient.search_memory()` update**
 
@@ -979,7 +979,7 @@ Accept and pass through `min_score` and `neighbour_cap`. Existing callers that d
 
 #### Acceptance criteria
 
-- [ ] `POST /memory/search` response includes `score` on all vector-search hits; `null` on person-anchored hits
+- [ ] `POST /memory/search` response includes `score` on all vector-search hits; `null` on person-anchored hits *(superseded by WP-149: person-anchored hits now also carry a numeric score)*
 - [ ] `min_score=0.80` returns only hits with `score >= 0.80`; returns empty list (not an error) when nothing qualifies
 - [ ] `neighbour_cap=3` returns up to 3 `associated` entries per hit, ordered by `edge_weight` descending
 - [ ] A memory appearing as both a primary hit and a candidate associated entry appears only in the primary list
@@ -1986,3 +1986,13 @@ Initial sync pushed:
 - 4 external VTODOs → Fabric (tax registration, Feedly triage, LinkedIn, Borowski PV)
 - 52 WPs seeded in Fabric (not pushed to Nextcloud — second-order tasks)
 > **Retrospective:** Went well — pre-mortem caught the `env_file:` secret exposure early. `auto_https off` vs `disable_redirects` was a one-iteration fix. Main friction: `caddy:2.8.4-builder` had a Go/zap version mismatch requiring a jump to Caddy v2.11.2; GHCR required auth so xcaddy build was the right path. Cloudflare DNS-01 cert obtained on first attempt. The URL migration sweep across mara repo and docs was larger than anticipated — worth factoring into future infra WPs.
+
+---
+
+### WP-149 — Fix `person_ids` scoring suppression in `/memory/search`
+
+**Completed 2026-04-29.**
+
+Deleted `_PERSON_SEARCH_QUERY_TEMPLATE` and its dispatch branch. Person-filtered searches now route through the unified vector path (`_SEARCH_QUERY_TEMPLATE`) which already carried an `OPTIONAL MATCH … person` predicate that was previously unreachable. Added `_PERSON_OVERFETCH_MULTIPLIER = 5` and `_PERSON_OVERFETCH_CAP = 200` so person-linked memories outside the natural top-K are still recoverable. `min_score` now applies on person-filtered searches. Rewrote two WP-093 tests that locked in the null-score behaviour; added two new semantic-ranking tests. Live probe confirmed `score=0.8358` (float, not None) for a person-linked memory queried with matching text.
+
+**Retrospective:** Mostly a deletion — ~35 lines of net change. The unused `$person_ids` predicate was already scaffolded in the vector template by WP-093 but never wired up. The hardest part was the test environment: the Memgraph container needed port 7687 published (not in the default compose file), `API_KEYS` had to be cleared, and the pre-existing `StreamableHTTPSessionManager.run()` singleton issue from WP-105 required each integration test to be run in its own `pytest` invocation. All four WP-149 tests and all WP-037 membership tests pass. See CHANGELOG for the breaking-change note.

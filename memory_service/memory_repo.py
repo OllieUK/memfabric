@@ -262,6 +262,13 @@ def add_memory(
 # NOTE: vector_search returns up to $limit nodes *before* filtering. When filters are
 # tight, the response may be empty even if matching nodes exist further down the ranking.
 # This is expected behaviour for this architecture.
+#
+# When person_ids is set, the query fetches limit * _PERSON_OVERFETCH_MULTIPLIER candidates
+# from the vector index before applying the person filter, so person-linked memories that
+# fall outside the natural top-K still have a chance to be recovered.
+_PERSON_OVERFETCH_MULTIPLIER = 5
+_PERSON_OVERFETCH_CAP = 200  # absolute ceiling — prevents runaway vector searches
+
 _SEARCH_QUERY_TEMPLATE = """\
 CALL vector_search.search("mem_embedding_idx", $limit, $query_vec)
 YIELD node AS m, distance
@@ -289,35 +296,6 @@ RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags,
        coalesce(m.files_read, []) AS files_read,
        {neighbour_return}
 ORDER BY distance ASC\
-"""
-
-# Used when person_ids is provided: start from Person nodes via ABOUT edges.
-# Bypasses the vector index so all memories linked to the specified persons are
-# returned, not just those that happen to rank in the top-N by embedding distance.
-# Ordered by importance DESC, strength DESC (distance is irrelevant for this path).
-# Deduplication: aggregate on m after agent filter to collapse multiple Person rows;
-# strand_ids collected in the same aggregation step to avoid re-fan-out.
-_PERSON_SEARCH_QUERY_TEMPLATE = """\
-MATCH (m:Memory)-[:ABOUT]->(per:Person)
-WHERE per.id IN $person_ids
-AND   (m.status IS NULL OR m.status = 'active')
-AND   (m.ephemeral IS NULL OR m.ephemeral = false)
-AND   ($tags IS NULL OR ANY(t IN m.tags WHERE t IN $tags))
-AND   ($min_importance IS NULL OR m.importance >= $min_importance)
-{file_filter}
-OPTIONAL MATCH (m)-[:PRODUCED_BY]->(a:Agent)
-WITH m, a
-WHERE ($agent_ids IS NULL OR a.id IN $agent_ids)
-OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
-WITH DISTINCT m, collect(DISTINCT s.id) AS strand_ids
-{neighbour_clause}
-RETURN m.id AS id, m.text AS text, m.type AS type, m.tags AS tags,
-       m.importance AS importance, coalesce(m.strength, 0.0) AS strength, strand_ids,
-       coalesce(m.files_modified, []) AS files_modified,
-       coalesce(m.files_read, []) AS files_read,
-       {neighbour_return}
-ORDER BY importance DESC, strength DESC
-LIMIT $limit\
 """
 
 
@@ -390,44 +368,33 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
     files_read = req.files_read
     file_filter = _build_file_filter_clause(files_modified, files_read)
 
+    # When person_ids is set, over-fetch from the vector index so person-linked
+    # memories that fall outside the natural top-K can still be recovered after
+    # the OPTIONAL MATCH filter on the Person edge.
+    fetch_limit = req.limit
     if req.person_ids:
-        # Graph path: start from Person nodes, bypass vector index.
-        query = _PERSON_SEARCH_QUERY_TEMPLATE.format(
-            neighbour_clause=neighbour_clauses,
-            neighbour_return=neighbour_return,
-            file_filter=file_filter,
-        )
-        result = session.run(
-            query,
-            person_ids=req.person_ids,
-            limit=req.limit,
-            tags=req.tags,
-            agent_ids=req.agent_ids,
-            min_importance=req.min_importance,
-            files_modified=files_modified,
-            files_read=files_read,
-        )
-    else:
-        query = _SEARCH_QUERY_TEMPLATE.format(
-            neighbour_clause=neighbour_clauses,
-            neighbour_return=neighbour_return,
-            file_filter=file_filter,
-        )
-        result = session.run(
-            query,
-            query_vec=query_embedding,
-            limit=req.limit,
-            tags=req.tags,
-            agent_ids=req.agent_ids,
-            project_ids=req.project_ids,
-            person_ids=None,
-            min_importance=req.min_importance,
-            files_modified=files_modified,
-            files_read=files_read,
-        )
+        fetch_limit = min(req.limit * _PERSON_OVERFETCH_MULTIPLIER, _PERSON_OVERFETCH_CAP)
+
+    query = _SEARCH_QUERY_TEMPLATE.format(
+        neighbour_clause=neighbour_clauses,
+        neighbour_return=neighbour_return,
+        file_filter=file_filter,
+    )
+    result = session.run(
+        query,
+        query_vec=query_embedding,
+        limit=fetch_limit,
+        tags=req.tags,
+        agent_ids=req.agent_ids,
+        project_ids=req.project_ids,
+        person_ids=req.person_ids,
+        min_importance=req.min_importance,
+        files_modified=files_modified,
+        files_read=files_read,
+    )
 
     min_score = req.min_score
-    use_min_score = min_score is not None and not req.person_ids
+    use_min_score = min_score is not None
 
     seen: set[str] = set()
     rows = []
@@ -456,7 +423,8 @@ def search_memories(session, req, query_embedding: list, neighbour_cap: int) -> 
                 "files_read": list(record["files_read"]),
             }
         )
-    return rows
+    # Truncate to the caller's requested limit (over-fetch may have produced more).
+    return rows[: req.limit]
 
 
 def fetch_associated(

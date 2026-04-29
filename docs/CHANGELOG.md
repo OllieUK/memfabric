@@ -4,6 +4,20 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-149: Fix `person_ids` scoring suppression in `/memory/search` — 2026-04-29
+
+**BREAKING (search semantics):** `person_ids` is now a post-filter on the vector candidate set rather than a separate importance-ranked path. All search results — including person-filtered ones — now carry a numeric `score` (cosine similarity). `min_score` is now applied on person-filtered searches. Callers needing the legacy "all memories about person X ordered by importance" semantics should pass a high `limit` with a broad query.
+
+Deleted `_PERSON_SEARCH_QUERY_TEMPLATE` and the `if req.person_ids:` dispatch branch in `memory_repo.py`. The unified `_SEARCH_QUERY_TEMPLATE` already carried an unused `OPTIONAL MATCH (m)-[:ABOUT]->(per:Person) WHERE ($person_ids IS NULL OR per.id IN $person_ids)` predicate — this fix simply makes it reachable. Added `_PERSON_OVERFETCH_MULTIPLIER = 5`: when `person_ids` is set the vector index is queried for `limit × 5` candidates (capped at 200), the ABOUT-edge filter is applied, and the result is truncated to `limit`. This recovers person-linked memories that would otherwise fall outside the natural top-K. Dropped the `and not req.person_ids` guard on `use_min_score` so `min_score` applies uniformly.
+
+Rewrote two WP-093 tests that encoded the old (broken) specification: `test_person_anchored_returns_null_score` → `test_person_anchored_returns_float_score`; `test_min_score_ignored_with_person_ids` → `test_min_score_applied_with_person_ids`. Added two new integration tests: `test_person_filter_ranks_by_topic_relevance` (vector ranking beats importance ranking for person-filtered results) and `test_person_filter_overfetch_recovers_lower_ranked_match` (over-fetch recovers a person-linked memory outside natural top-K).
+
+Root cause identified from a problem record raised by Mara/JFLP: `JFLP_agent/docs/problem-record-memfabric-person-ids-scoring.md`.
+
+**Retrospective:** Mostly a deletion. The fix was ~35 lines of changed code (removing 28 lines of `_PERSON_SEARCH_QUERY_TEMPLATE` and collapsing the 17-line dispatch branch into 12 lines). The unused `$person_ids` predicate in `_SEARCH_QUERY_TEMPLATE` was already there — WP-093 had scaffolded it but never wired it up. The hardest part was not the code change but running the integration tests: the test Memgraph container needed to be started with port 7687 published to the WSL host (it isn't in the compose file), and `API_KEYS` had to be cleared for open-mode testing. The MCP `StreamableHTTPSessionManager.run()` singleton issue causes all but the first test per `pytest` invocation to error — pre-existing from WP-105, unrelated to this WP, noted for a follow-up fix. All four targeted WP-149 tests and all WP-037 person-filter membership tests pass when run individually. Live probe confirmed `score=0.8358` (float, not None) for a query matching a person-linked memory.
+
+---
+
 ### WP-105: Streamable HTTP MCP transport (ADR-003) — 2026-04-22
 
 Replaced the stdio `memory-mcp` entrypoint with an ASGI-mounted FastMCP sub-app at `/mcp`, implementing [ADR-003](architecture/ADR-003-streamable-http-mcp-transport.md). FastMCP is constructed ahead of the parent `FastAPI()` so its lifespan can be nested inside the parent lifespan (`async with _mcp_asgi.lifespan(app):`), which is required because Starlette does not propagate lifespans to mounted sub-apps. Auth is applied by wrapping `BearerTokenMiddleware` in `Middleware(cls)` so FastMCP's middleware slot accepts it as a factory. All 27 MCP tools refactored to call `memory_repo` functions directly (no `MemoryClient`/`httpx` round-trip); `verify_api_key` wired as the FastMCP dependency; stdio entrypoint retained as an offline fallback. End-to-end verified on homeserver: `POST /mcp/` with a valid `initialize` JSON-RPC request returns `HTTP 200 text/event-stream` with the full server capabilities (tools, prompts, resources, logging, experimental/UI extensions) — first time the stack has served live MCP protocol traffic over HTTP.

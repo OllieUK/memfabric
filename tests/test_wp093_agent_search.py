@@ -57,24 +57,27 @@ class TestScoreExposure:
                 _cleanup(test_driver, mid)
 
     @pytest.mark.integration
-    def test_person_anchored_returns_null_score(self, client, test_driver):
-        """Person-anchored search hits have score=null."""
+    def test_person_anchored_returns_float_score(self, client, test_driver):
+        """Person-anchored search hits carry a numeric score (WP-149: vector path for all searches)."""
         mid = None
         person_id = "person-wp093-score"
         try:
             r = client.post("/memory", json=_add_body(
-                "WP093 person score test", person_ids=[person_id],
+                "WP093 person score test unique fact", person_ids=[person_id],
             ))
             mid = r.json()["memory_id"]
 
             r2 = client.post("/memory/search", json={
-                "query": "anything", "person_ids": [person_id], "limit": 5,
+                "query": "WP093 person score test unique fact",
+                "person_ids": [person_id],
+                "limit": 5,
             })
             assert r2.status_code == 200
             hits = r2.json()["memories"]
             assert len(hits) >= 1
             hit = next(h for h in hits if h["id"] == mid)
-            assert hit["score"] is None
+            assert isinstance(hit["score"], float), f"expected float score, got {hit['score']!r}"
+            assert 0.0 <= hit["score"] <= 1.0
         finally:
             if mid:
                 _cleanup(test_driver, mid)
@@ -122,18 +125,19 @@ class TestMinScoreFilter:
         assert isinstance(r.json()["memories"], list)
 
     @pytest.mark.integration
-    def test_min_score_ignored_with_person_ids(self, client, test_driver):
-        """min_score is ignored when person_ids is set."""
+    def test_min_score_applied_with_person_ids(self, client, test_driver):
+        """min_score is now applied even when person_ids is set (WP-149)."""
         mid = None
         person_id = "person-wp093-minscore"
         try:
             r = client.post("/memory", json=_add_body(
-                "WP093 person min_score bypass", person_ids=[person_id],
+                "WP093 person min_score applied unique", person_ids=[person_id],
             ))
             mid = r.json()["memory_id"]
 
+            # Impossibly high min_score — the low-relevance hit above should be excluded.
             r2 = client.post("/memory/search", json={
-                "query": "anything",
+                "query": "completely unrelated marine biology topic",
                 "person_ids": [person_id],
                 "min_score": 0.99,
                 "limit": 10,
@@ -141,7 +145,11 @@ class TestMinScoreFilter:
             assert r2.status_code == 200
             hits = r2.json()["memories"]
             hit_ids = [h["id"] for h in hits]
-            assert mid in hit_ids
+            # The memory is linked to this person but semantically unrelated to the query;
+            # with min_score=0.99 it should not appear.
+            assert mid not in hit_ids, (
+                "expected low-relevance person-linked memory to be filtered by min_score=0.99"
+            )
         finally:
             if mid:
                 _cleanup(test_driver, mid)
@@ -164,6 +172,99 @@ class TestMinScoreFilter:
         finally:
             if mid:
                 _cleanup(test_driver, mid)
+
+
+# ---------------------------------------------------------------------------
+# Task 2b — Integration: person_ids vector semantics (WP-149)
+# ---------------------------------------------------------------------------
+class TestPersonIdsVectorSemantics:
+    @pytest.mark.integration
+    def test_person_filter_ranks_by_topic_relevance(self, client, test_driver):
+        """Person-filtered results are ranked by semantic relevance, not importance."""
+        mid_relevant = mid_noise = None
+        person_id = "person-wp093-relevance"
+        try:
+            # A highly-relevant memory linked to the person
+            r1 = client.post("/memory", json=_add_body(
+                "kubernetes deployment yaml pods replica scaling",
+                person_ids=[person_id], importance=3,
+            ))
+            mid_relevant = r1.json()["memory_id"]
+
+            # A low-relevance memory linked to the same person with higher importance
+            r2 = client.post("/memory", json=_add_body(
+                "favourite coffee shop afternoon espresso",
+                person_ids=[person_id], importance=4,
+            ))
+            mid_noise = r2.json()["memory_id"]
+
+            r3 = client.post("/memory/search", json={
+                "query": "kubernetes pods deployment",
+                "person_ids": [person_id],
+                "limit": 5,
+            })
+            assert r3.status_code == 200
+            hits = r3.json()["memories"]
+            ids = [h["id"] for h in hits]
+            assert mid_relevant in ids, "relevant memory should appear in results"
+
+            if mid_noise in ids:
+                idx_relevant = ids.index(mid_relevant)
+                idx_noise = ids.index(mid_noise)
+                assert idx_relevant < idx_noise, (
+                    "semantically relevant memory should rank above the noise memory "
+                    f"(relevant at {idx_relevant}, noise at {idx_noise})"
+                )
+        finally:
+            if mid_relevant:
+                _cleanup(test_driver, mid_relevant)
+            if mid_noise:
+                _cleanup(test_driver, mid_noise)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
+
+    @pytest.mark.integration
+    def test_person_filter_overfetch_recovers_lower_ranked_match(self, client, test_driver):
+        """Over-fetch recovers a person-linked memory that would otherwise fall outside top-K."""
+        person_id = "person-wp093-overfetch"
+        noise_ids = []
+        target_id = None
+        try:
+            # Create 4 generic memories without person association — these will rank
+            # above the person-linked memory in raw vector distance for our query.
+            for i in range(4):
+                r = client.post("/memory", json=_add_body(
+                    f"WP093 overfetch noise memory index {i} unique abc xyz",
+                ))
+                noise_ids.append(r.json()["memory_id"])
+
+            # Create the person-linked memory with the target text
+            r = client.post("/memory", json=_add_body(
+                "WP093 overfetch target person linked fact unique abc xyz",
+                person_ids=[person_id],
+            ))
+            target_id = r.json()["memory_id"]
+
+            # Fetch with limit=3; without over-fetch the target could be buried past top-3.
+            # With _PERSON_OVERFETCH_MULTIPLIER=5, effective fetch is 15, which surfaces
+            # the person-linked memory before the ABOUT-edge filter truncates.
+            r2 = client.post("/memory/search", json={
+                "query": "WP093 overfetch target person linked fact unique abc xyz",
+                "person_ids": [person_id],
+                "limit": 3,
+            })
+            assert r2.status_code == 200
+            hits = r2.json()["memories"]
+            hit_ids = [h["id"] for h in hits]
+            assert target_id in hit_ids, (
+                "person-linked memory should be recovered via over-fetch even if outside natural top-K"
+            )
+        finally:
+            cleanup_nodes(test_driver, *noise_ids)
+            if target_id:
+                cleanup_nodes(test_driver, target_id)
+            with test_driver.session() as session:
+                session.run("MATCH (p:Person {id: $id}) DETACH DELETE p", id=person_id)
 
 
 # ---------------------------------------------------------------------------
