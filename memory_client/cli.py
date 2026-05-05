@@ -57,7 +57,14 @@ def add_memory(
                 related_ids=related_ids,
             )
         memory_id = result["memory_id"]
-        console.print(memory_id)
+        if result.get("deduplicated"):
+            dup_fact = result.get("duplicate_fact") or ""
+            notice = f"[yellow]deduplicated → {memory_id[:8]}[/yellow]"
+            if dup_fact:
+                notice += f" ({dup_fact[:80]}{'…' if len(dup_fact) > 80 else ''})"
+            console.print(notice)
+        else:
+            console.print(memory_id)
     except httpx.HTTPStatusError as exc:
         err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
         raise typer.Exit(1)
@@ -118,6 +125,59 @@ def search_memory(
         table.add_row(short_id, hit["type"], imp, tags_str, hit["text"], neighbours_count)
 
     console.print(table)
+
+
+@app.command("review-recent")
+def review_recent(
+    days: int = typer.Option(7, "--days", "-d", min=1, max=365, help="Look-back window in days"),
+    strand: Optional[str] = typer.Option(None, "--strand", "-s", help="Filter to a specific strand ID"),
+    limit: int = typer.Option(50, "--limit", "-n", min=1, max=200, help="Maximum memories to return"),
+) -> None:
+    """Review memories written in the last N days, grouped by strand."""
+    try:
+        with _make_client() as client:
+            result = client.review_recent(days=days, strand=strand, limit=limit)
+    except httpx.HTTPStatusError as exc:
+        err_console.print(f"[red]Error {exc.response.status_code}:[/red] {exc.response.text}")
+        raise typer.Exit(1)
+    except httpx.ConnectError:
+        err_console.print(f"[red]Could not connect to memory service at {settings.api_base_url}[/red]")
+        raise typer.Exit(1)
+
+    memories = result.get("memories") or []
+    total = result.get("total", len(memories))
+    console.print(f"\n[bold]Recent memories — last {days} day(s)[/bold]  ({total} total)")
+
+    if not memories:
+        console.print("  [dim]No memories written in this window.[/dim]")
+        return
+
+    by_strand: dict = {}
+    for mem in memories:
+        strands = mem.get("strand_ids") or ["(unthreaded)"]
+        key = strands[0]
+        by_strand.setdefault(key, []).append(mem)
+
+    for strand_key, items in by_strand.items():
+        console.print(f"\n[bold cyan]{strand_key}[/bold cyan]")
+        table = Table(show_header=True, header_style="bold", box=None, padding=(0, 1))
+        table.add_column("ID", style="dim", width=8)
+        table.add_column("Type", width=11)
+        table.add_column("Imp", justify="center", width=4)
+        table.add_column("Created", width=11)
+        table.add_column("Fact")
+        for mem in items:
+            created = (mem.get("created_at") or "")[:10]
+            fact = mem.get("fact") or ""
+            short_fact = fact[:90] + ("…" if len(fact) > 90 else "")
+            table.add_row(
+                mem["id"][:8],
+                mem.get("type") or "",
+                str(mem.get("importance") or ""),
+                created,
+                short_fact,
+            )
+        console.print(table)
 
 
 @app.command("list-strands")

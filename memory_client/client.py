@@ -234,6 +234,21 @@ class MemoryClient:
         response.raise_for_status()
         return response.json()
 
+    def review_recent(
+        self,
+        *,
+        days: int = 7,
+        strand: str | None = None,
+        limit: int = 50,
+    ) -> dict:
+        """GET /memory/recent. Returns dict with memories, days, total."""
+        params: dict = {"days": days, "limit": limit}
+        if strand is not None:
+            params["strand"] = strand
+        response = self._http.get("/memory/recent", params=params)
+        response.raise_for_status()
+        return response.json()
+
     def list_strands(self) -> list[dict]:
         """GET /strands. Returns list of strand dicts with id, name, description, category."""
         response = self._http.get("/strands")
