@@ -134,6 +134,17 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 | [ADR-001](docs/architecture/ADR-001-knowledge-layer-placement.md) | InfoSec knowledge layer lives inside this project as a feature-flagged peer module with separate embedding config and a bridge module for cross-layer edges | Multi-user requirement, knowledge code >50% of total, non-InfoSec domain requested, cross-layer edges >10k |
 | [ADR-002](docs/architecture/ADR-002-knowledge-layer-graph-model.md) | Knowledge layer graph model: control tree as spine, norm trees, precepts as convergence layer, frameworks (structural) vs norms (prescriptive), threat intelligence with JEOPARDISES→Precept→BusinessAttribute strategic path, metric-based fulfilment, org-scoping on edges, temporal norm lifecycle | Metric schemas need dedicated nodes, CONTAINS overload causes ambiguity, non-SABSA framework adopted, CMDB integration needed, Norm/Framework distinction untenable |
 
+### Domain isolation: strand + project scoping
+
+Some memory systems enforce hard physical separation between personal and work contexts (separate indexes or namespaces per domain). Memfabric deliberately does not: all memories share a single graph with domain isolation achieved via **strand membership** (thematic routing) and **`ABOUT Project` edges** (project scoping).
+
+This is an intentional design choice for a single-operator, single-backend deployment. The equivalent of "personal vs. work" separation is:
+- Use distinct strand IDs (`strand-core-*` for personal, `strand-companion-*` for work/project)
+- Attach project-scoped memories to their `Project` node via `project_id`
+- Filter wake-up and search by `strand` or `project_ids` when context requires isolation
+
+Do not introduce a second Memgraph instance or separate vector indexes for domain separation — the strand/project model is the intended mechanism. Review this decision only if multi-user or multi-tenant requirements are introduced.
+
 ## Key constraints (v1)
 
 - No external LLM API calls inside any running service

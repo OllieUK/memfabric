@@ -187,6 +187,7 @@ class AddMemoryRequest(BaseModel):
 class AddMemoryResponse(BaseModel):
     memory_id: str
     deduplicated: bool = False
+    duplicate_fact: Optional[str] = None
     strand_ids: List[str] = []
 
 
@@ -203,6 +204,7 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                 settings.memory_dedup_threshold,
             )
             if existing_id is not None:
+                duplicate_fact = memory_repo.get_memory_fact(session, existing_id)
                 memory_repo.reinforce_memory(
                     session,
                     existing_id,
@@ -214,7 +216,11 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                 )
                 # NOTE: control_ids/doc_ids silently ignored on dedup path — same behaviour
                 # as strand_ids. The existing memory is reinforced, not a new one created.
-                return AddMemoryResponse(memory_id=existing_id, deduplicated=True)
+                return AddMemoryResponse(
+                    memory_id=existing_id,
+                    deduplicated=True,
+                    duplicate_fact=duplicate_fact,
+                )
             memory_id = str(uuid.uuid4())
             memory_repo.add_memory(
                 session, req, memory_id, embedding, now,
@@ -1361,6 +1367,42 @@ async def find_duplicates(
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [DuplicatePair(**p) for p in pairs]
+
+
+class RecentMemoryItem(BaseModel):
+    id: str
+    fact: str
+    so_what: Optional[str] = None
+    type: MemoryType
+    tags: List[str] = []
+    importance: Optional[int] = None
+    created_at: Optional[str] = None
+    strand_ids: List[str] = []
+
+
+class RecentMemoriesResponse(BaseModel):
+    memories: List[RecentMemoryItem]
+    days: int
+    total: int
+
+
+@app.get("/memory/recent", response_model=RecentMemoriesResponse)
+async def list_recent_memories(
+    request: Request,
+    days: int = Query(default=7, ge=1, le=365),
+    strand: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> RecentMemoriesResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            items = memory_repo.list_recent_memories(session, days=days, strand_id=strand, limit=limit)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return RecentMemoriesResponse(
+        memories=[RecentMemoryItem(**m) for m in items],
+        days=days,
+        total=len(items),
+    )
 
 
 class NodeLabel(str, Enum):
