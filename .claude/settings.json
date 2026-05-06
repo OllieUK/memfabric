@@ -142,6 +142,20 @@
       "/home/oliver/projects/graph-memory-fabric/.claude/skills/wp-executor"
     ]
   },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/stop.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "commit-commands@claude-plugins-official": true
   },

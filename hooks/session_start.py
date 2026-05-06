@@ -6,11 +6,17 @@ Claude Code captures stdout from SessionStart hooks and injects it as a
 plain text — no Rich markup, no ANSI codes.
 
 Environment variables (all optional):
-    API_BASE_URL         Memory service URL (default: http://localhost:8000)
-    HOOK_WAKE_UP_LIMIT   Max memories to fetch (default: 8)
-    HOOK_WAKE_UP_TOPIC   Topic for scoped wake-up (default: unset = general)
+    API_BASE_URL            Memory service URL (default: http://localhost:8000)
+    HOOK_WAKE_UP_CORE_LIMIT Max memories in the unstructured "core" section (default: 8).
+                            The four structured profile sections (global Mara baseline,
+                            global user baseline, project persona, project baseline) have
+                            their own per-section limits set via WAKE_UP_* env vars in
+                            .env — this variable only controls the core section.
+    HOOK_WAKE_UP_TOPIC      Topic for scoped wake-up (default: unset = general).
+                            Prefer leaving this unset and using startup.json project
+                            context, which is resolved automatically by the client.
 
-Registration in .claude/settings.json:
+Registration in .claude/settings.json (or global ~/.claude/settings.json):
     "hooks": {
       "SessionStart": [
         {"command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/session_start.py"}
@@ -32,7 +38,7 @@ from memory_client.formatting import format_wake_up
 from hooks._filters import contains_injection
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
-HOOK_WAKE_UP_LIMIT = int(os.environ.get("HOOK_WAKE_UP_LIMIT", "8"))
+HOOK_WAKE_UP_CORE_LIMIT = int(os.environ.get("HOOK_WAKE_UP_CORE_LIMIT", os.environ.get("HOOK_WAKE_UP_LIMIT", "8")))
 HOOK_WAKE_UP_TOPIC = os.environ.get("HOOK_WAKE_UP_TOPIC") or None
 
 _FACT_MAX_LEN = 500
@@ -87,7 +93,7 @@ def main() -> None:
     try:
         with MemoryClient(base_url=API_BASE_URL) as client:
             result = client.wake_up_split(
-                limit=HOOK_WAKE_UP_LIMIT,
+                limit=HOOK_WAKE_UP_CORE_LIMIT,
                 topic=HOOK_WAKE_UP_TOPIC,
             )
     except (httpx.ConnectError, httpx.TimeoutException):
