@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     # Empty = unauthenticated (dev / localhost mode).
     api_keys: frozenset[str] = frozenset()
 
+    # OAuth / MCP discovery (WP-169): public base URL for RFC 9728 protected-resource metadata.
+    # Used to construct the `resource` field in the discovery document.
+    # Production: https://memfabric.carr-it.net  Local dev: http://localhost:8000
+    public_base_url: str = "http://localhost:8000"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 

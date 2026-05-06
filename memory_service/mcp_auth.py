@@ -1,10 +1,16 @@
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+_DISCOVERY_PATH_SUFFIXES: frozenset[str] = frozenset({
+    "/.well-known/oauth-protected-resource",
+    "/.well-known/oauth-authorization-server",
+})
+
 
 class BearerTokenMiddleware:
     """ASGI middleware: validates Authorization: Bearer or X-Api-Key header.
     Pass-through when settings.api_keys is empty (dev mode).
+    Discovery path suffixes in _DISCOVERY_PATH_SUFFIXES always pass through.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -12,6 +18,11 @@ class BearerTokenMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ("http", "websocket"):
+            await self.app(scope, receive, send)
+            return
+
+        path: str = scope.get("path", "")
+        if any(path.endswith(suffix) for suffix in _DISCOVERY_PATH_SUFFIXES):
             await self.app(scope, receive, send)
             return
 

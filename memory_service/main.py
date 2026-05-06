@@ -123,6 +123,32 @@ app = FastAPI(
     dependencies=[Depends(verify_api_key)],
 )
 
+
+async def _oauth_protected_resource_metadata() -> dict:
+    """RFC 9728 protected-resource metadata document.
+
+    Served at three paths so MCP clients discover it regardless of which
+    discovery URL they probe. authorization_servers: [] signals that the
+    resource accepts static bearer tokens directly (no separate AS).
+    """
+    base = settings.public_base_url.rstrip("/")
+    return {
+        "resource": f"{base}/mcp/",
+        "authorization_servers": [],
+        "bearer_methods_supported": ["header"],
+        "resource_documentation": "https://github.com/ollieuk/graph-memory-fabric",
+    }
+
+
+_DISCOVERY_PATHS = [
+    "/.well-known/oauth-protected-resource",
+    "/.well-known/oauth-protected-resource/mcp",
+    "/mcp/.well-known/oauth-protected-resource",
+]
+
+for _path in _DISCOVERY_PATHS:
+    app.add_api_route(_path, _oauth_protected_resource_metadata, methods=["GET"], include_in_schema=False)
+
 app.mount("/mcp", _mcp_asgi)
 
 

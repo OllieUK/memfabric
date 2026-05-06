@@ -11,7 +11,7 @@
 
 | ID | Title | Started |
 |----|-------|---------|
-| _none_ | | |
+| WP-169 | OAuth protected-resource metadata for MCP discovery | 2026-05-06 |
 
 ---
 
@@ -26,6 +26,7 @@
 
 | Order | Release | ID | Title | Value | Effort | Priority score | Depends on | Notes |
 |-------|---------|-----|-------|-------|--------|----------------|------------|-------|
+| 1 | R2 | WP-169 | OAuth protected-resource metadata for MCP discovery | H | L | 5.0 | ✅ WP-105 | Gating bug for the MCP surface in fresh Claude Code sessions. Claude Code's MCP TS client follows the 2025-06-18 MCP Authorization spec and probes RFC 9728 OAuth protected-resource metadata before sending `initialize`, even when `.mcp.json` configures a static bearer token. memfabric currently returns FastAPI's default `404 {"detail":"Not Found"}` at `/.well-known/oauth-protected-resource(/mcp)?` and `401 {"detail":"Invalid or missing API key"}` at `/mcp/.well-known/oauth-protected-resource` (BearerTokenMiddleware wraps the entire `/mcp` sub-app with no allow-list). The SDK then tries to parse those bodies as RFC 6749 OAuth errors, fails Zod validation because `detail` is not `error`, and reports `SDK auth failed: HTTP 404`. Net effect: `mcp__memory__*` tools never register. Fix: serve a real RFC 9728 protected-resource metadata document (with `authorization_servers: []` to signal "no AS, use bearer directly") at the three paths the SDK probes; carve discovery paths out of `BearerTokenMiddleware` via a tight suffix allow-list and out of `verify_api_key` by extending `_OPEN_PATHS`. No re-architecture of auth — small, targeted carve-out only. See detail below. |
 | 1 | R2 | WP-113 | Security architecture layer: SABSA, precepts, and business attributes | H | H | 1.0 | WP-107 ✅ | Activate the strategic threat-to-business path from ADR-002. Three components: (1) Seed SABSA Business Attribute Profile as `BusinessAttribute` nodes (customer trust, regulatory standing, operational continuity, competitive advantage, brand reputation, etc.) — SABSA is the primary driver of this layer. (2) Seed universal `Precept` nodes derived from cross-framework convergence (the obligations that ISO 27001, NIST CSF, COBIT, and SP 800-53 all independently demand). Wire `REQUIRES` from Norms, `ADDRESSES` from Controls, `FULFILS` from Precepts to BusinessAttributes. (3) Consider ingestion of additional architectural frameworks that feed the precept model: SABSA conceptual layer, C2M2 capability dimensions, Zero Trust (NIST SP 800-207), CIS Controls v8, TOGAF security architecture domain. Unlocks the board-level query: "Which business attributes face the most active threats?" via Threat → JEOPARDISES → Precept → FULFILS → BusinessAttribute. |
 | 3 | R2 | WP-085 | **Analytics Phase — Sprint 1:** graph-vs-vector diagnostics, cluster discovery, bridge detection (WP-057 + WP-058 + WP-059) | M | M | 1.0 | WP-029 ✅ | Three tightly related graph-analytics capabilities best built together as a shared diagnostic layer: (1) graph-vs-vector agreement — compare each memory's nearest embedding neighbours with its actual `RELATED_TO`/`LEADS_TO` neighbourhood to surface where the graph lags or overlinks semantic reality; (2) latent cluster discovery — cluster embeddings offline to discover emergent themes and compare them with explicit `Strand` assignments to identify overly broad, missing, or mislabeled strands; (3) bridge-memory detection — identify memories that span otherwise separate embedding clusters or graph communities, surfacing high-leverage cross-domain connectors. All three share the same embedding-space traversal infrastructure and diagnostic output pattern. |
 | 3 | R2 | WP-006 | Wire `GET /memory/graph` | M | M | 1.0 | WP-028 ✅, WP-029 ✅ | Filtered subgraph export: project/agent/tag/since/until params; returns `{nodes, edges}`. |
@@ -2016,3 +2017,28 @@ Deleted `_PERSON_SEARCH_QUERY_TEMPLATE` and its dispatch branch. Person-filtered
 ---
 
 _(WP-150 description block moved to `docs/CHANGELOG.md` on completion 2026-04-29.)_
+
+---
+
+### WP-169 — OAuth protected-resource metadata for MCP discovery
+
+**Plan:** [`docs/plans/2026-05-06-WP-169-oauth-metadata.md`](plans/2026-05-06-WP-169-oauth-metadata.md)
+
+**Driver:** Live failure 2026-05-06. Claude Code's MCP TS client follows the 2025-06-18 MCP Authorization spec and probes RFC 9728 OAuth protected-resource metadata before sending `initialize`, even when `.mcp.json` configures a static bearer token. memfabric currently:
+
+1. Returns FastAPI's default `404 {"detail":"Not Found"}` at `/.well-known/oauth-authorization-server` and `/.well-known/oauth-protected-resource`.
+2. Returns `401 {"detail":"Invalid or missing API key"}` at `/mcp/.well-known/oauth-protected-resource` because `BearerTokenMiddleware` wraps the entire `/mcp` sub-app.
+
+The SDK then tries to parse those bodies as RFC 6749 OAuth errors, fails Zod validation because `detail` is not `error`, and reports `SDK auth failed: HTTP 404`. Net effect: `mcp__memory__*` tools never register, even though bearer auth and `POST /mcp/` initialize work fine.
+
+**Fix:** Serve a real RFC 9728 protected-resource metadata document (with `authorization_servers: []` to signal "no separate AS — use the static bearer directly") at the three discovery paths the SDK probes:
+
+- `GET /.well-known/oauth-protected-resource/mcp`
+- `GET /.well-known/oauth-protected-resource`
+- `GET /mcp/.well-known/oauth-protected-resource`
+
+Carve discovery paths out of `BearerTokenMiddleware` via a tight suffix allow-list (`_DISCOVERY_PATH_SUFFIXES`), and out of `verify_api_key` by extending the existing `_OPEN_PATHS` constant in `memory_service/auth.py`. New config setting `PUBLIC_BASE_URL` (`pydantic-settings`) drives the `resource` URL in the metadata document so it works for both `https://memfabric.carr-it.net` and `http://localhost:8000`.
+
+**Out of scope:** OAuth authorization-server flow, changes to `.mcp.json`, re-architecture of `BearerTokenMiddleware` beyond the allow-list. Static bearer mechanism stays.
+
+**Acceptance:** `claude mcp list` shows `memory: ✓ Connected` after restart; `mcp__memory__*` tools callable from a fresh Claude Code session; non-discovery paths still return 401 without bearer (regression guard).

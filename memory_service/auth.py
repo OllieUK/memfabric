@@ -3,7 +3,12 @@
 from fastapi import HTTPException, Request, status
 
 
-_OPEN_PATHS: frozenset[str] = frozenset({"/health"})
+_OPEN_PATHS: frozenset[str] = frozenset({
+    "/health",
+    "/.well-known/oauth-protected-resource",
+    "/.well-known/oauth-protected-resource/mcp",
+    "/mcp/.well-known/oauth-protected-resource",
+})
 
 
 async def verify_api_key(request: Request) -> None:
