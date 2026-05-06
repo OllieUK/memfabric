@@ -4,6 +4,45 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-154: PostToolUse semantic milestones + Stop hook with layered cooperation — 2026-05-06
+
+Cherry-picked the safe parts of `8c86233` from `origin/claude/review-memory-plugin-ljbX8`, applied Option-3 layered-cooperation edits to `hooks/stop.py`, and rewrote the WP-126 PostToolUse test suite for the new semantics. Two project-level Stop hooks are now intentionally registered alongside the global Mara baseline Stop hook — they cooperate by design rather than collide.
+
+Behavioural changes:
+
+- **`hooks/post_tool_use.py`** narrows substantive events from `{Write, Edit, substantive Bash, WebFetch}` to `{pytest runs, git commits}`. pytest summary lines are parsed (importance escalates 2→3 on failures); `git commit` output becomes a structured decision-type fact with branch and SHA.
+- **`hooks/stop.py`** (new) prints a four-question close-session scaffold to stdout when the memory service is healthy. Includes Option-3 cooperation edits: docstring describes the layered design, scaffold opens with a lead-in line referencing the Mara baseline safety net, and a third skip-arm allowing skip when the safety-net auto-capture is sufficient.
+- **`hooks/session_start.py`** renames `HOOK_WAKE_UP_LIMIT` to `HOOK_WAKE_UP_CORE_LIMIT` (backward-compat fallback retained).
+- **`.claude/settings.json`** registers the project Stop hook with a 5 s timeout, coexisting with the global Mara Stop hook by design.
+
+Tests: 39 in the rewritten `tests/test_wp126_post_tool_use_hook.py` plus 10 in new `tests/test_wp154_stop_hook.py` (including 3 explicit cooperation-contract checks that fail the build if anyone reverts the lead-in or skip-arm). All 119 hook-related tests pass against the live local stack.
+
+PR #4 — squash-merged.
+
+---
+
+### WP-153: `/memory/recent` endpoint + `duplicate_fact` surfacing on dedup — 2026-05-06
+
+Cherry-picked `26ddbcd` from `origin/claude/review-memory-plugin-ljbX8`. Adds an on-demand hygiene surface so callers can see what was written recently without scanning the full graph, and surfaces matched fact text on the dedup path so callers know what they were duplicating.
+
+New surface:
+
+- **REST**: `GET /memory/recent?days=N&strand=…&limit=N` returns active non-ephemeral memories created within the look-back window. Bounded params (`days` 1–365, `limit` 1–200), ordered newest-first.
+- **MCP tool**: `memory_review_recent(days, strand_id, limit)` mirrors the REST endpoint.
+- **CLI**: `memory review-recent` prints a Rich table grouped by strand.
+- **Dedup field**: `AddMemoryResponse.duplicate_fact` carries the matched memory's fact text on dedup. CLI shows a yellow notice with truncated text.
+- **Repo helpers**: `memory_repo.list_recent_memories()` and `memory_repo.get_memory_fact()`.
+
+Documentation: `memory_client/COMPANION.md` adds an activation-signal patterns table; `CLAUDE.md` adds a "Domain isolation: strand + project scoping" section documenting the intentional choice that a single graph with strand+project scoping replaces hard backend separation.
+
+Tests: 23 added across three files. All pass against a live local stack with WP-096 auth bypassed per-test.
+
+Deployed to homeserver and verified live via `https://memfabric.carr-it.net/openapi.json` (route present, schema present, dedup field present, 401 on unauthenticated request — confirms the route is properly gated and not the pre-deploy 405 fall-through).
+
+PR #3 — squash-merged.
+
+---
+
 ### WP-150: Defensive coercion of JSON-encoded list parameters in MCP tools — 2026-04-29
 
 Some MCP bridges (Cowork's confirmed; potentially others) double-encode array tool arguments as JSON strings before they reach the FastMCP/Pydantic validation layer, producing `Input should be a valid list [type=list_type, input_value='["strand-..."]', input_type=str]` errors on `memory_add`, `memory_update`, and `memory_reinforce`. Pydantic v2 (by design, unlike v1) refuses to coerce an arbitrary string into a list, so the call fails hard and memories from those clients accumulate in `strand-inbox` rather than being threaded at write time.
@@ -1005,3 +1044,9 @@ Added opt-in `AUTO_MERGE_THRESHOLD` setting (default `None`, disabled) that caus
 - **What went well:** Clean package separation; `respx` mocking kept tests self-contained.
 - **What to improve:** `setup.cfg` needed due to old setuptools — editable installs should be validated as part of DoS.
 - **Deferred:** WP-025 (shared CLI error handler), WP-026 (`MemoryType` mirror in client).
+
+### WP-153 + WP-154
+- **What went well:** Splitting the remote-Claude review branch into two independent local WPs (additive endpoint vs. hooks rewrite) was the right call — the additive WP-153 had zero conflicts, while WP-154's hook work had a parallel-session conflict (`5e73526`) that we could resolve without touching the WP-153 PR. Option-3 layered-cooperation design (instead of merging the two Stop hooks into one) preserves single-responsibility and is testable; three explicit contract-checking tests in `test_wp154_stop_hook.py` make any future drift fail the build.
+- **What to improve:** Found two latent defects in the upstream review-feedback commits before merging — pre-existing tests broken by the post_tool_use rewrite, and a project-level Stop hook registration that would have looked like double-fire until investigated. Verifying remote-Claude review branches against the canonical mara baseline manifest before assuming sandbox correctness is now a memorable rule.
+- **Deferred:** WP-155 (cross-module FastMCP `StreamableHTTPSessionManager` test infra fragility), WP-156 (Stop hook absolute path), WP-157 (CLAUDE.md rule 75 stale post-`op-ssh-sign-wsl.exe`), WP-158 (`git verify-commit` allowed_signers), WP-159 (bake embedding model into image), WP-160 (surface git SHA via `/health`), WP-161 (`claude-diag` wrapper points at wrong compose project after rename), WP-162 (`claude-diag logs` silent on absent container).
+- **Deploy lessons:** The homeserver deploy hit four operational pitfalls that informed WP-159–162: (1) `docker compose up -d` without `--build` reused the stale image; (2) the rebuild changed compose project name from `memfabric` to `graph-memory-fabric`, leaving a populated `memfabric_hf_cache` volume detached from the new project's empty `graph-memory-fabric_hf_cache`; (3) the read-only `:ro` cache mount means a fresh volume cannot self-populate; (4) the `claude-diag` wrapper still points at the old project name, hiding container state from the diag channel. The volume-to-volume copy was the immediate unblock; the deferred WPs address the underlying fragility.
