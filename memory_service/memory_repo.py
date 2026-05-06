@@ -1091,6 +1091,73 @@ def purge_ephemeral_memories(session) -> int:
     return count
 
 
+def list_recent_memories(
+    session,
+    days: int,
+    strand_id: str | None,
+    limit: int,
+) -> list[dict]:
+    """Return active, non-ephemeral memories created within the last `days` days.
+
+    Optionally filtered to a single strand. Results are ordered newest-first.
+    """
+    from datetime import datetime, timezone, timedelta
+    cutoff = (datetime.now(tz=timezone.utc) - timedelta(days=days)).isoformat()
+
+    if strand_id:
+        result = session.run(
+            """
+            MATCH (m:Memory)-[:IN_STRAND]->(s:Strand {id: $strand_id})
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+              AND m.created_at >= $cutoff
+            WITH m
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(all_s:Strand)
+            WITH m, collect(DISTINCT all_s.id) AS strand_ids
+            RETURN m.id AS id, m.fact AS fact, m.so_what AS so_what,
+                   m.type AS type, m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids
+            ORDER BY m.created_at DESC
+            LIMIT $limit
+            """,
+            strand_id=strand_id,
+            cutoff=cutoff,
+            limit=limit,
+        )
+    else:
+        result = session.run(
+            """
+            MATCH (m:Memory)
+            WHERE (m.status IS NULL OR m.status = 'active')
+              AND (m.ephemeral IS NULL OR m.ephemeral = false)
+              AND m.created_at >= $cutoff
+            OPTIONAL MATCH (m)-[:IN_STRAND]->(s:Strand)
+            WITH m, collect(DISTINCT s.id) AS strand_ids
+            RETURN m.id AS id, m.fact AS fact, m.so_what AS so_what,
+                   m.type AS type, m.tags AS tags, m.importance AS importance,
+                   m.created_at AS created_at, strand_ids
+            ORDER BY m.created_at DESC
+            LIMIT $limit
+            """,
+            cutoff=cutoff,
+            limit=limit,
+        )
+
+    return [
+        {
+            "id": r["id"],
+            "fact": r["fact"],
+            "so_what": r["so_what"],
+            "type": r["type"],
+            "tags": r["tags"] or [],
+            "importance": r["importance"],
+            "created_at": r["created_at"],
+            "strand_ids": r["strand_ids"] or [],
+        }
+        for r in result
+    ]
+
+
 def list_strands(session) -> list:
     """Return all Strand nodes with non-null name, ordered by category then name.
 
@@ -2606,6 +2673,21 @@ def find_duplicate_memory(
         return record["id"]
 
     return None
+
+
+def get_memory_fact(session, memory_id: str) -> str | None:
+    """Return the fact text of a single active Memory node, or None if not found."""
+    result = session.run(
+        """
+        MATCH (m:Memory {id: $id})
+        WHERE (m.status IS NULL OR m.status = 'active')
+        RETURN m.fact AS fact
+        LIMIT 1
+        """,
+        id=memory_id,
+    )
+    record = result.single()
+    return record["fact"] if record else None
 
 
 # ---------------------------------------------------------------------------

@@ -9,8 +9,8 @@ mounted as a sub-application in memory_service/main.py:
   task_add, task_list, task_get, task_update, task_complete, task_stale, task_next,
   memory_short_rest, memory_long_rest, memory_maintenance_stats,
   memory_update, memory_archive, memory_restore, memory_delete, memory_merge,
-  memory_find_duplicates, memory_purge_ephemeral, memory_reinforce, memory_run_decay,
-  memory_operation_log, memory_maintenance_log
+  memory_find_duplicates, memory_review_recent, memory_purge_ephemeral, memory_reinforce,
+  memory_run_decay, memory_operation_log, memory_maintenance_log
 """
 import uuid
 from datetime import datetime, timezone
@@ -101,11 +101,13 @@ def memory_add(
         files_read=[],
     )
 
+    duplicate_fact = None
     with _driver().session() as session:
         existing_id = memory_repo.find_duplicate_memory(
             session, fact, embedding, settings.memory_dedup_threshold,
         )
         if existing_id is not None:
+            duplicate_fact = memory_repo.get_memory_fact(session, existing_id)
             memory_repo.reinforce_memory(
                 session, existing_id,
                 strength_increment=settings.explicit_strength_increment,
@@ -139,6 +141,8 @@ def memory_add(
         "deduplicated": deduplicated,
         "strand_ids": strand_ids or [],
     }
+    if deduplicated and duplicate_fact is not None:
+        result["duplicate_fact"] = duplicate_fact
     if not strand_ids:
         result["warning"] = (
             "No strand_ids provided — memory auto-assigned to strand-inbox. "
@@ -788,6 +792,32 @@ def memory_find_duplicates(
     effective_limit = limit if limit is not None else settings.near_duplicate_limit
     with _driver().session() as session:
         return memory_repo.find_near_duplicates(session, effective_threshold, effective_limit)
+
+
+@mcp.tool
+def memory_review_recent(
+    days: int = 7,
+    strand_id: str | None = None,
+    limit: int = 50,
+) -> list[dict]:
+    """Return memories written in the last N days for periodic review and hygiene.
+
+    Use this on-demand — weekly or when the fabric feels noisy — to see what was
+    recently added and decide whether anything should be archived or deleted.
+    Results are ordered newest-first.
+
+    Args:
+        days:      Look-back window (default 7, max 365).
+        strand_id: Optional strand filter — pass a strand ID from memory_list_strands().
+        limit:     Maximum memories to return (default 50, max 200).
+
+    Returns a list of memory dicts, each with:
+        id, fact, so_what, type, tags, importance, created_at, strand_ids
+    """
+    with _driver().session() as session:
+        return memory_repo.list_recent_memories(
+            session, days=days, strand_id=strand_id, limit=limit
+        )
 
 
 @mcp.tool
