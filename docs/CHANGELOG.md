@@ -4,6 +4,25 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-156: Portable Stop-hook registration via `$CLAUDE_PROJECT_DIR` — 2026-05-06
+
+Replaced the brittle absolute path in the project's Stop-hook registration with the canonical Claude Code injected env var, so the hook travels with the repo regardless of clone path.
+
+**Changes:**
+
+- **`.claude/settings.json:152`** — Stop-hook command changed from `python3 /home/oliver/projects/graph-memory-fabric/hooks/stop.py` to `python3 "$CLAUDE_PROJECT_DIR/hooks/stop.py"`. Claude Code injects `CLAUDE_PROJECT_DIR` into the hook process environment at fire time (canonical pattern, documented in `claude-plugins-official/plugin-dev/skills/hook-development/references/advanced.md`); the official `hook-linter.sh` warns against absolute paths for exactly this reason.
+- **`hooks/stop.py:27–32`** — Docstring example updated to match the new registration form, with a one-line explanation of why the env var is preferable (survives sandbox/alternate-clone relocation).
+
+**Tests:** Faithful `/bin/sh -c` simulation reproducing Claude Code's hook-invocation contract: hook fires correctly under the canonical project path, fires correctly under an alternate clone path (`/tmp/altclone/...`), and python3 fails loudly on stderr when `CLAUDE_PROJECT_DIR` is missing or wrong — the desired diagnostic outcome (silent no-op was the original problem).
+
+**Acceptance:** Stop hook continues to print the close-session scaffold when invoked with the env var set; the registration no longer carries `/home/oliver/...` as a literal, so `5e73526`-class confusion in parallel sessions is structurally prevented.
+
+**Retrospective:**
+- What went well: One-line config change with a high payoff. The canonical pattern was already documented in the bundled official plugin-dev skills — finding it took one Grep, not a research excursion.
+- What to improve: Initial pass misread an `[Omitted long context line]` adjacency in a Grep `-C 3` result as a strikethrough on the WP-156 row, briefly led to the wrong conclusion that the WP was already resolved. Confirming line-state always requires a direct `Read` of the row, not inference from Grep context. Logged as a search-discipline note.
+
+---
+
 ### WP-154: PostToolUse semantic milestones + Stop hook with layered cooperation — 2026-05-06
 
 Cherry-picked the safe parts of `8c86233` from `origin/claude/review-memory-plugin-ljbX8`, applied Option-3 layered-cooperation edits to `hooks/stop.py`, and rewrote the WP-126 PostToolUse test suite for the new semantics. Two project-level Stop hooks are now intentionally registered alongside the global Mara baseline Stop hook — they cooperate by design rather than collide.

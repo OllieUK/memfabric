@@ -149,7 +149,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /home/oliver/projects/graph-memory-fabric/hooks/stop.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/hooks/stop.py\"",
             "timeout": 5
           }
         ]

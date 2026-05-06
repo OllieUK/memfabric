@@ -23,10 +23,12 @@ Layered design — cooperates with the Mara baseline Stop hook:
 Environment variables (all optional):
     API_BASE_URL   Memory service URL (default: http://localhost:8000)
 
-Registration in .claude/settings.json:
+Registration in .claude/settings.json (use $CLAUDE_PROJECT_DIR, not an
+absolute path — the env var is injected by Claude Code at hook-fire time
+and survives sandbox/alternate-clone relocation):
     "hooks": {
       "Stop": [
-        {"command": "python3 /path/to/memfabric/hooks/stop.py"}
+        {"command": "python3 \"$CLAUDE_PROJECT_DIR/hooks/stop.py\""}
       ]
     }
 """
