@@ -9,6 +9,17 @@ The hook is intentionally lightweight: it checks whether the memory service is
 reachable. If it is, it prints the close-session scaffold. If not, it exits
 silently (service might be down; don't block the session).
 
+Layered design — cooperates with the Mara baseline Stop hook:
+    Two Stop hooks are intentionally registered. The Mara baseline hook
+    (~/.claude/hooks/memory_management_wrapper.py stop) writes a single
+    safety-net memory tagged "auto-capture" if the assistant's last message
+    matches a heuristic keyword regex; it runs async and prints nothing.
+    This project hook prints a four-question scaffold so Claude can write
+    deliberate, well-typed memories tagged "deliberate". The two layer:
+    safety net guarantees minimum coverage even if Claude rushes; scaffold
+    raises quality when Claude engages. They do not collide because one
+    writes silently and the other prints to stdout.
+
 Environment variables (all optional):
     API_BASE_URL   Memory service URL (default: http://localhost:8000)
 
@@ -33,6 +44,12 @@ API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
 _SCAFFOLD = """\
 --- Memory close-session reminder ---
 
+Note: the Mara baseline Stop hook may have already auto-captured one heuristic
+memory tagged `auto-capture` for this turn. Use this scaffold to add deliberate,
+well-typed memories beyond that — or to overwrite the auto-capture with a
+better-judged version. Tag scaffold-driven writes with `deliberate` so they can
+be distinguished from the safety-net write. Do not duplicate.
+
 Before ending this session, work through these four questions and write any
 durable memories that surface. Call `memory_add` (MCP) or `memory add-memory` (CLI) for each.
 
@@ -51,8 +68,9 @@ durable memories that surface. Call `memory_add` (MCP) or `memory add-memory` (C
 After writing, reinforce 2–4 memories that genuinely shaped this session's decisions.
 Do not reinforce everything — the signal has value only if it is selective.
 
-Skip this scaffold only if: (a) nothing durable happened this session, or
-(b) close-session was already run earlier in this turn.
+Skip this scaffold only if: (a) nothing durable happened this session,
+(b) close-session was already run earlier in this turn, or
+(c) the Mara baseline safety-net auto-capture is sufficient on its own.
 --- End of close-session reminder ---
 """
 

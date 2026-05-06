@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""PostToolUse hook — capture tool events as observation memories.
+"""PostToolUse hook — capture semantic milestones as memory observations.
 
 Claude Code invokes this after every tool call, passing a JSON payload on stdin.
-Substantive events (Write, Edit, significant Bash, WebFetch) are stored as
-observation memories in the memory service with files_modified/files_read provenance.
+Only landmark events that have meaningful cross-session value are captured:
+
+  pytest runs    — pass/fail count extracted from output; stores test health signal
+  git commit     — commit hash + message captured as a decision record
+
+Write, Edit, WebFetch, and generic Bash commands are intentionally NOT captured.
+File-level provenance (which files were touched) belongs in deliberate memory writes
+via files_modified/files_read fields — not in standalone hook observations.
 
 Must always exit 0 — a non-zero exit blocks the primary session.
 
@@ -13,6 +19,7 @@ Environment variables (all optional):
 """
 import json
 import os
+import re
 import sys
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,18 +28,14 @@ if _PROJECT_ROOT not in sys.path:
 
 import httpx
 from memory_client.client import MemoryClient
-from hooks._filters import redact_secrets, is_sensitive_path
+from hooks._filters import redact_secrets
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://localhost:8000")
 AGENT_ID = os.environ.get("AGENT_ID", "claude-code")
 STRAND_ID = "strand-session-activity"
-IMPORTANCE = 2
-BASH_MIN_OUTPUT_LEN = 10
-BASH_COMMAND_MAX_LEN = 120
 
 
 def parse_payload(raw: str) -> dict | None:
-    """Parse JSON from stdin. Returns None if empty or invalid."""
     raw = raw.strip()
     if not raw:
         return None
@@ -42,45 +45,74 @@ def parse_payload(raw: str) -> dict | None:
         return None
 
 
+def _cmd(payload: dict) -> str:
+    return (payload.get("tool_input") or {}).get("command", "").strip()
+
+
+def _output(payload: dict) -> str:
+    return ((payload.get("tool_response") or {}).get("result") or "").strip()
+
+
+def _is_pytest(cmd: str) -> bool:
+    return bool(re.match(r"^(python3?\s+-m\s+)?pytest\b", cmd))
+
+
+def _is_git_commit(cmd: str) -> bool:
+    return bool(re.match(r"^git\s+commit\b", cmd))
+
+
 def is_substantive(payload: dict) -> bool:
-    """Return True if this tool event should generate an observation memory."""
-    tool_name = payload.get("tool_name", "")
-    if tool_name in ("Write", "Edit"):
-        return True
-    if tool_name == "Bash":
-        result = (payload.get("tool_response") or {}).get("result", "")
-        return isinstance(result, str) and len(result.strip()) >= BASH_MIN_OUTPUT_LEN
-    if tool_name == "WebFetch":
-        return bool((payload.get("tool_input") or {}).get("url"))
-    return False
+    """Return True only for semantic milestone events worth persisting."""
+    if payload.get("tool_name") != "Bash":
+        return False
+    cmd = _cmd(payload)
+    return _is_pytest(cmd) or _is_git_commit(cmd)
+
+
+def _parse_pytest_fact(cmd: str, output: str) -> tuple[str, int]:
+    """Return (fact_string, importance) for a pytest result."""
+    # Extract summary line: "5 passed, 2 failed in 1.23s" or "10 passed in 0.5s"
+    summary = re.search(
+        r"(\d+ passed(?:, \d+ failed)?(?:, \d+ error(?:s)?)?(?:, \d+ warning(?:s)?)?)\s+in\s+[\d.]+s",
+        output,
+    )
+    if summary:
+        result_str = summary.group(1)
+        failed = re.search(r"(\d+) failed", result_str)
+        importance = 3 if failed else 2
+        fact = f"pytest: {result_str}"
+    else:
+        # Fallback: truncate raw output
+        first_line = output.split("\n")[0][:120] if output else "no output"
+        fact = f"pytest run: {first_line}"
+        importance = 2
+    return fact, importance
+
+
+def _parse_git_commit_fact(output: str) -> tuple[str, int]:
+    """Return (fact_string, importance) for a git commit result."""
+    # Extract: [branch abc1234] Commit message
+    match = re.search(r"\[(\S+)\s+([a-f0-9]+)\]\s+(.+)", output)
+    if match:
+        branch, sha, message = match.group(1), match.group(2), match.group(3).strip()
+        fact = f"git commit {sha[:8]} on {branch}: {message[:120]}"
+    else:
+        first_line = output.split("\n")[0][:120] if output else "no output"
+        fact = f"git commit: {first_line}"
+    return fact, 2
 
 
 def build_memory_params(payload: dict) -> dict | None:
-    """Build kwargs for MemoryClient.add_memory() from a tool payload.
+    cmd = _cmd(payload)
+    output = _output(payload)
 
-    Returns None if tool type is unhandled.
-    Returns dict with keys: fact, files_modified, files_read.
-    """
-    tool_name = payload.get("tool_name", "")
-    tool_input = payload.get("tool_input") or {}
+    if _is_pytest(cmd):
+        fact, importance = _parse_pytest_fact(cmd, output)
+        return {"fact": fact, "importance": importance, "type": "observation"}
 
-    if tool_name == "Write":
-        path = tool_input.get("file_path", "")
-        return {"fact": f"Wrote file: {path}", "files_modified": [path], "files_read": []}
-
-    if tool_name == "Edit":
-        path = tool_input.get("file_path", "")
-        return {"fact": f"Edited file: {path}", "files_modified": [path], "files_read": []}
-
-    if tool_name == "Bash":
-        cmd = tool_input.get("command", "")
-        if len(cmd) > BASH_COMMAND_MAX_LEN:
-            cmd = cmd[:BASH_COMMAND_MAX_LEN] + "…"
-        return {"fact": f"Ran bash command: {cmd}", "files_modified": [], "files_read": []}
-
-    if tool_name == "WebFetch":
-        url = tool_input.get("url", "")
-        return {"fact": f"Fetched URL: {url}", "files_modified": [], "files_read": []}
+    if _is_git_commit(cmd):
+        fact, importance = _parse_git_commit_fact(output)
+        return {"fact": fact, "importance": importance, "type": "decision"}
 
     return None
 
@@ -97,19 +129,11 @@ def main() -> None:
         return
 
     fact = params["fact"]
-    files_modified = params["files_modified"]
-    files_read = params["files_read"]
-    tags = ["hook", "post-tool-use"]
+    mem_type = params.get("type", "observation")
+    importance = params.get("importance", 2)
 
     try:
-        all_paths = files_modified + files_read
-        if any(is_sensitive_path(p) for p in all_paths if p):
-            print("[post_tool_use] sensitive path detected, memory dropped", file=sys.stderr)
-            return
-
-        fact, was_redacted = redact_secrets(fact)
-        if was_redacted:
-            tags = tags + ["redacted"]
+        fact, _ = redact_secrets(fact)
     except Exception as exc:
         print(f"post_tool_use hook: filter error ({exc!r}) — proceeding with unfiltered add.", file=sys.stderr)
 
@@ -117,13 +141,11 @@ def main() -> None:
         with MemoryClient(base_url=API_BASE_URL) as client:
             client.add_memory(
                 fact=fact,
-                type="observation",
+                type=mem_type,
                 agent_id=AGENT_ID,
-                importance=IMPORTANCE,
+                importance=importance,
                 strand_ids=[STRAND_ID],
-                files_modified=files_modified,
-                files_read=files_read,
-                tags=tags,
+                tags=["hook", "post-tool-use"],
             )
     except (httpx.ConnectError, httpx.TimeoutException):
         print("post_tool_use hook: memory service unreachable — skipping capture.", file=sys.stderr)
