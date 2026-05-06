@@ -242,12 +242,12 @@ Recorded 2026-05-06 against live local stack (http://localhost:8000) with API_KE
 # Curl 1: /.well-known/oauth-protected-resource/mcp — 200 + JSON
 HTTP/1.1 200 OK
 content-type: application/json
-{"resource":"http://localhost:8000/mcp/","authorization_servers":[],"bearer_methods_supported":["header"],"resource_documentation":"https://github.com/ollieuk/graph-memory-fabric"}
+{"resource":"http://localhost:8000/mcp/","authorization_servers":[],"bearer_methods_supported":["header"]}
 
 # Curl 2: /mcp/.well-known/oauth-protected-resource — 200 + JSON (was 401 before WP-169)
 HTTP/1.1 200 OK
 content-type: application/json
-{"resource":"http://localhost:8000/mcp/","authorization_servers":[],"bearer_methods_supported":["header"],"resource_documentation":"https://github.com/ollieuk/graph-memory-fabric"}
+{"resource":"http://localhost:8000/mcp/","authorization_servers":[],"bearer_methods_supported":["header"]}
 
 # Curl 3: POST /mcp/ with valid bearer + initialize — 200 SSE (regression guard)
 HTTP/1.1 200 OK
@@ -262,6 +262,24 @@ www-authenticate: Bearer
 ```
 
 AC-1 / AC-2 (claude mcp list + tool call): **Pending user confirmation after prod deploy.** This is a manual step the user must verify post-deploy.
+
+---
+
+## Security-Review Follow-ups (2026-05-06)
+
+A post-implementation security review surfaced three findings; all fixed in a follow-up commit and re-verified against the rebuilt local docker stack.
+
+| ID | Severity | Fix |
+|----|----------|-----|
+| F-1 | Medium (Required) | Removed `resource_documentation` field from the metadata document. It pointed to a non-existent public repo and confirmed the GitHub username to anonymous probers without informational value. RFC 9728 §3 marks the field optional. |
+| F-3 | Low (Recommended) | Added `_warn_if_public_base_url_misconfigured()` startup check in `lifespan`. Emits a WARNING log line when `PUBLIC_BASE_URL` is loopback but `API_HOST` is non-loopback — catches the deploy-without-env-override misconfig early. Verified visible in `docker logs memfabric-api` on container start. |
+| F-4 | Low (Recommended) | Replaced `endswith` suffix check in `BearerTokenMiddleware` with exact `path in _DISCOVERY_PATHS` membership. Renamed constant from `_DISCOVERY_PATH_SUFFIXES` → `_DISCOVERY_PATHS`. Removed pre-emptive `/.well-known/oauth-authorization-server` entry (we don't serve that route — see reviewer 5.3). Added regression test U-MW-7 for `/foo/.well-known/oauth-protected-resource` (now correctly blocked). |
+
+Post-fix verification (local docker, rebuilt image):
+- 24/24 unit + integration tests pass (was 23, +1 for U-MW-7)
+- All five original acceptance curls still green
+- New F-4 regression curl: `/foo/.well-known/oauth-protected-resource` → 404 (was bypass-then-FastMCP-404 with `endswith`; now blocked at FastAPI router with no middleware bypass)
+- F-3 warning visible in startup logs: `WARNING: PUBLIC_BASE_URL=http://localhost:8000 is loopback but API_HOST=0.0.0.0 is non-loopback`
 
 ---
 

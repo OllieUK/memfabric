@@ -27,9 +27,9 @@ def test_u_doc_1_metadata_document_shape():
     assert "resource" in result
     assert "authorization_servers" in result
     assert "bearer_methods_supported" in result
-    assert "resource_documentation" in result
     assert result["authorization_servers"] == []
     assert result["bearer_methods_supported"] == ["header"]
+    assert "resource_documentation" not in result
 
 
 def test_u_doc_2_metadata_resource_url_uses_public_base_url():

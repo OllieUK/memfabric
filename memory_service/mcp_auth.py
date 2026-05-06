@@ -1,16 +1,19 @@
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-_DISCOVERY_PATH_SUFFIXES: frozenset[str] = frozenset({
+# Exact paths (post-mount-rewrite) that bypass bearer auth on the FastMCP sub-app.
+# Add a route here ONLY when an unauthenticated handler exists at that exact path.
+# Starlette rewrites scope["path"] to mount-relative form before this middleware
+# runs, so paths must NOT include the /mcp prefix.
+_DISCOVERY_PATHS: frozenset[str] = frozenset({
     "/.well-known/oauth-protected-resource",
-    "/.well-known/oauth-authorization-server",
 })
 
 
 class BearerTokenMiddleware:
     """ASGI middleware: validates Authorization: Bearer or X-Api-Key header.
     Pass-through when settings.api_keys is empty (dev mode).
-    Discovery path suffixes in _DISCOVERY_PATH_SUFFIXES always pass through.
+    Exact paths in _DISCOVERY_PATHS always pass through.
     """
 
     def __init__(self, app: ASGIApp) -> None:
@@ -22,7 +25,7 @@ class BearerTokenMiddleware:
             return
 
         path: str = scope.get("path", "")
-        if any(path.endswith(suffix) for suffix in _DISCOVERY_PATH_SUFFIXES):
+        if path in _DISCOVERY_PATHS:
             await self.app(scope, receive, send)
             return
 

@@ -51,6 +51,28 @@ async def _wait_for_memgraph(driver, *, max_wait: int = 60, initial_delay: float
 
 
 
+_LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "[::1]")
+
+
+def _warn_if_public_base_url_misconfigured() -> None:
+    """Surface a loud startup warning when PUBLIC_BASE_URL is loopback but the
+    service binds to a non-loopback interface. Misconfig produces an RFC 9728
+    metadata document that advertises an unreachable resource URL, which breaks
+    MCP discovery on remote clients (WP-169 F-3).
+    """
+    base = settings.public_base_url.lower()
+    bound_loopback = settings.api_host in ("127.0.0.1", "localhost", "::1")
+    base_loopback = any(host in base for host in _LOOPBACK_HOSTS)
+    if base_loopback and not bound_loopback:
+        logger.warning(
+            "PUBLIC_BASE_URL=%s is loopback but API_HOST=%s is non-loopback — "
+            "RFC 9728 metadata will advertise an unreachable resource URL. "
+            "Set PUBLIC_BASE_URL to the externally-reachable origin (e.g. "
+            "https://memfabric.carr-it.net) before serving remote clients.",
+            settings.public_base_url, settings.api_host,
+        )
+
+
 def _get_build_hash() -> str:
     try:
         result = subprocess.run(
@@ -99,6 +121,8 @@ async def lifespan(app: FastAPI):
                 get_embedding_dimension(settings.knowledge_embedding_model)
         app.state.driver = driver
 
+        _warn_if_public_base_url_misconfigured()
+
         scheduler_task = None
         if settings.scheduler_enabled:
             scheduler_task = asyncio.create_task(run_scheduler(driver, settings))
@@ -136,7 +160,6 @@ async def _oauth_protected_resource_metadata() -> dict:
         "resource": f"{base}/mcp/",
         "authorization_servers": [],
         "bearer_methods_supported": ["header"],
-        "resource_documentation": "https://github.com/ollieuk/graph-memory-fabric",
     }
 
 

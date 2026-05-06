@@ -143,10 +143,25 @@ def test_u_mw_6_blocks_well_known_query_param_smuggle():
     assert received_status[0] == 401
 
 
+def test_u_mw_7_blocks_well_known_path_with_prefix():
+    """U-MW-7 (F-4 regression): /foo/.well-known/oauth-protected-resource → 401.
+    Pre-fix endswith() would have passed this through; exact-membership blocks it.
+    """
+    from memory_service.mcp_auth import BearerTokenMiddleware
+
+    status = asyncio.run(_run_middleware(
+        BearerTokenMiddleware,
+        path="/foo/.well-known/oauth-protected-resource",
+        api_keys=frozenset({"some-key"}),
+    ))
+    assert status == 401
+
+
 def test_u_mw_discovery_constant_exists():
-    """_DISCOVERY_PATH_SUFFIXES constant is present in mcp_auth module."""
+    """_DISCOVERY_PATHS constant is present in mcp_auth module and uses exact-match semantics."""
     from memory_service import mcp_auth
-    assert hasattr(mcp_auth, "_DISCOVERY_PATH_SUFFIXES")
-    suffixes = mcp_auth._DISCOVERY_PATH_SUFFIXES
-    assert isinstance(suffixes, frozenset)
-    assert "/.well-known/oauth-protected-resource" in suffixes
+    assert hasattr(mcp_auth, "_DISCOVERY_PATHS")
+    paths = mcp_auth._DISCOVERY_PATHS
+    assert isinstance(paths, frozenset)
+    assert "/.well-known/oauth-protected-resource" in paths
+    assert "/.well-known/oauth-authorization-server" not in paths
