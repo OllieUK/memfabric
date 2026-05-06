@@ -4,6 +4,31 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-156 follow-up: OS-aware inline Python launcher for cross-OS Stop-hook portability — 2026-05-06
+
+The original WP-156 fix (commit `b20a8c8`, same day) replaced the absolute path with `python3 "$CLAUDE_PROJECT_DIR/hooks/stop.py"`. That worked on Linux/WSL but exposed a deeper portability gap once the registration fired from Windows-side Claude Code: `$CLAUDE_PROJECT_DIR` on Windows is a UNC path (`\\wsl.localhost\Ubuntu-22.04\home\oliver\projects\graph-memory-fabric`), and shell-level path substitution against Windows-native `python3` (which resolves to `C:\Python314\python.exe` via the WindowsApps stub) produced strings like `C:\Program Files\Git\home\oliver\...` — the Git-Bash pseudo-root prefixed onto a POSIX path the previous registration cached. Windows Python could not open that.
+
+**Changes:**
+
+- **`.claude/settings.json:152`** — Stop-hook command changed from `python3 "$CLAUDE_PROJECT_DIR/hooks/stop.py"` to an inline Python launcher: `python3 -c "import os,runpy,sys; d=os.environ.get('CLAUDE_PROJECT_DIR'); sys.exit(0) if not d else runpy.run_path(os.path.join(d,'hooks','stop.py'), run_name='__main__')"`. Python builds the path natively via `os.path.join` and opens it via `runpy.run_path` — no shell path-interpretation layer, so UNC paths (Windows) and POSIX paths (Linux) both work without escaping or per-OS branching. Falls back to silent-skip when `$CLAUDE_PROJECT_DIR` is unset, matching the script's existing service-unreachable silent-skip philosophy.
+- **`hooks/stop.py:27–39`** — Docstring registration example rewritten to document the inline launcher form and the cross-OS rationale, replacing the previous shell-substituted example.
+
+**Tests:** End-to-end fired the launcher under all four relevant configurations:
+1. Windows-native `python3` + UNC `CLAUDE_PROJECT_DIR` → exit 0, hook opens `stop.py` correctly, silent because Memgraph at `localhost:8000` is unreachable from a Windows process (script's pre-existing behaviour, not regression).
+2. WSL `python3` + POSIX `CLAUDE_PROJECT_DIR` → exit 0, hook fires successfully.
+3. Empty `CLAUDE_PROJECT_DIR` → exit 0, silent-skip per fallback.
+4. Unset `CLAUDE_PROJECT_DIR` → exit 0, silent-skip per fallback.
+
+**Acceptance:** The cached pre-fix registration error (`C:\Python314\python.exe: can't open file 'C:\Program Files\Git\home\oliver\...'`) clears once Claude Code is restarted. Restart is a one-time cost; the new registration travels with the repo and survives any host filesystem layout, including WSL-side projects opened from Windows-side Claude Code.
+
+**Out of scope (flagged for follow-up):** When the Stop hook does fire on Windows-side Claude Code, `stop.py` will silent-skip because its `API_BASE_URL` defaults to `http://localhost:8000` — the WSL-side Memgraph isn't reachable on Windows `localhost`. Making `stop.py` aware of the canonical HTTPS endpoint (`https://memfabric.carr-it.net:8443`) on Windows would restore actual scaffold printing on that side. Tracked as a follow-up; not blocking this WP because the failure mode is "silent no-op" (correct intended behaviour when service is unreachable), not "error noise" (what we just eliminated).
+
+**Retrospective:**
+- What went well: The wake-up briefing on resume surfaced the canonical pattern memory ("Mara hooks on Windows and WSL both route through `memory_management_wrapper.py` … edits apply to both OSes without separate mirroring") and the fact that graph-memory-fabric is `pip install -e`'d on Windows. Both shaped the design — without them I'd have proposed a heavier `wsl --` wrapper.
+- What to improve: The original WP-156 fix didn't surface the cross-OS dimension because all my testing was WSL-side; Windows-side Claude Code only revealed the gap when it tried to fire the cached old registration. Next time a hook touches `.claude/settings.json`, test under both Claude Code instances (Windows-side and WSL-side) before declaring done. The Definition of Done for hook changes should explicitly include "fire from each OS that runs Claude Code on this repo" as an acceptance gate.
+
+---
+
 ### WP-156: Portable Stop-hook registration via `$CLAUDE_PROJECT_DIR` — 2026-05-06
 
 Replaced the brittle absolute path in the project's Stop-hook registration with the canonical Claude Code injected env var, so the hook travels with the repo regardless of clone path.

@@ -23,12 +23,18 @@ Layered design — cooperates with the Mara baseline Stop hook:
 Environment variables (all optional):
     API_BASE_URL   Memory service URL (default: http://localhost:8000)
 
-Registration in .claude/settings.json (use $CLAUDE_PROJECT_DIR, not an
-absolute path — the env var is injected by Claude Code at hook-fire time
-and survives sandbox/alternate-clone relocation):
+Registration in .claude/settings.json (OS-aware inline Python launcher —
+this is the canonical form because `python3 "$CLAUDE_PROJECT_DIR/hooks/stop.py"`
+fails on Windows-side Claude Code: $CLAUDE_PROJECT_DIR is a Windows UNC path
+like `\\\\wsl.localhost\\Ubuntu-22.04\\home\\oliver\\...` and shell-level path
+substitution produces a string Windows Python can't open through the shell.
+The inline launcher avoids the shell layer entirely — Python builds the path
+natively via os.path.join and opens it via runpy.run_path. Falls back to
+silent-skip when $CLAUDE_PROJECT_DIR is unset, matching the existing
+service-unreachable silent-skip behaviour):
     "hooks": {
       "Stop": [
-        {"command": "python3 \"$CLAUDE_PROJECT_DIR/hooks/stop.py\""}
+        {"command": "python3 -c \"import os,runpy,sys; d=os.environ.get('CLAUDE_PROJECT_DIR'); sys.exit(0) if not d else runpy.run_path(os.path.join(d,'hooks','stop.py'), run_name='__main__')\""}
       ]
     }
 """

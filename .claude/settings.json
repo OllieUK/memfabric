@@ -149,7 +149,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/hooks/stop.py\"",
+            "command": "python3 -c \"import os,runpy,sys; d=os.environ.get('CLAUDE_PROJECT_DIR'); sys.exit(0) if not d else runpy.run_path(os.path.join(d,'hooks','stop.py'), run_name='__main__')\"",
             "timeout": 5
           }
         ]
