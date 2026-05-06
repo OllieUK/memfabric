@@ -27,14 +27,19 @@ check `docker volume ls | grep memgraph` before assuming total loss.
 ## Schedule
 
 Nightly at 02:30 UTC (just before Memgraph long-rest at 03:00 UTC). The cron
-entry runs as the user `oliver`:
+entry runs as **root** (same pattern as other host backups, ensures correct
+permissions on `/opt/stacks/backups/memfabric/` and unrestricted docker
+socket access):
 
 ```
 30 2 * * * /opt/stacks/sources/graph-memory-fabric/scripts/homeserver/backup-nightly.sh >> /opt/stacks/backups/memfabric/backup.log 2>&1
 ```
 
-The script lives in the repo at `scripts/homeserver/backup-nightly.sh` and is
-invoked from the deployed git checkout.
+Install via `sudo crontab -e`. The script lives in the repo at
+`scripts/homeserver/backup-nightly.sh` and is invoked from the deployed git
+checkout. Backup files are owned by root — inspect them via `sudo` from
+oliver's shell, or via `sudo -u oliver cat ...` if you need them readable as
+oliver.
 
 ## Retention
 
@@ -83,8 +88,11 @@ pruned at the end of each run. At ~600 MB per volume tarball + a few MB JSON,
 - **No off-host replication.** Single point of failure: the homeserver itself.
 - **No restore-test discipline.** We do not periodically verify that backups
   are usable end-to-end.
-- **Runs as `oliver`.** Should run as a dedicated stack-user with restricted
-  permissions; deferred for ergonomic reasons.
+- **Runs as root.** Matches the host's other backup discipline. Should
+  eventually run as a dedicated stack-user with read-only access to source
+  dirs and write-only access to backup dirs (similar to the `claude-diag`
+  pattern). Root is more privileged than necessary; the `claude-diag`-style
+  least-privilege user is the target end-state.
 - **No cold storage.** No defence against ransomware or sustained host
   compromise.
 - **No alerting on failure.** Cron failures land in `backup.log`; nobody is
@@ -93,10 +101,11 @@ pruned at the end of each run. At ~600 MB per volume tarball + a few MB JSON,
 ## Manual backup before risky operations
 
 Run the same script ad-hoc whenever about to do something that could damage
-the fabric (deploys, schema changes, large ingests):
+the fabric (deploys, schema changes, large ingests). Invoke as root to match
+the cron path and produce files with consistent ownership:
 
 ```
-/opt/stacks/sources/graph-memory-fabric/scripts/homeserver/backup-nightly.sh
+sudo /opt/stacks/sources/graph-memory-fabric/scripts/homeserver/backup-nightly.sh
 ```
 
 It is safe to run while another invocation is in progress (file lock prevents

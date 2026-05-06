@@ -14,17 +14,20 @@
 #
 # Files older than RETENTION_DAYS are pruned at the end of each run.
 #
-# Invoked by user cron at 02:30 UTC (just before Memgraph long-rest).
-# Runs as oliver in the docker group; uses dcumf to route through the
-# canonical compose project. Failures exit non-zero so cron mail or log
-# scrapers see them.
+# Invoked by root cron at 02:30 UTC (just before Memgraph long-rest).
+# Same pattern as other host backups. Runs as root to ensure correct
+# permissions on /opt/stacks/backups/memfabric/ and unrestricted docker
+# socket access. Calls `docker compose -p memfabric` directly (not via
+# the dcumf alias, which is oliver-shell-scoped). Failures exit non-zero
+# so cron mail or log scrapers see them.
 #
 # Install (manual, for now):
-#   1. Copy this script to homeserver (or rely on the git checkout at
-#      /opt/stacks/sources/graph-memory-fabric/scripts/homeserver/).
-#   2. Ensure /opt/stacks/backups/memfabric/ exists, owned by the invoking
-#      user, mode 0750.
-#   3. Add a user crontab entry:
+#   1. Rely on the git checkout at
+#      /opt/stacks/sources/graph-memory-fabric/scripts/homeserver/ —
+#      the script runs in place.
+#   2. Ensure /opt/stacks/backups/memfabric/ exists, owned by root,
+#      mode 0750.
+#   3. Add a root crontab entry (`sudo crontab -e`):
 #        30 2 * * * /opt/stacks/sources/graph-memory-fabric/scripts/homeserver/backup-nightly.sh >> /opt/stacks/backups/memfabric/backup.log 2>&1
 #
 # Future hardening lives in WP-166 (off-host replication, restore-test
@@ -55,23 +58,25 @@ fi
 echo "[$(date -uIs)] backup-nightly start (date=$DATE_STAMP)"
 
 # 1. Logical export via dump_db.py running inside the api container.
-#    The api container already has the venv and the right MEMGRAPH_HOST.
-#    Mount BACKUP_DIR into the container and write the JSON there.
-docker compose -p "$COMPOSE_PROJECT" exec -T \
-    -e BACKUP_OUT="/backup/dump_${DATE_STAMP}.json" \
-    "$API_SERVICE" \
-    sh -c 'python3 /app/scripts/dump_db.py --output "$BACKUP_OUT"' \
-    < /dev/null \
-    > /dev/null 2>&1 || {
-        # Fallback: dcumf exec without bind-mount. Run inside container,
-        # then docker cp the file out.
-        docker compose -p "$COMPOSE_PROJECT" exec -T "$API_SERVICE" \
-            python3 /app/scripts/dump_db.py --output "/tmp/dump_${DATE_STAMP}.json"
-        CONTAINER_ID=$(docker compose -p "$COMPOSE_PROJECT" ps -q "$API_SERVICE")
-        docker cp "$CONTAINER_ID:/tmp/dump_${DATE_STAMP}.json" "$JSON_OUT"
-        docker compose -p "$COMPOSE_PROJECT" exec -T "$API_SERVICE" \
-            rm -f "/tmp/dump_${DATE_STAMP}.json"
-    }
+#    The api container has the venv + the right MEMGRAPH_HOST, but the
+#    Dockerfile does not COPY scripts/ into /app. Workaround for now:
+#    docker cp the script in, exec it, docker cp the result out, clean up.
+#    Long-term fix in WP-167: add `COPY scripts/ ./scripts/` to Dockerfile.
+SCRIPT_SRC="/opt/stacks/sources/graph-memory-fabric/scripts/dump_db.py"
+CONTAINER_ID=$(docker compose -p "$COMPOSE_PROJECT" ps -q "$API_SERVICE")
+
+if [[ -z "$CONTAINER_ID" ]]; then
+    echo "[$(date -uIs)] WARNING: api container not running; skipping JSON dump" >&2
+elif [[ ! -f "$SCRIPT_SRC" ]]; then
+    echo "[$(date -uIs)] WARNING: $SCRIPT_SRC not found; skipping JSON dump" >&2
+else
+    docker cp "$SCRIPT_SRC" "$CONTAINER_ID:/tmp/dump_db.py"
+    docker compose -p "$COMPOSE_PROJECT" exec -T "$API_SERVICE" \
+        python3 /tmp/dump_db.py --output "/tmp/dump_${DATE_STAMP}.json"
+    docker cp "$CONTAINER_ID:/tmp/dump_${DATE_STAMP}.json" "$JSON_OUT"
+    docker compose -p "$COMPOSE_PROJECT" exec -T "$API_SERVICE" \
+        rm -f "/tmp/dump_db.py" "/tmp/dump_${DATE_STAMP}.json"
+fi
 
 if [[ -f "$JSON_OUT" ]]; then
     JSON_SIZE=$(stat -c%s "$JSON_OUT" 2>/dev/null || stat -f%z "$JSON_OUT")
