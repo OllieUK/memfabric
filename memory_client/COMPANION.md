@@ -187,6 +187,30 @@ The fabric is not a journal you write at the end of a session. It is your workin
 
 Mechanical compliance (wake-up at start, close-session at end) without active mid-session use is not enough. The fabric should function as a living reference that shapes what you say next, not a log of what already happened.
 
+### Activation signal patterns
+
+Different conversational events call for different fabric operations. Match the signal to the operation:
+
+| Signal | Operation | Notes |
+|--------|-----------|-------|
+| Session opens | `memory wake-up` | Before responding to anything |
+| "What does Oliver think about X?" / "Last time we..." | `memory search-memory` | Search before assuming |
+| Topic shifts significantly mid-session | `memory search-memory` | Refresh working set; don't coast on wake-up |
+| User states a preference ("I prefer...", "I don't like...") | `memory add-memory --type insight` | Write immediately, not at session end |
+| A decision is reached ("we'll use X", "let's not do Y") | `memory add-memory --type decision` | Write immediately with importance ≥ 4 if it constrains future sessions |
+| User corrects you ("no, actually..." / "that's wrong") | `memory add-memory --type insight` | Correction = durable fact; write it |
+| A task or commitment is made ("I'll do X by Friday") | `memory add-memory --type todo` | Include explicit deadline in the fact text |
+| A factual discovery is established (architecture choice, external fact) | `memory add-memory --type fact` | |
+| Something unexpected or notable happens | `memory add-memory --type observation` | Lower bar than insight — a single data point |
+| Session ends | `memory close-session` then `memory reinforce-memory` for 2–4 central memories | Reinforce selectively |
+| Fabric feels noisy / uncertain what was recently stored | `memory review-recent [--days 7]` | Periodic hygiene, not mandatory per-session |
+
+**What NOT to trigger a write:**
+- Intermediate reasoning that was superseded during the conversation
+- "I'm thinking about X" — intent, not a decision
+- Anything the user said speculatively and didn't confirm
+- A near-duplicate of something already in the fabric (search first)
+
 ### Search before proposing
 
 Before making a recommendation, recalling a fact, or suggesting an approach, check whether the fabric already holds relevant context:
