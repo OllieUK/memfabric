@@ -122,6 +122,45 @@ def create_informs_edge(session, framework_id: str, control_id: str, now: str) -
     return dict(record) if record else None
 
 
+def create_informs_ba_edge(
+    session,
+    framework_id: str,
+    ba_id: str,
+    rationale: str,
+    similarity: float | None,
+    source: str,
+    now: str,
+) -> dict | None:
+    """MERGE INFORMS edge Framework→BusinessAttribute (tier=ict-leaf).
+
+    Semantically: this framework element informs / is grounded by this BA.
+    Idempotent — ON CREATE preserves first-write properties; ON MATCH updates rationale.
+    Returns None if either node is missing.
+    """
+    result = session.run(
+        """
+        MATCH (f:Framework {id: $framework_id}), (ba:BusinessAttribute {id: $ba_id})
+        MERGE (f)-[r:INFORMS]->(ba)
+        ON CREATE SET r.created_at = $now,
+                      r.rationale = $rationale,
+                      r.similarity = $similarity,
+                      r.source = $source
+        ON MATCH  SET r.rationale = $rationale,
+                      r.similarity = $similarity,
+                      r.source = $source
+        RETURN f.id AS framework_id, ba.id AS ba_id, r.created_at AS created_at
+        """,
+        framework_id=framework_id,
+        ba_id=ba_id,
+        rationale=rationale,
+        similarity=similarity,
+        source=source,
+        now=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
 def get_framework(session, framework_id: str) -> dict | None:
     result = session.run(
         """

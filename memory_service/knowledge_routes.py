@@ -260,6 +260,20 @@ class InformsResponse(BaseModel):
     created_at: str
 
 
+class InformsBACreate(BaseModel):
+    framework_id: str
+    ba_id: str
+    rationale: str
+    similarity: Optional[float] = None
+    source: str = "embedding-similarity"
+
+
+class InformsBAResponse(BaseModel):
+    framework_id: str
+    ba_id: str
+    created_at: str
+
+
 class SupportsCreate(BaseModel):
     chunk_id: str
     framework_id: str
@@ -919,6 +933,33 @@ async def create_informs(req: InformsCreate, request: Request) -> InformsRespons
     if record is None:
         raise HTTPException(status_code=404, detail="Framework or Control node not found")
     return InformsResponse(**record)
+
+
+@router.post("/informs/ba", response_model=InformsBAResponse, status_code=200)
+async def create_informs_ba(req: InformsBACreate, request: Request) -> InformsBAResponse:
+    """Create an INFORMS edge from a Framework leaf to a BusinessAttribute (tier=ict-leaf).
+
+    Direction: Framework → BusinessAttribute. Semantics: this framework element is
+    grounded in / informs this business attribute. Extends INFORMS semantically per
+    ADR-004 / OQ-4 resolution. Idempotent.
+    """
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_informs_ba_edge(
+                session,
+                req.framework_id,
+                req.ba_id,
+                req.rationale,
+                req.similarity,
+                req.source,
+                now,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Framework or BusinessAttribute node not found")
+    return InformsBAResponse(**record)
 
 
 @router.get("/frameworks/{framework_id}/chunks", response_model=List[ChunkWithSupports])
