@@ -24,8 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import httpx
 import numpy as np
-import requests
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -318,7 +318,7 @@ def _execute_merges(
     for source_id, canonical_id, dist, sim in merges:
         url = f"{base_url}/knowledge/threats/{source_id}/merge"
         try:
-            resp = requests.post(
+            resp = httpx.post(
                 url,
                 json={"target_id": canonical_id},
                 headers=headers,
@@ -349,7 +349,7 @@ def _execute_merges(
                 f"techniques_rewired={data.get('techniques_rewired', '?')}"
             )
             results.append(data)
-        except requests.RequestException as exc:
+        except httpx.HTTPError as exc:
             print(f"  [REQUEST ERROR] {source_id} -> {canonical_id}: {exc}")
             results.append({"source_id": source_id, "error": str(exc)})
 
