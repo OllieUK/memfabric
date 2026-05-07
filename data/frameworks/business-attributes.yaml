@@ -8,27 +8,123 @@ documents: []
 chunks: []
 jurisdictions: []
 business_attributes:
+  # ──────────────────────────────────────────────────────────────
+  # Tier 1 — Architectural-primitive roots (8 active)
+  # Source: SABSA Business Attribute Profile (W100, W105-SABSA-PAB.pdf)
+  # All carry tier=primitive-root, group=null, t100_stereotype=sabsa-attribute
+  # ──────────────────────────────────────────────────────────────
+
   - id: ba-confidentiality
     name: Confidentiality
     description: Information is not made available or disclosed to unauthorised individuals, entities, or processes
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
   - id: ba-integrity
     name: Integrity
     description: Accuracy and completeness of data and the trustworthiness of information
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
   - id: ba-availability
     name: Availability
-    description: Information and systems are accessible and usable upon demand by an authorized entity
+    description: Information and systems are accessible and usable upon demand by an authorised entity
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
   - id: ba-accountability
     name: Accountability
     description: Actions of an entity can be traced uniquely to that entity
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-assurance
+    name: Assurance
+    description: Confidence that security controls operate correctly and that stated security properties hold under expected conditions
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-reliability
+    name: Reliability
+    description: Consistent and predictable correct operation of systems, services, and processes within defined parameters
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-safety
+    name: Safety
+    description: Freedom from unacceptable risk of physical harm to people or unacceptable damage to property or the environment as a result of system operation
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-resilience
+    name: Resilience
+    description: "Business resilience as a business-architectural primitive — BCM on steroids; integrates technical + organisational + procedural measures, not reducible to any single technical attribute (per SABSA Business Attribute Profile)"
+    status: active
+    superseded_by: null
+    tier: primitive-root
+    group: null
+    t100_stereotype: sabsa-attribute
+    source_ref: "W105-SABSA-PAB.pdf:p1"
+
+  # ──────────────────────────────────────────────────────────────
+  # Deprecated tombstones (3) — do NOT delete; FK-safe references
+  # superseded_by points to the active BA that absorbs this concept
+  # ──────────────────────────────────────────────────────────────
+
   - id: ba-auditability
     name: Auditability
     description: Events and actions are logged and can be reviewed for compliance and forensics
+    status: deprecated
+    superseded_by: ba-accountability
+    tier: primitive-root
+    group: null
+    t100_stereotype: null
+    source_ref: null
+
   - id: ba-non-repudiation
     name: Non-Repudiation
     description: Assurance that someone cannot deny the validity of something
+    status: deprecated
+    superseded_by: ba-accountability
+    tier: primitive-root
+    group: null
+    t100_stereotype: null
+    source_ref: null
+
   - id: ba-privacy
     name: Privacy
     description: Personal information is handled in accordance with applicable laws and regulations
-  - id: ba-resilience
-    name: Resilience
-    description: Ability to withstand and recover from adverse conditions or attacks
+    status: deprecated
+    superseded_by: ba-confidentiality
+    tier: primitive-root
+    group: null
+    t100_stereotype: null
+    source_ref: null
