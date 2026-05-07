@@ -1,0 +1,120 @@
+# data/frameworks/sabsa-architecture.yaml
+#
+# SABSA 2018 matrix spine — 15 Framework nodes.
+# Seeded by scripts/seed_sabsa_architecture.py (WP-113 Phase 4).
+#
+# Node shape: id, title, body (description), external_id (source document ref),
+#             level, layer (layer nodes only), perspective (perspective nodes only),
+#             matrix (matrix nodes only).
+#
+# Source documents:
+#   W100 = TSI-W100-SABSA-White-Paper.pdf
+#   R101 = TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+
+root:
+  id: sabsa-2018
+  title: SABSA 2018
+  body: "SABSA Enterprise Security Architecture framework — two-matrix structural taxonomy (main 6×6 + service-management 5×6)"
+  external_id: TSI-W100-SABSA-White-Paper.pdf
+  level: framework
+
+layers:
+  - id: sabsa-2018.contextual
+    title: Contextual
+    body: "Contextual layer: business context, mission, vision, strategy — the starting point from which all security architecture is derived"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    layer: contextual
+
+  - id: sabsa-2018.conceptual
+    title: Conceptual
+    body: "Conceptual layer: concepts, policies, risk model — translates business context into high-level security concepts and policy intent"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    layer: conceptual
+
+  - id: sabsa-2018.logical
+    title: Logical
+    body: "Logical layer: logical security services and data flows — specifies what functions and information flows are required without reference to specific technologies"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    layer: logical
+
+  - id: sabsa-2018.physical
+    title: Physical
+    body: "Physical layer: physical security mechanisms and infrastructure — maps logical designs to physical implementation choices including hardware, software, and communications"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    layer: physical
+
+  - id: sabsa-2018.component
+    title: Component
+    body: "Component layer: specific technologies, products, and standards — the lowest level of the main matrix; identifies actual components that realise the physical design"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    layer: component
+
+  - id: sabsa-2018.operational
+    title: Operational
+    body: "Operational layer: operational processes and management procedures; bridge dimension present as a row in the main matrix and as the full Service Management Matrix"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    layer: operational
+
+perspectives:
+  - id: sabsa-2018.perspective.assets
+    title: Assets perspective
+    body: "Assets perspective (What): the things of value to the business that security must protect — data, systems, processes, and intangible assets"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    perspective: assets
+
+  - id: sabsa-2018.perspective.motivation
+    title: Motivation perspective
+    body: "Motivation perspective (Why): the reasons for security — risks, threats, vulnerabilities, business drivers, and regulatory obligations"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    perspective: motivation
+
+  - id: sabsa-2018.perspective.process
+    title: Process perspective
+    body: "Process perspective (How): the security processes and activities — what is done to protect assets and achieve the security mission"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    perspective: process
+
+  - id: sabsa-2018.perspective.people
+    title: People perspective
+    body: "People perspective (Who): roles, responsibilities, organisations — the human dimension of security architecture including governance structures"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    perspective: people
+
+  - id: sabsa-2018.perspective.location
+    title: Location perspective
+    body: "Location perspective (Where): geography, topology, distribution — the spatial dimension covering network topology, geographic presence, and data residency"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    perspective: location
+
+  - id: sabsa-2018.perspective.time
+    title: Time perspective
+    body: "Time perspective (When): time dependencies, schedules, sequences — the temporal dimension covering lifecycle, schedules, and time-dependent security controls"
+    external_id: TSI-W100-SABSA-White-Paper.pdf
+    level: framework
+    perspective: time
+
+matrices:
+  - id: sabsa-2018.matrix-main
+    title: SABSA Main Matrix
+    body: "6×6 main matrix (6 layers × 6 perspectives = 36 cells, including the Operational row)"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    matrix: main
+
+  - id: sabsa-2018.matrix-service-management
+    title: SABSA Service Management Matrix
+    body: "5×6 service management matrix (5 service-management layers × 6 perspectives = 30 cells, decomposition of the Operational layer)"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    matrix: service-management
