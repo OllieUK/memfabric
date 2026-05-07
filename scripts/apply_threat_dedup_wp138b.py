@@ -303,7 +303,17 @@ def _get_auth_token() -> str | None:
         return token
     api_keys = os.environ.get("API_KEYS", "")
     if api_keys:
-        return api_keys.split(",")[0].strip()
+        # API_KEYS may be a JSON array (pydantic-settings format) or comma-separated plain string.
+        stripped = api_keys.strip()
+        if stripped.startswith("["):
+            import json
+            try:
+                keys = json.loads(stripped)
+                if keys:
+                    return str(keys[0])
+            except json.JSONDecodeError:
+                pass
+        return stripped.split(",")[0].strip()
     return None
 
 
