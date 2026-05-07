@@ -1,0 +1,983 @@
+# data/frameworks/business-attributes-w100-ict.yaml
+#
+# W100 ICT Business Attributes — Figure 4 (p.20)
+# Source: TSI-W100-SABSA-White-Paper.pdf, Figure 4 "The SABSA Taxonomy of ICT Business Attributes"
+#
+# Structure: 7 ict-group nodes + 86 ict-leaf nodes
+#
+# Group → Tier-1 root mapping (curated, WP-113 Phase 3):
+#   user           → null     (spans confidentiality, availability, integrity — no single clean parent)
+#   management     → null     (spans availability, accountability, integrity — no single clean parent)
+#   operational    → ba-availability  (available, recoverable, productive, detectable all converge here)
+#   risk-management→ ba-accountability (access-controlled, auditable, authenticated, authorised converge here)
+#   legal-regulatory → null   (admissible, compliant, regulated span multiple primitives)
+#   technical-strategy → null (architecture/vendor decisions span all primitives)
+#   business-strategy  → null (business outcomes span multiple primitives; no single clean parent)
+#
+# NOTE: Where group→root is null, the group hangs under the sabsa-2018 Framework root.
+# These mappings are deliberately conservative — do not force spurious parent edges.
+
+# ──────────────────────────────────────────────────────────────
+# ICT Group nodes (7) — tier=ict-group
+# ──────────────────────────────────────────────────────────────
+
+groups:
+
+  - id: ba-group-user
+    name: User Attributes
+    description: Business attributes describing requirements from the perspective of system users
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: user
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: null
+
+  - id: ba-group-management
+    name: Management Attributes
+    description: Business attributes describing requirements from the perspective of system managers and custodians
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: management
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: null
+
+  - id: ba-group-operational
+    name: Operational Attributes
+    description: Business attributes describing requirements from the perspective of system operation and continuity
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: operational
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: ba-availability
+
+  - id: ba-group-risk-management
+    name: Risk Management Attributes
+    description: Business attributes describing requirements from the perspective of risk identification, treatment, and control
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: risk-management
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: ba-accountability
+
+  - id: ba-group-legal-regulatory
+    name: Legal / Regulatory Attributes
+    description: Business attributes describing requirements arising from legal and regulatory obligations
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: legal-regulatory
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: null
+
+  - id: ba-group-technical-strategy
+    name: Technical Strategy Attributes
+    description: Business attributes describing requirements from the perspective of technical architecture strategy and vendor decisions
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: technical-strategy
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: null
+
+  - id: ba-group-business-strategy
+    name: Business Strategy Attributes
+    description: Business attributes describing requirements from the perspective of business strategy, value, and competitive position
+    status: active
+    superseded_by: null
+    tier: ict-group
+    group: business-strategy
+    t100_stereotype: null
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+    maps_to_primitive_root: null
+
+
+# ──────────────────────────────────────────────────────────────
+# ICT Leaf nodes (86) — tier=ict-leaf
+# Organised by group; verbatim names from W100 Figure 4
+# ──────────────────────────────────────────────────────────────
+
+leaves:
+
+  # --- User Attributes (16) ---
+
+  - id: ba-accessible
+    name: Accessible
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-accurate
+    name: Accurate
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-anonymous
+    name: Anonymous
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-consistent
+    name: Consistent
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-current
+    name: Current
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-duty-segregated
+    name: Duty Segregated
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-educated-and-aware
+    name: Educated & Aware
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-informed
+    name: Informed
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-motivated
+    name: Motivated
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-protected
+    name: Protected
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-reliable
+    name: Reliable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-responsive
+    name: Responsive
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-transparent
+    name: Transparent
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-supported
+    name: Supported
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-timely
+    name: Timely
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-usable
+    name: Usable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: user
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  # --- Management Attributes (20) ---
+
+  - id: ba-automated
+    name: Automated
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-change-managed
+    name: Change-managed
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-continuous
+    name: Continuous
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-controlled
+    name: Controlled
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-cost-effective
+    name: Cost-Effective
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-efficient
+    name: Efficient
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-maintainable
+    name: Maintainable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-measured
+    name: Measured
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-monitored
+    name: Monitored
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-supportable
+    name: Supportable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-flexibly-secure
+    name: Flexibly Secure
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-identified
+    name: Identified
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-independently-secure
+    name: Independently Secure
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-reputable
+    name: Reputable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-in-our-sole-possession
+    name: In our sole possession
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-integrity-assured
+    name: Integrity-Assured
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-non-repudiable
+    name: Non-Repudiable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-owned
+    name: Owned
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-private
+    name: Private
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-trustworthy
+    name: Trustworthy
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  # --- Operational Attributes (10) ---
+
+  - id: ba-available-ict
+    name: Available
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-detectable
+    name: Detectable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-error-free
+    name: Error-Free
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-inter-operable
+    name: Inter-Operable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-productive
+    name: Productive
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-recoverable
+    name: Recoverable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-capturing-new-risks
+    name: Capturing New Risks
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-confidential
+    name: Confidential
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-crime-free
+    name: Crime-Free
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-traceable
+    name: Traceable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: operational
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  # --- Risk Management Attributes (9) ---
+
+  - id: ba-access-controlled
+    name: Access-controlled
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-accountable
+    name: Accountable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-assurable
+    name: Assurable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-assuring
+    name: Assuring
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-auditable
+    name: Auditable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-authenticated
+    name: Authenticated
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-authorised
+    name: Authorised
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-resolvable
+    name: Resolvable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-time-bound
+    name: Time-bound
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: risk-management
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  # --- Legal / Regulatory Attributes (8) ---
+
+  - id: ba-admissible
+    name: Admissible
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-compliant
+    name: Compliant
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-enforceable
+    name: Enforceable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-honesty
+    name: Honesty
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-legal
+    name: Legal
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-liability-managed
+    name: Liability Managed
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-regulated
+    name: Regulated
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-standards-compliant
+    name: Standards Compliant
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: legal-regulatory
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  # --- Technical Strategy Attributes (11) ---
+
+  - id: ba-architecturally-open
+    name: Architecturally Open
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-cots-gots
+    name: COTS / GOTS
+    description: Commercial or Government Off-The-Shelf; preference for proven market-available components
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-extendible
+    name: Extendible
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-insurable
+    name: Insurable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-future-proof
+    name: Future-Proof
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-legacy-sensitive
+    name: Legacy-Sensitive
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-migratable
+    name: Migratable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-multi-sourced
+    name: Multi-Sourced
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-scalable
+    name: Scalable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-simple
+    name: Simple
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-upgradeable
+    name: Upgradeable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: technical-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  # --- Business Strategy Attributes (12) ---
+
+  - id: ba-brand-enhancing
+    name: Brand Enhancing
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-business-enabled
+    name: Business-Enabled
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-competent
+    name: Competent
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-flexible-adaptable
+    name: Flexible / Adaptable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-confident
+    name: Confident
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-credible
+    name: Credible
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-culture-sensitive
+    name: Culture-sensitive
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-enabling-time-to-market
+    name: Enabling time-to-market
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-governable
+    name: Governable
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-providing-good-stewardship-and-custody
+    name: Providing Good Stewardship and Custody
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-providing-investment-re-use
+    name: Providing Investment Re-use
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
+
+  - id: ba-providing-return-on-investment
+    name: Providing Return on Investment
+    description: null
+    status: active
+    superseded_by: null
+    tier: ict-leaf
+    group: business-strategy
+    t100_stereotype: sabsa-attribute
+    source_ref: "TSI-W100-SABSA-White-Paper.pdf:p20"
