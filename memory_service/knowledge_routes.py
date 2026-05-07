@@ -505,6 +505,7 @@ class ContainsCreate(BaseModel):
 class ContainsResponse(BaseModel):
     parent_id: str
     child_id: str
+    rationale: Optional[str]
     created_at: str
 
 
@@ -1287,24 +1288,24 @@ async def list_threats_for_report(id: str, request: Request) -> List[ThreatWithS
 
 @router.post("/business-attributes", response_model=BusinessAttributeResponse, status_code=201)
 async def upsert_business_attribute(req: BusinessAttributeCreate, request: Request) -> BusinessAttributeResponse:
+    if req.status == "deprecated":
+        if not req.superseded_by:
+            raise HTTPException(
+                status_code=400,
+                detail="superseded_by is required when status is 'deprecated'",
+            )
     text = req.description or req.name
     embedding = get_embedding(text, model_name=settings.knowledge_embedding_model)
     now = datetime.now(tz=timezone.utc).isoformat()
     try:
         with request.app.state.driver.session() as session:
-            # Validate superseded_by resolves when status is deprecated
-            if req.status == "deprecated" and req.superseded_by:
+            if req.status == "deprecated":
                 ref = knowledge_repo.get_business_attribute(session, req.superseded_by)
                 if ref is None:
                     raise HTTPException(
                         status_code=400,
                         detail=f"superseded_by '{req.superseded_by}' does not resolve to an existing BusinessAttribute",
                     )
-            elif req.status == "deprecated" and not req.superseded_by:
-                raise HTTPException(
-                    status_code=400,
-                    detail="superseded_by is required when status is 'deprecated'",
-                )
             record = knowledge_repo.upsert_business_attribute(session, req, embedding, now)
     except HTTPException:
         raise

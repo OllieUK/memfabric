@@ -9,7 +9,9 @@
 
 ## Currently In Progress
 
-_(none)_
+| ID | Title | Started |
+|----|-------|---------|
+| WP-113 | Security architecture layer: SABSA, precepts, and business attributes | 2026-05-07 |
 
 ---
 

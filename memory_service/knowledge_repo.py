@@ -17,7 +17,6 @@ from datetime import datetime, timezone
 def upsert_framework(session, req, now: str) -> dict:
     """MERGE Framework on id; SET all properties ON CREATE, update classification ON MATCH.
     If parent_id is set, creates CONTAINS edge from parent Framework to this node.
-    Includes WP-113 T100-aligned coordinate properties: layer, perspective, matrix, cell_role, t100_stereotype.
     """
     result = session.run(
         """
