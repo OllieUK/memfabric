@@ -6,6 +6,8 @@
 # ADR-001: this file must NOT import from memory_repo. Cross-layer edges live exclusively
 # in knowledge_bridge.py.
 
+from datetime import datetime, timezone
+
 
 # ---------------------------------------------------------------------------
 # Framework
@@ -1092,6 +1094,126 @@ def list_threats_for_report(session, report_id: str) -> list[dict]:
         report_id=report_id,
     )
     return [dict(r) for r in result]
+
+
+# ---------------------------------------------------------------------------
+# Merge threat (WP-138b)
+# ---------------------------------------------------------------------------
+
+
+def merge_threat(session, source_id: str, target_id: str) -> dict:
+    """Merge source Threat into target Threat.
+
+    Steps (each a separate session.run — no DETACH DELETE + RETURN):
+    1. Validate both nodes exist and neither is already archived.
+    2. Pre-count IDENTIFIES edges on source, then MERGE each ThreatReport→source
+       edge as ThreatReport→target (ON CREATE SET only — existing target properties
+       are intentionally preserved; see R2 in WP-138b plan). DELETE source edge.
+    3. Pre-count MAPPED_TO_TECHNIQUE edges on source, then MERGE each
+       source→Framework edge as target→Framework (ON CREATE SET only). DELETE
+       source edge.
+    4. Archive source: SET archived=true, merged_into, merged_at.
+    5. Return {source_id, target_id, identifies_rewired, techniques_rewired}.
+
+    Raises ValueError if either node is missing or already archived.
+
+    NOTE on ON MATCH for IDENTIFIES: intentionally omitted. When the target
+    already has an IDENTIFIES edge from the same ThreatReport, that edge's
+    severity/confidence/trend/source_terminology are left unchanged. This
+    preserves the canonical node's original assessment from that report and
+    avoids ambiguity. This differs from create_identifies_edge which uses
+    ON MATCH SET — do NOT "fix" this to match that function's behaviour.
+    """
+    if source_id == target_id:
+        raise ValueError("Source and target must differ")
+
+    now = datetime.now(tz=timezone.utc).isoformat()
+
+    # Step 1 — validate
+    check = session.run(
+        """
+        MATCH (src:Threat {id: $source_id})
+        WHERE src.archived IS NULL OR src.archived = false
+        MATCH (tgt:Threat {id: $target_id})
+        WHERE tgt.archived IS NULL OR tgt.archived = false
+        RETURN src.id AS src_id
+        """,
+        source_id=source_id,
+        target_id=target_id,
+    )
+    if check.single() is None:
+        raise ValueError(
+            f"Source {source_id!r} or target {target_id!r} not found or already archived"
+        )
+
+    # Step 2 — IDENTIFIES: pre-count then rewire
+    count_result = session.run(
+        """
+        MATCH (tr:ThreatReport)-[r:IDENTIFIES]->(src:Threat {id: $source_id})
+        RETURN count(r) AS identifies_count
+        """,
+        source_id=source_id,
+    )
+    identifies_rewired = (count_result.single() or {"identifies_count": 0})["identifies_count"]
+
+    session.run(
+        """
+        MATCH (tr:ThreatReport)-[r:IDENTIFIES]->(src:Threat {id: $source_id})
+        MATCH (tgt:Threat {id: $target_id})
+        MERGE (tr)-[new_r:IDENTIFIES]->(tgt)
+        ON CREATE SET
+            new_r.severity           = r.severity,
+            new_r.confidence         = r.confidence,
+            new_r.trend              = r.trend,
+            new_r.source_terminology = r.source_terminology,
+            new_r.created_at         = r.created_at
+        DELETE r
+        """,
+        source_id=source_id,
+        target_id=target_id,
+    )
+
+    # Step 3 — MAPPED_TO_TECHNIQUE: pre-count then rewire
+    tech_count_result = session.run(
+        """
+        MATCH (src:Threat {id: $source_id})-[r:MAPPED_TO_TECHNIQUE]->(f:Framework)
+        RETURN count(r) AS techniques_count
+        """,
+        source_id=source_id,
+    )
+    techniques_rewired = (tech_count_result.single() or {"techniques_count": 0})["techniques_count"]
+
+    session.run(
+        """
+        MATCH (src:Threat {id: $source_id})-[r:MAPPED_TO_TECHNIQUE]->(f:Framework)
+        MATCH (tgt:Threat {id: $target_id})
+        MERGE (tgt)-[new_r:MAPPED_TO_TECHNIQUE]->(f)
+        ON CREATE SET new_r.created_at = r.created_at
+        DELETE r
+        """,
+        source_id=source_id,
+        target_id=target_id,
+    )
+
+    # Step 4 — archive source
+    session.run(
+        """
+        MATCH (src:Threat {id: $source_id})
+        SET src.archived    = true,
+            src.merged_into = $target_id,
+            src.merged_at   = $now
+        """,
+        source_id=source_id,
+        target_id=target_id,
+        now=now,
+    )
+
+    return {
+        "source_id": source_id,
+        "target_id": target_id,
+        "identifies_rewired": identifies_rewired,
+        "techniques_rewired": techniques_rewired,
+    }
 
 
 # ---------------------------------------------------------------------------

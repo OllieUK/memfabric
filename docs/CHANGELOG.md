@@ -4,6 +4,41 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-138b — Apply calibrated threat dedup threshold to existing Threat corpus — 2026-05-07
+
+**Implementation complete. Production run pending (human-in-the-loop step).**
+
+WP-138 (2026-04-11) calibrated the cross-report dedup threshold to 0.28 and raised the `extract_cti_threats.py` default accordingly. WP-138b applies that threshold retrospectively to the 364 Threat nodes ingested under the old 0.15 default.
+
+**Changes:**
+
+- **`memory_service/knowledge_repo.py`** — New `merge_threat(session, source_id, target_id) -> dict`. Rewires all `IDENTIFIES` edges (ThreatReport → source → target, ON CREATE only — existing target properties preserved), rewires all `MAPPED_TO_TECHNIQUE` edges (source → Framework → target, deduped), archives the source node (`archived=true`, `merged_into`, `merged_at`). Uses pre-count-before-MERGE pattern to avoid Memgraph `count()` semantics ambiguity inside combined MERGE+DELETE statements.
+- **`memory_service/knowledge_routes.py`** — New models `ThreatMergeRequest`, `ThreatMergeResponse`; new `POST /knowledge/threats/{threat_id}/merge` route. ADR-001 cross-layer `memory_repo` import is local (inside handler), not at module level. Per-merge audit entry written to operation log.
+- **`scripts/apply_threat_dedup_wp138b.py`** — One-off operational script. Fetches all Threat embeddings via direct Bolt, builds pairwise cosine distance matrix (reuses `cosine_similarity_matrix` from `create_cross_framework_informs.py`), identifies cross-report pairs at ≤ 0.28, selects canonical node (higher IDENTIFIES count wins; tie-break: older `created_at`) via union-find, executes merges via HTTP API. R3 pre-flight: checks for TARGETS edges and exits if any found (not handled by current `merge_threat`). Safety gate: exits if > 30 candidates without `--force`. `--dry-run` mode prints plan with no writes.
+- **`tests/test_wp138b_threat_merge.py`** — 13 unit tests + 8 integration tests. All 21/21 passing.
+
+**Tests:**
+- Unit: 13 passed in 0.04s (mock session; covers same-id guard, missing/archived node, count return, archive step call, canonical selection, safety gate, cross-report filter, dry-run no-HTTP invariant)
+- Integration: 8 passed in 1.92s against live Memgraph (edge rewiring both directions, dedup of same-report IDENTIFIES, MAPPED_TO_TECHNIQUE union, HTTP 400/404 error cases, operation log written)
+
+**Acceptance criteria:** 9/10 verified. Criterion 7 (production run) and criterion 10 (post-run count delta) pending the homeserver execution.
+
+**Production run instructions (homeserver):**
+```bash
+cd /opt/stacks/sources/graph-memory-fabric
+python3 scripts/apply_threat_dedup_wp138b.py --dry-run
+# Review candidate list. If count ≤ 30 and pairs look correct:
+python3 scripts/apply_threat_dedup_wp138b.py
+```
+`MEMFABRIC_MCP_BEARER_TOKEN` must be set; `MEMGRAPH_HOST` defaults to `localhost` (correct on homeserver). If merge count > 30, inspect the pairs and re-run with `--force` if confirmed.
+
+**Retrospective:**
+- What went well: Pre-count-before-MERGE pattern for edge counting avoided a Cypher count-inside-MERGE ambiguity that the plan flagged as R1. The union-find for canonical selection correctly handles transitive duplicate chains. R3 TARGETS pre-flight prevents silent data corruption on future corpora that do have TARGETS edges.
+- What to improve: The agent worktree mechanism broke silently — the `.git` pointer used a UNC path that git inside WSL can't resolve. Files were written but no commit was made; manual copy to main was required. Worktree isolation + WSL git signing is a known friction point. Track as WP-164-adjacent.
+- Deferred: `GET /knowledge/threats` returns archived nodes post-run. Tracked as WP-172 (Ambient Chores).
+
+---
+
 ### WP-156 follow-up: OS-aware inline Python launcher for cross-OS Stop-hook portability — 2026-05-06
 
 The original WP-156 fix (commit `b20a8c8`, same day) replaced the absolute path with `python3 "$CLAUDE_PROJECT_DIR/hooks/stop.py"`. That worked on Linux/WSL but exposed a deeper portability gap once the registration fired from Windows-side Claude Code: `$CLAUDE_PROJECT_DIR` on Windows is a UNC path (`\\wsl.localhost\Ubuntu-22.04\home\oliver\projects\graph-memory-fabric`), and shell-level path substitution against Windows-native `python3` (which resolves to `C:\Python314\python.exe` via the WindowsApps stub) produced strings like `C:\Program Files\Git\home\oliver\...` — the Git-Bash pseudo-root prefixed onto a POSIX path the previous registration cached. Windows Python could not open that.
@@ -45,6 +80,36 @@ Replaced the brittle absolute path in the project's Stop-hook registration with 
 **Retrospective:**
 - What went well: One-line config change with a high payoff. The canonical pattern was already documented in the bundled official plugin-dev skills — finding it took one Grep, not a research excursion.
 - What to improve: Initial pass misread an `[Omitted long context line]` adjacency in a Grep `-C 3` result as a strikethrough on the WP-156 row, briefly led to the wrong conclusion that the WP was already resolved. Confirming line-state always requires a direct `Read` of the row, not inference from Grep context. Logged as a search-discipline note.
+
+---
+
+### WP-169: OAuth protected-resource metadata for MCP discovery — 2026-05-06
+
+Resolved the live production failure where Claude Code's MCP TS client (2025-06-18 Authorization spec) probed RFC 9728 OAuth metadata before sending `initialize`, received FastAPI's default `{"detail":"Not Found"}` and `{"detail":"Invalid or missing API key"}` bodies, failed Zod validation (`path:["error"]`), and reported `SDK auth failed` — leaving all `mcp__memory__*` tools unregistered despite bearer auth working correctly.
+
+**Changes:**
+
+- **`memory_service/main.py`** — Three RFC 9728 discovery routes registered before `app.mount("/mcp", ...)` (Starlette registration order ensures they win over the mount): `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-protected-resource/mcp`, `GET /mcp/.well-known/oauth-protected-resource`. Handler returns `{"resource":"<PUBLIC_BASE_URL>/mcp/","authorization_servers":[],"bearer_methods_supported":["header"]}` — `authorization_servers:[]` signals "no separate AS, use the static bearer directly". Startup warning added when `PUBLIC_BASE_URL` defaults to localhost while the API binds to `0.0.0.0`.
+- **`memory_service/mcp_auth.py`** — `BearerTokenMiddleware` allow-list changed from `endswith()` suffix check to exact `path in _DISCOVERY_PATHS` frozenset membership. Constant renamed `_DISCOVERY_PATH_SUFFIXES` → `_DISCOVERY_PATHS`. Removed pre-emptive `/.well-known/oauth-authorization-server` entry (never served; set membership is now authoritative).
+- **`memory_service/auth.py`** — `_OPEN_PATHS` extended with the three discovery paths so `verify_api_key` also passes them through unauthenticated at the top-level FastAPI layer.
+- **`memory_service/config.py`** — New `public_base_url: str = "http://localhost:8000"` field driven by `PUBLIC_BASE_URL` env var.
+- **`.env.example`** — `PUBLIC_BASE_URL` documented with prod-value annotation.
+
+**Security hardening (follow-up findings, commit `972bc1c`):**
+
+- F-1: Removed `resource_documentation` field (had pointed at a non-existent GitHub URL — optional per RFC 9728 §3, removed entirely).
+- F-3: Added `_warn_if_public_base_url_misconfigured()` startup warning for the `PUBLIC_BASE_URL=localhost` + `API_HOST=0.0.0.0` footgun.
+- F-4: The `endswith()` suffix check allowed `/foo/.well-known/oauth-protected-resource` to bypass bearer auth; fixed by exact frozenset membership. Regression test `U-MW-7` added.
+
+**Tests:** 23/23 pass — 15 unit tests across four files (`test_wp169_mcp_auth_allowlist.py` U-MW-1–7 + discovery constant check, `test_wp169_open_paths.py` U-AUTH-1–4/8, `test_wp169_metadata_shape.py` U-DOC-1–4) plus 8 integration tests (`test_wp169_discovery_routes_integration.py`) against the live stack.
+
+**Acceptance:** `claude mcp list` shows `memory: ✓ Connected` from a fresh Claude Code session post-prod-deploy. Confirmed 2026-05-06.
+
+**Commits:** `91f3f19` (implementation), `972bc1c` (security findings F-1, F-3, F-4). **Plan:** [`docs/plans/2026-05-06-WP-169-oauth-metadata.md`](plans/2026-05-06-WP-169-oauth-metadata.md)
+
+**Retrospective:**
+- What went well: R-1 (Starlette route-registration precedence) resolved cleanly via empirical verification — the plan anticipated the risk, documented both fallback paths, and the primary path worked. The tight frozenset allow-list is simple to audit. Splitting test concerns across four files produces clean, independently runnable test groups. The actual root cause of the prod failure turned out to be `MEMFABRIC_API_KEY` not set in the Claude Code process env (env-var substitution in `.mcp.json` producing `Bearer ` empty), triggering the full OAuth discovery flow — the WP-169 discovery routes themselves were correct throughout.
+- What to improve: Deferred `settings` imports in `mcp_auth.py` (inside `__call__` to avoid circular imports) require patching `memory_service.config.settings`, not `memory_service.mcp_auth.settings` — the mock target is always the module where the object is defined, not the caller. Future test authors: see `_run_middleware` in `test_wp169_mcp_auth_allowlist.py` and the `verify_api_key` test in `test_wp169_open_paths.py` for the correct pattern.
 
 ---
 

@@ -453,6 +453,17 @@ class ThreatHit(BaseModel):
     distance: float
 
 
+class ThreatMergeRequest(BaseModel):
+    target_id: str
+
+
+class ThreatMergeResponse(BaseModel):
+    source_id: str
+    target_id: str
+    identifies_rewired: int
+    techniques_rewired: int
+
+
 class ThreatReportWithEdge(BaseModel):
     id: str
     title: str
@@ -1088,3 +1099,46 @@ async def list_threats_for_report(id: str, request: Request) -> List[ThreatWithS
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [ThreatWithSeverity(**r) for r in records]
+
+
+# ---------------------------------------------------------------------------
+# Threat merge endpoint (WP-138b)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/threats/{threat_id}/merge", response_model=ThreatMergeResponse)
+async def merge_threat(
+    threat_id: str, req: ThreatMergeRequest, request: Request
+) -> ThreatMergeResponse:
+    """Merge source Threat into target Threat.
+
+    Rewires all IDENTIFIES (ThreatReport→source) and MAPPED_TO_TECHNIQUE
+    (source→Framework) edges to the target, then archives the source.
+    Existing target edges from the same ThreatReport are preserved unchanged
+    (ON CREATE only — no overwrite of target's assessment properties).
+
+    Returns HTTP 400 if source == target.
+    Returns HTTP 404 if either node is missing or already archived.
+    """
+    now = datetime.now(tz=timezone.utc).isoformat()
+    if threat_id == req.target_id:
+        raise HTTPException(status_code=400, detail="Source and target must differ")
+    try:
+        with request.app.state.driver.session() as session:
+            result = knowledge_repo.merge_threat(session, threat_id, req.target_id)
+            # ADR-001: memory_repo import must be local, never at module level
+            from memory_service import memory_repo
+            memory_repo.append_operation_log(session, {
+                "operation": "merge_threat",
+                "memory_id": threat_id,
+                "source_id": threat_id,
+                "target_id": req.target_id,
+                "ran_at": now,
+                "identifies_rewired": result["identifies_rewired"],
+                "techniques_rewired": result["techniques_rewired"],
+            })
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return ThreatMergeResponse(**result)
