@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     ctrl_index_capacity: int = 5000
     chunk_index_capacity: int = 10000
     threat_index_capacity: int = 1000
+    business_attribute_index_capacity: int = 200
     memory_dedup_threshold: float = 0.05
     near_duplicate_threshold: float = 0.92
     near_duplicate_limit: int = 20

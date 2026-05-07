@@ -75,15 +75,26 @@ def knowledge_client(test_driver):
 
     Reloads config and main so that the feature flag is picked up even if
     conftest imported the app before the flag was set.
+
+    API_KEYS is cleared so integration tests run unauthenticated regardless
+    of what the local .env configures — tests are not meant to prove auth.
     """
+    prev_keys = os.environ.get("API_KEYS")
     os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
-    import memory_service.config as cfg_mod
-    import memory_service.main as main_mod
-    importlib.reload(cfg_mod)
-    importlib.reload(main_mod)
-    main_mod.app.state.driver = test_driver
-    with TestClient(main_mod.app, raise_server_exceptions=True) as c:
-        yield c
+    os.environ["API_KEYS"] = "[]"
+    try:
+        import memory_service.config as cfg_mod
+        import memory_service.main as main_mod
+        importlib.reload(cfg_mod)
+        importlib.reload(main_mod)
+        main_mod.app.state.driver = test_driver
+        with TestClient(main_mod.app, raise_server_exceptions=True) as c:
+            yield c
+    finally:
+        if prev_keys is None:
+            os.environ.pop("API_KEYS", None)
+        else:
+            os.environ["API_KEYS"] = prev_keys
 
 
 # ---------------------------------------------------------------------------

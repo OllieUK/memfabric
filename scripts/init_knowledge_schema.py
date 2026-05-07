@@ -253,6 +253,25 @@ def main() -> int:
             if not validate_vector_index(session, "threat_embedding_idx", "Threat", "embedding"):
                 success = False
 
+            # --- business_attribute_embedding_idx ---
+            print("\nCreating vector index: business_attribute_embedding_idx ...")
+            try:
+                create_vector_index(
+                    session,
+                    index_name="business_attribute_embedding_idx",
+                    label="BusinessAttribute",
+                    prop="embedding",
+                    dim=dim,
+                    capacity=settings.business_attribute_index_capacity,
+                )
+            except Exception as exc:
+                print(f"  [FAIL] business_attribute_embedding_idx: {exc}")
+                success = False
+
+            print("Validating vector index: business_attribute_embedding_idx ...")
+            if not validate_vector_index(session, "business_attribute_embedding_idx", "BusinessAttribute", "embedding"):
+                success = False
+
             # --- Existing mem_embedding_idx capacity advisory ---
             print("\nChecking mem_embedding_idx capacity ...")
             _check_mem_embedding_idx_capacity(session)

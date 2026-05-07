@@ -112,3 +112,53 @@ ASSET_EXPOSURES: frozenset[str] = frozenset({
 ASSET_DATA_CLASSIFICATIONS: frozenset[str] = frozenset({
     "public", "internal", "confidential", "restricted",
 })
+
+# ---------------------------------------------------------------------------
+# WP-113 — T100-aligned SABSA / BusinessAttribute constants
+# ---------------------------------------------------------------------------
+
+BA_STATUSES: frozenset[str] = frozenset({"active", "deprecated"})
+
+SABSA_PERSPECTIVES: frozenset[str] = frozenset({
+    "assets", "motivation", "process", "people", "location", "time",
+})
+
+SABSA_MATRICES: frozenset[str] = frozenset({"main", "service-management"})
+
+MATRIX_LAYERS_MAIN: frozenset[str] = frozenset({
+    "contextual", "conceptual", "logical", "physical", "component", "operational",
+})
+
+# Service Management Matrix layers — read from R101 Table 3 (p.8, TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf).
+# The 5 expansion rows beneath the Management Architecture repeat-row use the same 5 layer names
+# as the main matrix (all except "operational", which is the top-level SM row itself).
+MATRIX_LAYERS_SERVICE_MGMT: frozenset[str] = frozenset({
+    "contextual", "conceptual", "logical", "physical", "component",
+})
+
+BA_GROUPS: frozenset[str] = frozenset({
+    "management",
+    "user",
+    "operational",
+    "risk-management",
+    "technical-strategy",
+    "business-strategy",
+    "legal-regulatory",
+})
+
+BA_TIERS: frozenset[str] = frozenset({"primitive-root", "ict-group", "ict-leaf"})
+
+# T100 §3.4.2 stereotype catalogue — initial set for WP-113 (v2.5, Feb 2026).
+# Extended as additional T100-stereotyped node types are introduced in follow-on WPs.
+T100_STEREOTYPES: frozenset[str] = frozenset({"sabsa-attribute"})
+
+INFLUENCE_POLARITIES: frozenset[str] = frozenset({"positive", "negative"})
+
+INFLUENCE_STATUSES: frozenset[str] = frozenset({
+    "draft-curated",
+    "curated",
+    "auto-inferred-embedding",
+    "auto-inferred-traversal",
+})
+
+CELL_ROLES: frozenset[str] = frozenset({"main-matrix-cell", "service-mgmt-cell"})

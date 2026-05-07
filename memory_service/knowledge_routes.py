@@ -11,7 +11,7 @@ from typing import Optional, List, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from neo4j.exceptions import ServiceUnavailable
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from memory_service import knowledge_repo
 from memory_service.config import settings
@@ -28,6 +28,17 @@ from memory_service.knowledge_schemas import (
     ASSET_TYPES,
     ASSET_EXPOSURES,
     ASSET_DATA_CLASSIFICATIONS,
+    BA_STATUSES,
+    BA_TIERS,
+    BA_GROUPS,
+    T100_STEREOTYPES,
+    INFLUENCE_POLARITIES,
+    INFLUENCE_STATUSES,
+    SABSA_PERSPECTIVES,
+    SABSA_MATRICES,
+    MATRIX_LAYERS_MAIN,
+    MATRIX_LAYERS_SERVICE_MGMT,
+    CELL_ROLES,
 )
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -49,6 +60,54 @@ class FrameworkCreate(BaseModel):
     modality: Optional[str] = None
     external_id: Optional[str] = None  # e.g. T1566.001, TA0001 — human-readable ID from source
     domain: Optional[str] = None       # e.g. enterprise, ics, mobile — for ATT&CK matrices
+    # WP-113: T100-aligned SABSA matrix coordinate properties
+    layer: Optional[str] = None
+    perspective: Optional[str] = None
+    matrix: Optional[str] = None
+    cell_role: Optional[str] = None
+    t100_stereotype: Optional[str] = None
+
+    @field_validator("cell_role")
+    @classmethod
+    def validate_cell_role(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in CELL_ROLES:
+            raise ValueError(f"cell_role must be one of {sorted(CELL_ROLES)} or null")
+        return v
+
+    @field_validator("perspective")
+    @classmethod
+    def validate_perspective(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in SABSA_PERSPECTIVES:
+            raise ValueError(f"perspective must be one of {sorted(SABSA_PERSPECTIVES)} or null")
+        return v
+
+    @field_validator("matrix")
+    @classmethod
+    def validate_matrix(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in SABSA_MATRICES:
+            raise ValueError(f"matrix must be one of {sorted(SABSA_MATRICES)} or null")
+        return v
+
+    @model_validator(mode="after")
+    def validate_layer_for_cell_role(self) -> "FrameworkCreate":
+        if self.cell_role == "main-matrix-cell":
+            if self.layer is None or self.layer not in MATRIX_LAYERS_MAIN:
+                raise ValueError(
+                    f"layer must be one of {sorted(MATRIX_LAYERS_MAIN)} "
+                    f"when cell_role='main-matrix-cell'"
+                )
+        elif self.cell_role == "service-mgmt-cell":
+            if self.layer is None or self.layer not in MATRIX_LAYERS_SERVICE_MGMT:
+                raise ValueError(
+                    f"layer must be one of {sorted(MATRIX_LAYERS_SERVICE_MGMT)} "
+                    f"when cell_role='service-mgmt-cell'"
+                )
+        elif self.layer is not None:
+            if self.layer not in MATRIX_LAYERS_MAIN and self.layer not in MATRIX_LAYERS_SERVICE_MGMT:
+                raise ValueError(
+                    f"layer must be a valid SABSA layer name or null"
+                )
+        return self
 
 
 class FrameworkResponse(BaseModel):
@@ -62,6 +121,11 @@ class FrameworkResponse(BaseModel):
     modality: Optional[str] = None
     external_id: Optional[str] = None
     domain: Optional[str] = None
+    layer: Optional[str] = None
+    perspective: Optional[str] = None
+    matrix: Optional[str] = None
+    cell_role: Optional[str] = None
+    t100_stereotype: Optional[str] = None
 
 
 class NormCreate(BaseModel):
@@ -332,6 +396,116 @@ class GapAnalysisResponse(BaseModel):
     covered: List[ControlGapEntry]
     partial: List[ControlGapEntry]
     uncovered: List[ControlGapEntry]
+
+
+# ---------------------------------------------------------------------------
+# WP-113 — BusinessAttribute / INFLUENCE / CONTAINS Pydantic models
+# ---------------------------------------------------------------------------
+
+
+class BusinessAttributeCreate(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    source_ref: Optional[str] = None
+    status: str = "active"
+    superseded_by: Optional[str] = None
+    tier: str
+    group: Optional[str] = None
+    t100_stereotype: Optional[str] = None
+
+    @field_validator("tier")
+    @classmethod
+    def validate_tier(cls, v: str) -> str:
+        if v not in BA_TIERS:
+            raise ValueError(f"tier must be one of {sorted(BA_TIERS)}")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if v not in BA_STATUSES:
+            raise ValueError(f"status must be one of {sorted(BA_STATUSES)}")
+        return v
+
+    @field_validator("group")
+    @classmethod
+    def validate_group(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in BA_GROUPS:
+            raise ValueError(f"group must be one of {sorted(BA_GROUPS)} or null")
+        return v
+
+    @field_validator("t100_stereotype")
+    @classmethod
+    def validate_t100_stereotype(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in T100_STEREOTYPES:
+            raise ValueError(f"t100_stereotype must be one of {sorted(T100_STEREOTYPES)} or null")
+        return v
+
+
+class BusinessAttributeResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str]
+    source_ref: Optional[str]
+    status: str
+    superseded_by: Optional[str]
+    tier: str
+    group: Optional[str]
+    t100_stereotype: Optional[str]
+    created_at: str
+
+
+class InfluenceCreate(BaseModel):
+    source_id: str
+    target_id: str
+    polarity: str
+    severity: Optional[str] = None
+    rationale: str
+    status: str = "curated"
+
+    @field_validator("polarity")
+    @classmethod
+    def validate_polarity(cls, v: str) -> str:
+        if v not in INFLUENCE_POLARITIES:
+            raise ValueError(f"polarity must be one of {sorted(INFLUENCE_POLARITIES)}")
+        return v
+
+    @field_validator("severity")
+    @classmethod
+    def validate_severity(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in IDENTIFIES_SEVERITIES:
+            raise ValueError(f"severity must be one of {sorted(IDENTIFIES_SEVERITIES)} or null")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        if v not in INFLUENCE_STATUSES:
+            raise ValueError(f"status must be one of {sorted(INFLUENCE_STATUSES)}")
+        return v
+
+
+class InfluenceResponse(BaseModel):
+    source_id: str
+    target_id: str
+    polarity: str
+    severity: Optional[str]
+    rationale: str
+    status: str
+    created_at: str
+
+
+class ContainsCreate(BaseModel):
+    parent_id: str
+    child_id: str
+    rationale: Optional[str] = None
+
+
+class ContainsResponse(BaseModel):
+    parent_id: str
+    child_id: str
+    created_at: str
 
 
 # ---------------------------------------------------------------------------
@@ -1099,6 +1273,117 @@ async def list_threats_for_report(id: str, request: Request) -> List[ThreatWithS
     except ServiceUnavailable as exc:
         raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
     return [ThreatWithSeverity(**r) for r in records]
+
+
+# ---------------------------------------------------------------------------
+# Threat merge endpoint (WP-138b)
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# WP-113 — BusinessAttribute endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/business-attributes", response_model=BusinessAttributeResponse, status_code=201)
+async def upsert_business_attribute(req: BusinessAttributeCreate, request: Request) -> BusinessAttributeResponse:
+    text = req.description or req.name
+    embedding = get_embedding(text, model_name=settings.knowledge_embedding_model)
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            # Validate superseded_by resolves when status is deprecated
+            if req.status == "deprecated" and req.superseded_by:
+                ref = knowledge_repo.get_business_attribute(session, req.superseded_by)
+                if ref is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"superseded_by '{req.superseded_by}' does not resolve to an existing BusinessAttribute",
+                    )
+            elif req.status == "deprecated" and not req.superseded_by:
+                raise HTTPException(
+                    status_code=400,
+                    detail="superseded_by is required when status is 'deprecated'",
+                )
+            record = knowledge_repo.upsert_business_attribute(session, req, embedding, now)
+    except HTTPException:
+        raise
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return BusinessAttributeResponse(**record)
+
+
+@router.get("/business-attributes/{ba_id}", response_model=BusinessAttributeResponse)
+async def get_business_attribute(ba_id: str, request: Request) -> BusinessAttributeResponse:
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.get_business_attribute(session, ba_id)
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"BusinessAttribute '{ba_id}' not found")
+    return BusinessAttributeResponse(**record)
+
+
+@router.get("/business-attributes", response_model=List[BusinessAttributeResponse])
+async def list_business_attributes(
+    request: Request,
+    include_deprecated: bool = False,
+    tier: Optional[str] = None,
+    group: Optional[str] = None,
+) -> List[BusinessAttributeResponse]:
+    try:
+        with request.app.state.driver.session() as session:
+            records = knowledge_repo.list_business_attributes(
+                session,
+                include_deprecated=include_deprecated,
+                tier=tier,
+                group=group,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    return [BusinessAttributeResponse(**r) for r in records]
+
+
+@router.post("/influence", response_model=InfluenceResponse, status_code=201)
+async def create_influence(req: InfluenceCreate, request: Request) -> InfluenceResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_influence_edge(
+                session,
+                source_id=req.source_id,
+                target_id=req.target_id,
+                polarity=req.polarity,
+                severity=req.severity,
+                rationale=req.rationale,
+                status=req.status,
+                now=now,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Source or target node not found")
+    return InfluenceResponse(**record)
+
+
+@router.post("/contains", response_model=ContainsResponse, status_code=201)
+async def create_contains(req: ContainsCreate, request: Request) -> ContainsResponse:
+    now = datetime.now(tz=timezone.utc).isoformat()
+    try:
+        with request.app.state.driver.session() as session:
+            record = knowledge_repo.create_contains_edge(
+                session,
+                parent_id=req.parent_id,
+                child_id=req.child_id,
+                rationale=req.rationale,
+                now=now,
+            )
+    except ServiceUnavailable as exc:
+        raise HTTPException(status_code=503, detail="Memgraph unavailable") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Parent or child node not found")
+    return ContainsResponse(**record)
 
 
 # ---------------------------------------------------------------------------

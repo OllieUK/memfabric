@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 def upsert_framework(session, req, now: str) -> dict:
     """MERGE Framework on id; SET all properties ON CREATE, update classification ON MATCH.
     If parent_id is set, creates CONTAINS edge from parent Framework to this node.
+    Includes WP-113 T100-aligned coordinate properties: layer, perspective, matrix, cell_role, t100_stereotype.
     """
     result = session.run(
         """
@@ -30,16 +31,31 @@ def upsert_framework(session, req, now: str) -> dict:
             f.modality = $modality,
             f.external_id = $external_id,
             f.domain = $domain,
+            f.layer = $layer,
+            f.perspective = $perspective,
+            f.matrix = $matrix,
+            f.cell_role = $cell_role,
+            f.t100_stereotype = $t100_stereotype,
             f.created_at = $created_at
         ON MATCH SET
             f.statement_type = $statement_type,
-            f.modality = $modality
+            f.modality = $modality,
+            f.layer = $layer,
+            f.perspective = $perspective,
+            f.matrix = $matrix,
+            f.cell_role = $cell_role,
+            f.t100_stereotype = $t100_stereotype
         RETURN f.id AS id, f.title AS title, f.version AS version,
                f.level AS level, f.body AS body,
                f.statement_type AS statement_type,
                f.modality AS modality,
                f.external_id AS external_id,
                f.domain AS domain,
+               f.layer AS layer,
+               f.perspective AS perspective,
+               f.matrix AS matrix,
+               f.cell_role AS cell_role,
+               f.t100_stereotype AS t100_stereotype,
                f.created_at AS created_at
         """,
         id=req.id,
@@ -51,6 +67,11 @@ def upsert_framework(session, req, now: str) -> dict:
         modality=req.modality,
         external_id=getattr(req, "external_id", None),
         domain=getattr(req, "domain", None),
+        layer=getattr(req, "layer", None),
+        perspective=getattr(req, "perspective", None),
+        matrix=getattr(req, "matrix", None),
+        cell_role=getattr(req, "cell_role", None),
+        t100_stereotype=getattr(req, "t100_stereotype", None),
         created_at=now,
     )
     record = dict(result.single())
@@ -112,6 +133,11 @@ def get_framework(session, framework_id: str) -> dict | None:
                f.modality AS modality,
                f.external_id AS external_id,
                f.domain AS domain,
+               f.layer AS layer,
+               f.perspective AS perspective,
+               f.matrix AS matrix,
+               f.cell_role AS cell_role,
+               f.t100_stereotype AS t100_stereotype,
                f.created_at AS created_at
         """,
         id=framework_id,
@@ -623,9 +649,165 @@ def get_business_attribute(session, attribute_id: str) -> dict | None:
     result = session.run(
         """
         MATCH (ba:BusinessAttribute {id: $id})
-        RETURN ba.id AS id, ba.name AS name
+        RETURN ba.id AS id, ba.name AS name,
+               ba.description AS description, ba.source_ref AS source_ref,
+               ba.tier AS tier, ba.status AS status, ba.group AS group,
+               ba.t100_stereotype AS t100_stereotype,
+               ba.superseded_by AS superseded_by,
+               ba.created_at AS created_at
         """,
         id=attribute_id,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+def upsert_business_attribute(session, req, embedding: list[float], now: str) -> dict:
+    result = session.run(
+        """
+        MERGE (ba:BusinessAttribute {id: $id})
+        ON CREATE SET
+            ba.name = $name,
+            ba.description = $description,
+            ba.source_ref = $source_ref,
+            ba.tier = $tier,
+            ba.status = $status,
+            ba.group = $group,
+            ba.t100_stereotype = $t100_stereotype,
+            ba.superseded_by = $superseded_by,
+            ba.embedding = $embedding,
+            ba.created_at = $created_at
+        ON MATCH SET
+            ba.name = $name,
+            ba.description = $description,
+            ba.source_ref = $source_ref,
+            ba.tier = $tier,
+            ba.status = $status,
+            ba.group = $group,
+            ba.t100_stereotype = $t100_stereotype,
+            ba.superseded_by = $superseded_by,
+            ba.embedding = $embedding
+        RETURN ba.id AS id, ba.name AS name,
+               ba.description AS description, ba.source_ref AS source_ref,
+               ba.tier AS tier, ba.status AS status, ba.group AS group,
+               ba.t100_stereotype AS t100_stereotype,
+               ba.superseded_by AS superseded_by,
+               ba.created_at AS created_at
+        """,
+        id=req.id,
+        name=req.name,
+        description=req.description,
+        source_ref=req.source_ref,
+        tier=req.tier,
+        status=req.status,
+        group=req.group,
+        t100_stereotype=req.t100_stereotype,
+        superseded_by=req.superseded_by,
+        embedding=embedding,
+        created_at=now,
+    )
+    return dict(result.single())
+
+
+def list_business_attributes(
+    session,
+    include_deprecated: bool = False,
+    tier: str | None = None,
+    group: str | None = None,
+) -> list[dict]:
+    filters = []
+    if not include_deprecated:
+        filters.append("ba.status <> 'deprecated'")
+    if tier is not None:
+        filters.append("ba.tier = $tier")
+    if group is not None:
+        filters.append("ba.group = $group")
+    where_clause = ("WHERE " + " AND ".join(filters)) if filters else ""
+    result = session.run(
+        f"""
+        MATCH (ba:BusinessAttribute)
+        {where_clause}
+        RETURN ba.id AS id, ba.name AS name,
+               ba.description AS description, ba.source_ref AS source_ref,
+               ba.tier AS tier, ba.status AS status, ba.group AS group,
+               ba.t100_stereotype AS t100_stereotype,
+               ba.superseded_by AS superseded_by,
+               ba.created_at AS created_at
+        ORDER BY ba.name ASC
+        """,
+        tier=tier,
+        group=group,
+    )
+    return [dict(r) for r in result]
+
+
+def create_influence_edge(
+    session,
+    source_id: str,
+    target_id: str,
+    polarity: str,
+    severity: str | None,
+    rationale: str | None,
+    status: str,
+    now: str,
+) -> dict | None:
+    result = session.run(
+        """
+        MATCH (src:Threat {id: $source_id})
+        MATCH (tgt:BusinessAttribute {id: $target_id})
+        MERGE (src)-[r:INFLUENCE]->(tgt)
+        ON CREATE SET
+            r.polarity = $polarity,
+            r.severity = $severity,
+            r.rationale = $rationale,
+            r.status = $status,
+            r.created_at = $created_at
+        ON MATCH SET
+            r.polarity = $polarity,
+            r.severity = $severity,
+            r.rationale = $rationale,
+            r.status = $status
+        RETURN src.id AS source_id, tgt.id AS target_id,
+               r.polarity AS polarity, r.severity AS severity,
+               r.rationale AS rationale, r.status AS status,
+               r.created_at AS created_at
+        """,
+        source_id=source_id,
+        target_id=target_id,
+        polarity=polarity,
+        severity=severity,
+        rationale=rationale,
+        status=status,
+        created_at=now,
+    )
+    record = result.single()
+    return dict(record) if record else None
+
+
+def create_contains_edge(
+    session,
+    parent_id: str,
+    child_id: str,
+    rationale: str | None,
+    now: str,
+) -> dict | None:
+    result = session.run(
+        """
+        MATCH (parent:BusinessAttribute {id: $parent_id})
+        MATCH (child:BusinessAttribute {id: $child_id})
+        MERGE (parent)-[r:CONTAINS]->(child)
+        ON CREATE SET
+            r.rationale = $rationale,
+            r.created_at = $created_at
+        ON MATCH SET
+            r.rationale = $rationale
+        RETURN parent.id AS parent_id, child.id AS child_id,
+               r.rationale AS rationale, r.created_at AS created_at
+        """,
+        parent_id=parent_id,
+        child_id=child_id,
+        rationale=rationale,
+        created_at=now,
     )
     record = result.single()
     return dict(record) if record else None
