@@ -28,3 +28,24 @@ def get_api_client(settings: ApiSettings) -> httpx.Client:
     if settings.memfabric_mcp_bearer_token:
         headers["Authorization"] = f"Bearer {settings.memfabric_mcp_bearer_token}"
     return httpx.Client(base_url=settings.api_base_url, timeout=30, headers=headers)
+
+
+def make_settings(api_url: str | None) -> ApiSettings:
+    """Return ApiSettings, overriding api_base_url when api_url is provided."""
+    if api_url:
+        return ApiSettings(api_base_url=api_url)
+    return ApiSettings()
+
+
+def fetch_ict_leaves(client: httpx.Client) -> list[dict]:
+    """Fetch all active ICT-leaf BusinessAttribute nodes."""
+    resp = client.get("/knowledge/business-attributes?limit=500")
+    resp.raise_for_status()
+    return [b for b in resp.json() if b.get("tier") == "ict-leaf" and b.get("status") == "active"]
+
+
+def search_threats(client: httpx.Client, query: str, top_k: int) -> list[dict]:
+    """Semantic search for Threat nodes matching query."""
+    resp = client.post("/knowledge/search/threats", json={"query": query, "limit": top_k})
+    resp.raise_for_status()
+    return resp.json()

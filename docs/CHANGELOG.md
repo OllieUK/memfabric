@@ -4,6 +4,43 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-113 — Security architecture layer: SABSA, precepts, and business attributes — 2026-05-07
+
+**Done. All 9 phases complete. Strategic threat-to-business traversal path operational in production.**
+
+Activates the ADR-002 strategic path end-to-end: `Threat -[INFLUENCE]-> BusinessAttribute -[INFORMS (via Framework)]-> ...`. Enables the board-level question "which business objectives face the most active threats?" traversable without descending into the control tree.
+
+**Changes:**
+
+- **`data/frameworks/business-attributes.yaml`** — Full T100-aligned BA taxonomy: 8 primitive-root BAs (SABSA W100 + W105), 86 active ICT-leaf BAs across 7 groups, 3 deprecated tombstones with `superseded_by` pointers. All nodes carry `tier`, `group`, `t100_stereotype`, `status`, `source_ref`.
+- **`data/frameworks/sabsa-cells.yaml`** — 66 SABSA matrix cell descriptions (36 main-matrix + 30 service-management), all `description_status: curated`. Fixed YAML parse error (unquoted colon in component-layer title).
+- **`memory_service/knowledge_repo.py`** — Added `create_informs_ba_edge()`: MERGE `Framework -[INFORMS]-> BusinessAttribute` with rationale, similarity, source properties.
+- **`memory_service/knowledge_routes.py`** — Added `InformsBACreate` / `InformsBAResponse` models and `POST /knowledge/informs/ba` endpoint for Framework→BA INFORMS wiring.
+- **`scripts/seed_business_attributes.py`** — Idempotent seeder for BA nodes with status-aware upsert; reads `data/frameworks/business-attributes.yaml`.
+- **`scripts/seed_sabsa_cells.py`** — Idempotent two-pass seeder for SABSA cell Framework nodes; rejects cells with `description_status: draft-curated` as a safety gate.
+- **`scripts/wire_framework_informs_ba_leaves.py`** — Wires Framework leaf → ICT-leaf BA INFORMS edges via embedding similarity (threshold 0.55). Convergence report by ICT group. Result: 67 edges, 7/7 groups.
+- **`scripts/calibrate_threat_ba_influence.py`** — Samples Threat→BA similarity distribution (histogram, percentiles, gap analysis) to inform INFLUENCE threshold selection.
+- **`scripts/wire_threat_ba_influence.py`** — Wires Threat → ICT-leaf BA INFLUENCE edges `{polarity: 'negative', status: 'auto-inferred-embedding'}` via embedding similarity (threshold 0.40, calibrated). Result: 183 edges, 7/7 groups.
+- **`scripts/verify_wp113_t100_aligned_path.py`** — Acceptance gate script: verifies BA taxonomy counts, SABSA cell spot-check, Framework→BA INFORMS group coverage, Threat→BA INFLUENCE path activity, and end-to-end strategic path.
+- **`scripts/script_utils.py`** — Added `make_settings()`, `fetch_ict_leaves()`, `search_threats()` shared helpers, used by all WP-113 wiring scripts.
+
+**Production state (2026-05-07, homeserver):**
+- 8 primitive-root + 86 ICT-leaf + 3 deprecated = 97 BusinessAttribute nodes
+- 15 SABSA spine Framework nodes (root + 6 layers + 6 perspectives + 2 matrices)
+- 66 SABSA matrix cell Framework nodes (36 main + 30 SM)
+- 67 Framework→BA INFORMS edges (7/7 W100 ICT groups covered)
+- 183 Threat→BA INFLUENCE edges, polarity=negative (7/7 groups covered)
+- Acceptance gate: ALL GATES PASS ✓
+
+**Retrospective:**
+- The "no Bolt from local" constraint forced HTTP-API-only design throughout — this turned out well: all wiring scripts are now portable and work against any environment without Docker.
+- Threshold calibration (Phase 7) confirmed that Threat and BA vocabulary live in different embedding regions (max similarity 0.57) — the threshold decision required evidence, not guessing.
+- YAML quoting bug (unquoted colon in component-layer title) was the only blocker during seeding — caught at parse time, not at runtime.
+- The `cit-home-stackdeploy` submodule pointer issue (1Password SSH agent failure silently leaving the pointer at old SHA) caused two unnecessary homeserver rebuilds — worth adding a submodule pointer verification step to the publish workflow.
+- `/simplify` pass identified 4 BA fetches in the verify script collapsible to 1, dead code in `_count_influence_edges`, and `_fetch_ict_leaves`/`_search_threats` duplicated across 3 scripts — all fixed before commit.
+
+---
+
 ### WP-138b — Apply calibrated threat dedup threshold to existing Threat corpus — 2026-05-07
 
 **Done. Production merge pass completed 2026-05-07.**
