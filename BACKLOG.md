@@ -13,6 +13,19 @@
 |----|-------|---------|
 | WP-113 | Security architecture layer: SABSA, precepts, and business attributes | 2026-05-07 |
 
+### WP-113 progress (2026-05-07)
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 2 | BusinessAttribute Tier-1 seeding (8 active + 3 deprecated tombstones) | ✅ Done — commit `23cfc40` |
+| Phase 3 | W100 ICT BA taxonomy seeding (7 groups + 86 ICT-leaf nodes) | ✅ Done — commit `f5b1d1b` |
+| Phase 4 | SABSA matrix spine seeding (15 Framework nodes: 1 root + 6 layers + 6 perspectives + 2 matrices) | ✅ Done — commit `39b207d` |
+| Phase 5 | SABSA 66-cell matrix seed (36 main + 30 SM, R101 verbatim, business-first, all curated) | ✅ Done — commit `a6bfbcb` |
+| Phase 6 | Framework→BA-leaf INFORMS wiring (67 edges, 7/7 ICT groups, acceptance gate PASS) | ✅ Done — commit `b6988a4`, live in production |
+| Phase 7 | Threat→BA INFLUENCE calibration + top-50 discovery + draft curation + Oliver review + wiring | ⏳ Next |
+| Phase 8 | Acceptance script (`verify_wp113_t100_aligned_path.py`) against production | ⏳ Pending Phase 7 |
+| Phase 9 | DoD: /simplify, deploy-checklist, BACKLOG update, CHANGELOG write-back, final commit | ⏳ Pending Phase 8 |
+
 ---
 
 ## Prioritised Backlog
