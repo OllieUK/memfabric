@@ -33,10 +33,20 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from memory_service.config import Settings, get_driver
 
-try:
-    from create_cross_framework_informs import cosine_similarity_matrix
-except ImportError:
-    from scripts.create_cross_framework_informs import cosine_similarity_matrix
+
+def cosine_similarity_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Cosine similarity matrix of shape (m, n). Zero-norm rows → zero similarity.
+
+    Inlined from scripts/create_cross_framework_informs.py to avoid a cross-script
+    import that breaks when running inside the Docker container (scripts/ is not
+    baked into the image). Keep in sync if the canonical version changes (WP-167
+    will eventually bake scripts/ into the image, at which point this can be removed).
+    """
+    a_norms = np.linalg.norm(a, axis=1, keepdims=True)
+    b_norms = np.linalg.norm(b, axis=1, keepdims=True)
+    a_norm = np.where(a_norms > 0, a / a_norms, 0.0)
+    b_norm = np.where(b_norms > 0, b / b_norms, 0.0)
+    return (a_norm @ b_norm.T).astype(np.float32)
 
 
 # ---------------------------------------------------------------------------
