@@ -1,0 +1,909 @@
+# data/frameworks/sabsa-cells.yaml
+#
+# SABSA 2018 matrix cells — 66 Framework leaf nodes.
+# Seeded by scripts/seed_sabsa_cells.py (WP-113 Phase 5).
+#
+# Source: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+#   Table 2 (p.8)  — SABSA Architecture Matrix 2018 (main 6×6)
+#   Table 3 (p.13) — SABSA Management Matrix 2018 (SM 5×6)
+#
+# Cell bodies are taken verbatim (or near-verbatim) from R101 Tables 2 and 3.
+# Each layer in R101 has two rows: an abstract label row (short perspective
+# titles) and a content row (full cell text). The body field uses the content
+# row; the title field uses the abstract label for that perspective.
+#
+# Architecture principle: SABSA is the Sherwood Applied BUSINESS Security
+# Architecture. Descriptions are taken from R101 directly — they are
+# business-focused by design. Security implications derive from the
+# business context; they are not the starting point.
+#
+# description_status: curated — requires Oliver review before seeding.
+# Seeder refuses to load any row still at draft-curated.
+
+main_matrix:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CONTEXTUAL ARCHITECTURE (Table 2, Row 1)
+  # Abstract labels: Business Goals & Decisions | Business Risk |
+  #   Business Meta-Processes | Business Governance |
+  #   Business Geography | Business Time Dependence
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-main.contextual.assets
+    title: Contextual — Business Goals & Decisions
+    body: "Business Value; Taxonomy of Business Assets, including Goals & Objectives, Success Factors, Targets"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: assets
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.contextual.motivation
+    title: Contextual — Business Risk
+    body: "Opportunities & Threats Inventory"
+    note: "The raw, unfiltered business risk landscape — opportunities and threats as the business experiences them, before any architectural classification or treatment. Its operational counterpart is SM Contextual × Motivation (Business Risk Assessment), which is where this inventory is actively analysed and acted upon. Together they form the full risk management cycle: identify here, analyse and treat there."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: motivation
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.contextual.process
+    title: Contextual — Business Meta-Processes
+    body: "Business Value Chain; Business Capabilities"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: process
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.contextual.people
+    title: Contextual — Business Governance
+    body: "Organisational Structure & the Extended Enterprise"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: people
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.contextual.location
+    title: Contextual — Business Geography
+    body: "Inventory of Buildings, Sites, Territories, Jurisdictions, etc."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: location
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.contextual.time
+    title: Contextual — Business Time Dependence
+    body: "Time dependencies of Business Goals and Value Creation"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: time
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CONCEPTUAL ARCHITECTURE (Table 2, Row 2)
+  # Abstract labels: Business Value & Knowledge Strategy | Risk Management
+  #   Strategy & Objectives | Strategies for Process Assurance |
+  #   Security & Risk Governance; Trust Framework |
+  #   Domain Framework | Time Management Framework
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-main.conceptual.assets
+    title: Conceptual — Business Value & Knowledge Strategy
+    body: "Business Attributes Taxonomy & Profile (with integrated performance targets)"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: assets
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.conceptual.motivation
+    title: Conceptual — Risk Management Strategy & Objectives
+    body: "Enablement & Control Objectives; Policy Architecture; Risk Categories; Risk Management Strategies; Risk Architecture; Risk Modelling Framework; Assurance Framework"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: motivation
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.conceptual.process
+    title: Conceptual — Strategies for Process Assurance
+    body: "Inventory of all Operational Processes (IT, industrial, & manual); Process Mapping Framework; Architectural Strategies for IT used in process support"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: process
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.conceptual.people
+    title: Conceptual — Security & Risk Governance; Trust Framework
+    body: "Owners, Custodians and Users; Service Providers & Customers; Trust Modelling Framework"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: people
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.conceptual.location
+    title: Conceptual — Domain Framework
+    body: "Security Domain Concepts & Framework"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: location
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.conceptual.time
+    title: Conceptual — Time Management Framework
+    body: "Through-Life Risk Management Framework; Attribute Performance Targets"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: time
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # LOGICAL ARCHITECTURE (Table 2, Row 3)
+  # Abstract labels: Information Assets | Risk Management Policies |
+  #   Process Maps & Services | Trust Relationships |
+  #   Domain Maps | Calendar & Timetable
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-main.logical.assets
+    title: Logical — Information Assets
+    body: "Inventory of Information Assets; Information Model of the Business"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: assets
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.logical.motivation
+    title: Logical — Risk Management Policies
+    body: "Risk Models; Domain Policies; Assurance Criteria (populated Assurance Framework)"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: motivation
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.logical.process
+    title: Logical — Process Maps & Services
+    body: "Information Flows; Functional Transformations; Service Oriented Architecture; Services Catalogue; Application Functionality and Services"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: process
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.logical.people
+    title: Logical — Trust Relationships
+    body: "Domain Authorities; Entity Schema; Privilege Profiles; Trust Relationship Models"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: people
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.logical.location
+    title: Logical — Domain Maps
+    body: "Domain Definitions; Inter-domain Associations & Interactions"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: location
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.logical.time
+    title: Logical — Calendar & Timetable
+    body: "Start Times, Lifetimes & Deadlines"
+    note: "The logical temporal constraints the architecture must enforce — session lifetimes, key rotation schedules, certificate validity windows, time-of-day access rules. The terse R101 label makes most sense alongside its SM counterpart: SM Logical × Time (Evaluation Management) is where those constraints are monitored and reported against KPIs and KRIs in operation. The architecture defines the deadlines; the management matrix tracks whether they are being met."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: time
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # PHYSICAL ARCHITECTURE (Table 2, Row 4)
+  # Abstract labels: Data Assets | Risk Management Practices |
+  #   Process Mechanisms | Human Interface |
+  #   Infrastructure | Processing Schedule
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-main.physical.assets
+    title: Physical — Data Assets
+    body: "Data Dictionary & Data Storage Devices Inventory"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: assets
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.physical.motivation
+    title: Physical — Risk Management Practices
+    body: "Risk Management Rules & Procedures; Risk Metadata"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: motivation
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.physical.process
+    title: Physical — Process Mechanisms
+    body: "Working Procedures; Application Software; Middleware; Systems; Security Mechanisms; Process Control Points"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: process
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.physical.people
+    title: Physical — Human Interface
+    body: "User Interface to Business Systems; Identity & Access Control Systems"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: people
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.physical.location
+    title: Physical — Infrastructure
+    body: "Workspaces; Host Platforms, Layout of Devices & Networks"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: location
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.physical.time
+    title: Physical — Processing Schedule
+    body: "Timing & Sequencing of Processes and Sessions"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: time
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # COMPONENT ARCHITECTURE (Table 2, Row 5)
+  # Abstract labels: Component Assets | Risk Management Components & Standards |
+  #   Process Components & Standards | Human Entities: Components & Standards |
+  #   Locator Components & Standards | Step Timing & Sequencing Components and Standards
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-main.component.assets
+    title: Component — Component Assets
+    body: "Products and Tools, including Data Repositories and Processors"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: assets
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.component.motivation
+    title: Component — Risk Management Components & Standards
+    body: "Risk Analysis Tools; Risk Registers; Risk Monitoring and Reporting Tools"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: motivation
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.component.process
+    title: Component — Process Components & Standards
+    body: "Tools and Protocols for Process Delivery; Application Products"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: process
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.component.people
+    title: "Component — Human Entities: Components & Standards"
+    body: "Identities; Job Descriptions; Roles; Functions; Actions & Access Control Lists"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: people
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.component.location
+    title: Component — Locator Components & Standards
+    body: "Nodes, Addresses and other Locators; Component Configuration"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: location
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.component.time
+    title: Component — Step Timing & Sequencing Components and Standards
+    body: "Time Schedules; Clocks, Timers & Interrupts"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: time
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # MANAGEMENT ARCHITECTURE / OPERATIONAL (Table 2, Row 6)
+  # This is the design row — distinct from the SM execution matrix below.
+  # Abstract labels: Delivery and Continuity Management |
+  #   Operational Risk Management | Process Delivery Management |
+  #   Governance, Relationship & Personnel Management |
+  #   Environment Management | Time & Performance Management
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-main.operational.assets
+    title: Operational — Delivery and Continuity Management
+    body: "Assurance of Operational Excellence & Continuity"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: operational
+    perspective: assets
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.operational.motivation
+    title: Operational — Operational Risk Management
+    body: "Risk Assessment; Risk Monitoring & Reporting; Risk Treatment"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: operational
+    perspective: motivation
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.operational.process
+    title: Operational — Process Delivery Management
+    body: "Management & Support of Systems, Applications & Services"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: operational
+    perspective: process
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.operational.people
+    title: Operational — Governance, Relationship & Personnel Management
+    body: "Management & Support of Enterprise-wide and Extended Enterprise Relationships"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: operational
+    perspective: people
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.operational.location
+    title: Operational — Environment Management
+    body: "Management of Buildings, Sites, Platforms & Networks"
+    note: "The design of the operational environment management capability — spanning physical estate (buildings, sites) and the technology infrastructure that runs on it (platforms, networks) as a unified whole. The pairing with SM Physical × Location (Resources Management: Physical & Environmental Security Management; Real Estate and Facilities Management) shows how the management capability designed here is executed at the physical layer. Together they make explicit that physical security and facilities management are inseparable from platform and network management in the operational view."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: operational
+    perspective: location
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+  - id: sabsa-2018.matrix-main.operational.time
+    title: Operational — Time & Performance Management
+    body: "Management of Calendar and Timetable"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: operational
+    perspective: time
+    matrix: main
+    cell_role: main-matrix-cell
+    parent_id: sabsa-2018.matrix-main
+    description_status: curated
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SERVICE MANAGEMENT MATRIX — 30 cells (Table 3)
+# The Management Architecture row is the anchor (repeated from Table 2 Row 6).
+# The 5 sub-rows below it show how Layer 6 relates to each other layer in
+# execution. SM layer values map to the sub-row layer name.
+# ──────────────────────────────────────────────────────────────────────────────
+service_management_matrix:
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SM CONTEXTUAL (Table 3, sub-row 1)
+  # Abstract labels: Business Driver Development | Business Risk Assessment |
+  #   Capability Management | Relationship Management |
+  #   Supply Chain Management | Performance Management
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-service-management.contextual.assets
+    title: SM Contextual — Business Driver Development
+    body: "Business Benchmarking & Identification of Business Drivers"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: assets
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.contextual.motivation
+    title: SM Contextual — Business Risk Assessment
+    body: "Analysis of Internal & External Risk Factors"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: motivation
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.contextual.process
+    title: SM Contextual — Capability Management
+    body: "Managing Processes and Capabilities for Providing Value to Stakeholders"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: process
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.contextual.people
+    title: SM Contextual — Relationship Management
+    body: "Managing Suppliers, Service Providers, Customers; Business Partners & Employees. Contract Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: people
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.contextual.location
+    title: SM Contextual — Supply Chain Management
+    body: "Demand & Supply Management (upstream and downstream); Deployment & Consumption"
+    note: "SABSA uses the Location perspective to mean 'where things come from and where they go' — not just physical site. At the contextual SM level this becomes supply chain geography: who supplies what, where it is deployed, and how it is consumed. Read alongside its main matrix counterpart, Contextual × Location (Inventory of Buildings, Sites, Territories, Jurisdictions), which defines the business's geographic and jurisdictional footprint. The SM cell operationalises that footprint as a supply and deployment network."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: location
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.contextual.time
+    title: SM Contextual — Performance Management
+    body: "Defining Business-Driven Performance Targets"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: contextual
+    perspective: time
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SM CONCEPTUAL (Table 3, sub-row 2)
+  # Abstract labels: Proxy Asset Development | Developing Risk Objectives |
+  #   Delivery Planning | Role Management |
+  #   Business Portfolio Management | Service Level Definition
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-service-management.conceptual.assets
+    title: SM Conceptual — Proxy Asset Development
+    body: "Defining Business Attributes Profile with Performance Criteria, KPIs & KRIs"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: assets
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.conceptual.motivation
+    title: SM Conceptual — Developing Risk Objectives
+    body: "Maintaining Risk Modelling Framework; Risk Analysis on Business Attributes Profile"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: motivation
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.conceptual.process
+    title: SM Conceptual — Delivery Planning
+    body: "SLA Planning; BCP; Financial Planning; Transition Planning. Planning and Maintaining the Inventory of Processes and Services Catalogue"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: process
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.conceptual.people
+    title: SM Conceptual — Role Management
+    body: "Maintaining Trust Modelling Framework; Defining Roles, Responsibilities, Liabilities & Cultural Values"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: people
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.conceptual.location
+    title: SM Conceptual — Business Portfolio Management
+    body: "Planning & Maintaining the Business Footprint: Points of Supply and Access"
+    note: "One layer below SM Contextual × Location (supply chain execution), this conceptual SM cell is where the business footprint is planned and maintained as an architectural model — the abstract map of where the organisation operates, supplies from, and is accessed. Its main matrix pair, Conceptual × Location (Security Domain Concepts & Framework), is where that footprint becomes the trust domain model from which security boundaries are derived. Together: business footprint planned here → trust domains derived there."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: location
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.conceptual.time
+    title: SM Conceptual — Service Level Definition
+    body: "Managing Performance Criteria and Targets; Abstracting Attribute Performance Targets"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: conceptual
+    perspective: time
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SM LOGICAL (Table 3, sub-row 3)
+  # Abstract labels: Logical Asset Management | Policy Management |
+  #   Delivery Management | Enterprise-wide User Management |
+  #   Service Catalogue Management | Evaluation Management
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-service-management.logical.assets
+    title: SM Logical — Logical Asset Management
+    body: "Knowledge Management; Release & Deployment Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: assets
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.logical.motivation
+    title: SM Logical — Policy Management
+    body: "Risk Modelling; Management of Policy Development & Maintenance. Policy Publication & Compliance Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: motivation
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.logical.process
+    title: SM Logical — Delivery Management
+    body: "SLA Management; Supply Chain Management; BCM; Financial Management; Transition Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: process
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.logical.people
+    title: SM Logical — Enterprise-wide User Management
+    body: "Trust Modelling; Identity & Access Management; Management of User Privileges, Account Administration & Provisioning"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: people
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.logical.location
+    title: SM Logical — Service Catalogue Management
+    body: "Configuration (CMDB) Management; Capacity Planning; Availability Management"
+    note: "CMDB lands under Location because the configuration database is the logical map of where components exist and how they are connected — it is the 'logical locator' for infrastructure. Capacity and availability planning are inseparable from that map: you cannot plan capacity without knowing the topology. Its main matrix pair, Logical × Location (Domain Definitions; Inter-domain Associations & Interactions), defines the domain topology that the CMDB operationally tracks. The architecture defines the domains; the CMDB in this SM cell maintains the live record of what populates them."
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: location
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.logical.time
+    title: SM Logical — Evaluation Management
+    body: "Monitoring & Reporting Performance against KPIs and KRIs"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: logical
+    perspective: time
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SM PHYSICAL (Table 3, sub-row 4)
+  # Abstract labels: Physical Asset Management | Risk Data Management |
+  #   Operations Management | User Support |
+  #   Resources Management | Performance Data Collection
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-service-management.physical.assets
+    title: SM Physical — Physical Asset Management
+    body: "Change Management; Platform & Data Storage Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: assets
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.physical.motivation
+    title: SM Physical — Risk Data Management
+    body: "Risk Procedure Management; Risk Metadata Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: motivation
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.physical.process
+    title: SM Physical — Operations Management
+    body: "Job, Incident, Event, and Disaster Recovery Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: process
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.physical.people
+    title: SM Physical — User Support
+    body: "Service Desk, Problem, and Request Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: people
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.physical.location
+    title: SM Physical — Resources Management
+    body: "Physical & Environmental Security Management; Real Estate and Facilities Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: location
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.physical.time
+    title: SM Physical — Performance Data Collection
+    body: "Business Systems Monitoring Procedure Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: physical
+    perspective: time
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SM COMPONENT (Table 3, sub-row 5)
+  # Abstract labels: Component Management | Risk Management Components |
+  #   Component Deployment | Personnel Component Management |
+  #   Component Environment Management | Monitoring Components
+  # ──────────────────────────────────────────────────────────────────────────
+
+  - id: sabsa-2018.matrix-service-management.component.assets
+    title: SM Component — Component Management
+    body: "Product & Component Standards Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: assets
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.component.motivation
+    title: SM Component — Risk Management Components
+    body: "Risk Analysis, Monitoring & Reporting Components, Systems and Standards Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: motivation
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.component.process
+    title: SM Component — Component Deployment
+    body: "Product & Component Selection, Procurement. Project and Standards Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: process
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.component.people
+    title: SM Component — Personnel Component Management
+    body: "Recruitment, Disciplinary, Training & Awareness Delivery. Component and Standards Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: people
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.component.location
+    title: SM Component — Component Environment Management
+    body: "Physical and Environmental Security Component and Standards Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: location
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
+
+  - id: sabsa-2018.matrix-service-management.component.time
+    title: SM Component — Monitoring Components
+    body: "Analysis, Monitoring & Reporting Component and Standards Management"
+    external_id: TSI-R101-SABSA-Matrices-2018-Release-Notes.pdf
+    level: framework
+    layer: component
+    perspective: time
+    matrix: service-management
+    cell_role: service-mgmt-cell
+    parent_id: sabsa-2018.matrix-service-management
+    description_status: curated
