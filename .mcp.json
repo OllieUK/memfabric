@@ -4,7 +4,7 @@
       "type": "http",
       "url": "https://memfabric.carr-it.net/mcp/",
       "headers": {
-        "Authorization": "Bearer ${MEMFABRIC_API_KEY}"
+        "Authorization": "Bearer ${MEMFABRIC_MCP_BEARER_TOKEN}"
       }
     }
   }
