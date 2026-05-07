@@ -6,7 +6,7 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ### WP-138b — Apply calibrated threat dedup threshold to existing Threat corpus — 2026-05-07
 
-**Implementation complete. Production run pending (human-in-the-loop step).**
+**Done. Production merge pass completed 2026-05-07.**
 
 WP-138 (2026-04-11) calibrated the cross-report dedup threshold to 0.28 and raised the `extract_cti_threats.py` default accordingly. WP-138b applies that threshold retrospectively to the 364 Threat nodes ingested under the old 0.15 default.
 
@@ -14,27 +14,22 @@ WP-138 (2026-04-11) calibrated the cross-report dedup threshold to 0.28 and rais
 
 - **`memory_service/knowledge_repo.py`** — New `merge_threat(session, source_id, target_id) -> dict`. Rewires all `IDENTIFIES` edges (ThreatReport → source → target, ON CREATE only — existing target properties preserved), rewires all `MAPPED_TO_TECHNIQUE` edges (source → Framework → target, deduped), archives the source node (`archived=true`, `merged_into`, `merged_at`). Uses pre-count-before-MERGE pattern to avoid Memgraph `count()` semantics ambiguity inside combined MERGE+DELETE statements.
 - **`memory_service/knowledge_routes.py`** — New models `ThreatMergeRequest`, `ThreatMergeResponse`; new `POST /knowledge/threats/{threat_id}/merge` route. ADR-001 cross-layer `memory_repo` import is local (inside handler), not at module level. Per-merge audit entry written to operation log.
-- **`scripts/apply_threat_dedup_wp138b.py`** — One-off operational script. Fetches all Threat embeddings via direct Bolt, builds pairwise cosine distance matrix (reuses `cosine_similarity_matrix` from `create_cross_framework_informs.py`), identifies cross-report pairs at ≤ 0.28, selects canonical node (higher IDENTIFIES count wins; tie-break: older `created_at`) via union-find, executes merges via HTTP API. R3 pre-flight: checks for TARGETS edges and exits if any found (not handled by current `merge_threat`). Safety gate: exits if > 30 candidates without `--force`. `--dry-run` mode prints plan with no writes.
+- **`scripts/apply_threat_dedup_wp138b.py`** — One-off operational script. Fetches all Threat embeddings via direct Bolt, builds pairwise cosine distance matrix (`cosine_similarity_matrix` inlined — `scripts/` not baked into Docker image, WP-167), identifies cross-report pairs at ≤ 0.28, selects canonical node (higher IDENTIFIES count wins; tie-break: older `created_at`) via union-find, executes merges via HTTP API. R3 pre-flight: checks for TARGETS edges and exits if any found (not handled by current `merge_threat`). Safety gate: exits if > 30 candidates without `--force`. `--dry-run` mode prints plan with no writes. Auth: reads `MEMFABRIC_MCP_BEARER_TOKEN`, falls back to `API_KEYS` (handles both JSON-array and comma-separated formats).
 - **`tests/test_wp138b_threat_merge.py`** — 13 unit tests + 8 integration tests. All 21/21 passing.
 
 **Tests:**
 - Unit: 13 passed in 0.04s (mock session; covers same-id guard, missing/archived node, count return, archive step call, canonical selection, safety gate, cross-report filter, dry-run no-HTTP invariant)
 - Integration: 8 passed in 1.92s against live Memgraph (edge rewiring both directions, dedup of same-report IDENTIFIES, MAPPED_TO_TECHNIQUE union, HTTP 400/404 error cases, operation log written)
 
-**Acceptance criteria:** 9/10 verified. Criterion 7 (production run) and criterion 10 (post-run count delta) pending the homeserver execution.
-
-**Production run instructions (homeserver):**
-```bash
-cd /opt/stacks/sources/graph-memory-fabric
-python3 scripts/apply_threat_dedup_wp138b.py --dry-run
-# Review candidate list. If count ≤ 30 and pairs look correct:
-python3 scripts/apply_threat_dedup_wp138b.py
-```
-`MEMFABRIC_MCP_BEARER_TOKEN` must be set; `MEMGRAPH_HOST` defaults to `localhost` (correct on homeserver). If merge count > 30, inspect the pairs and re-run with `--force` if confirmed.
+**Production run result (2026-05-07, homeserver):**
+- Pre-run: 364 active Threats, 0 archived, 364 IDENTIFIES edges, 474 MAPPED_TO_TECHNIQUE edges
+- 151 raw candidate pairs at threshold 0.28; 107 within-report skips; 44 cross-report pairs; 33 merge operations after union-find
+- Post-run: 331 active Threats (−33), 33 archived (+33), 344 IDENTIFIES edges (−20), 442 MAPPED_TO_TECHNIQUE edges (−32)
+- 33/33 merges succeeded. All acceptance criteria verified.
 
 **Retrospective:**
-- What went well: Pre-count-before-MERGE pattern for edge counting avoided a Cypher count-inside-MERGE ambiguity that the plan flagged as R1. The union-find for canonical selection correctly handles transitive duplicate chains. R3 TARGETS pre-flight prevents silent data corruption on future corpora that do have TARGETS edges.
-- What to improve: The agent worktree mechanism broke silently — the `.git` pointer used a UNC path that git inside WSL can't resolve. Files were written but no commit was made; manual copy to main was required. Worktree isolation + WSL git signing is a known friction point. Track as WP-164-adjacent.
+- What went well: Pre-count-before-MERGE pattern for edge counting avoided the R1 Cypher ambiguity. Union-find correctly collapsed transitive chains. R3 TARGETS pre-flight is intact for future corpora.
+- What to improve: Three production blockers required sequential debugging: (1) container built before WP-138b commits — required image rebuild and redeploy; (2) `scripts/` directory absent from new container after rebuild — `mkdir -p` + `docker cp` again (WP-167 would eliminate this permanently); (3) `API_KEYS` stored as a JSON array string in the container env — script parsed it as plain comma-separated, sending `Bearer ["key"]` instead of `Bearer key`, causing 33/33 401s. Fixed by teaching the auth helper to detect and parse JSON arrays.
 - Deferred: `GET /knowledge/threats` returns archived nodes post-run. Tracked as WP-172 (Ambient Chores).
 
 ---
