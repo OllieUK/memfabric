@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, call
 import pytest
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
 
 
 def _make_session_returning(record: dict):

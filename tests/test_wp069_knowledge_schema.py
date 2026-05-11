@@ -9,7 +9,7 @@ indexes are created correctly and that the separation invariant holds.
 import pytest
 
 from memory_service import main as service_main
-from memory_service.knowledge_schemas import (
+from cyber_knowledge.schemas import (
     CHUNK_STATUSES,
     CONTROL_DOMAINS,
     CONTROL_RELATIONSHIP_TYPES,

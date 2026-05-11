@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from memory_service.knowledge_schemas import (
+from cyber_knowledge.schemas import (
     BA_STATUSES,
     BA_TIERS,
     BA_GROUPS,
@@ -16,7 +16,7 @@ from memory_service.knowledge_schemas import (
     MATRIX_LAYERS_SERVICE_MGMT,
     CELL_ROLES,
 )
-from memory_service.knowledge_routes import (
+from cyber_knowledge.routes import (
     BusinessAttributeCreate,
     BusinessAttributeResponse,
     InfluenceCreate,

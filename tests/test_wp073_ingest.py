@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from memory_service.knowledge_routes import router as knowledge_router
+from cyber_knowledge.routes import router as knowledge_router
 
 
 @pytest.fixture
@@ -45,9 +45,9 @@ def test_create_supports_returns_200(client):
         "status": "auto-inferred",
         "created_at": "2026-01-01T00:00:00+00:00",
     }
-    with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "chunk-1"}), \
-         patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw-1"}), \
-         patch("memory_service.knowledge_repo.create_supports_edge_framework", return_value=record):
+    with patch("cyber_knowledge.repo.get_chunk", return_value={"id": "chunk-1"}), \
+         patch("cyber_knowledge.repo.get_framework", return_value={"id": "fw-1"}), \
+         patch("cyber_knowledge.repo.create_supports_edge_framework", return_value=record):
         resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "chunk-1",
             "framework_id": "fw-1",
@@ -64,8 +64,8 @@ def test_create_supports_returns_200(client):
 
 def test_create_supports_missing_chunk_404(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_chunk", return_value=None), \
-         patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw-1"}):
+    with patch("cyber_knowledge.repo.get_chunk", return_value=None), \
+         patch("cyber_knowledge.repo.get_framework", return_value={"id": "fw-1"}):
         resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "nonexistent-chunk",
             "framework_id": "fw-1",
@@ -77,8 +77,8 @@ def test_create_supports_missing_chunk_404(client):
 
 def test_create_supports_missing_framework_404(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "chunk-1"}), \
-         patch("memory_service.knowledge_repo.get_framework", return_value=None):
+    with patch("cyber_knowledge.repo.get_chunk", return_value={"id": "chunk-1"}), \
+         patch("cyber_knowledge.repo.get_framework", return_value=None):
         resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "chunk-1",
             "framework_id": "nonexistent-fw",
@@ -107,8 +107,8 @@ def test_get_chunks_for_control_returns_list(client):
             "confidence": 0.7, "status": "auto-inferred",
         },
     ]
-    with patch("memory_service.knowledge_repo.get_control", return_value={"id": "ctrl-1"}), \
-         patch("memory_service.knowledge_repo.get_chunks_for_control", return_value=chunks):
+    with patch("cyber_knowledge.repo.get_control", return_value={"id": "ctrl-1"}), \
+         patch("cyber_knowledge.repo.get_chunks_for_control", return_value=chunks):
         resp = test_client.get("/knowledge/controls/ctrl-1/chunks")
     assert resp.status_code == 200
     data = resp.json()
@@ -119,7 +119,7 @@ def test_get_chunks_for_control_returns_list(client):
 
 def test_get_chunks_for_control_missing_control_404(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_control", return_value=None):
+    with patch("cyber_knowledge.repo.get_control", return_value=None):
         resp = test_client.get("/knowledge/controls/ghost-ctrl/chunks")
     assert resp.status_code == 404
     assert "ghost-ctrl" in resp.json()["detail"]
@@ -127,8 +127,8 @@ def test_get_chunks_for_control_missing_control_404(client):
 
 def test_get_chunks_for_control_empty(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_control", return_value={"id": "ctrl-1"}), \
-         patch("memory_service.knowledge_repo.get_chunks_for_control", return_value=[]):
+    with patch("cyber_knowledge.repo.get_control", return_value={"id": "ctrl-1"}), \
+         patch("cyber_knowledge.repo.get_chunks_for_control", return_value=[]):
         resp = test_client.get("/knowledge/controls/ctrl-1/chunks")
     assert resp.status_code == 200
     assert resp.json() == []
@@ -140,7 +140,7 @@ def test_get_chunks_for_control_empty(client):
 
 
 def test_create_supports_edge_framework_calls_session_run():
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     record_data = {
@@ -170,7 +170,7 @@ def test_create_supports_edge_framework_calls_session_run():
 
 
 def test_create_supports_edge_framework_returns_none_when_no_match():
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     mock_session.run.return_value.single.return_value = None
@@ -183,7 +183,7 @@ def test_create_supports_edge_framework_returns_none_when_no_match():
 
 
 def test_get_chunks_for_control_repo_returns_list():
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     row1 = {

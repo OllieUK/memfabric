@@ -7,7 +7,7 @@ All tests are unit tests with mocked sessions — no live stack required.
 import pytest
 from unittest.mock import MagicMock
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
 
 
 # ---------------------------------------------------------------------------
@@ -353,9 +353,9 @@ class TestSearchControlsRoute:
             "created_at": "2026-01-01T00:00:00+00:00",
             "distance": 0.1,
         }
-        with patch("memory_service.knowledge_routes.knowledge_repo.search_controls",
+        with patch("cyber_knowledge.routes.knowledge_repo.search_controls",
                    return_value=[mock_hit]):
-            with patch("memory_service.knowledge_routes.get_embedding",
+            with patch("cyber_knowledge.routes.get_embedding",
                        return_value=[0.1, 0.2, 0.3]):
                 resp = client.post("/knowledge/search/controls",
                                    json={"query": "test", "limit": 5})
@@ -371,9 +371,9 @@ class TestSearchControlsRoute:
         """POST /knowledge/search/controls calls get_embedding with knowledge model."""
         client, session = app_client_b
 
-        with patch("memory_service.knowledge_routes.knowledge_repo.search_controls",
+        with patch("cyber_knowledge.routes.knowledge_repo.search_controls",
                    return_value=[]):
-            with patch("memory_service.knowledge_routes.get_embedding",
+            with patch("cyber_knowledge.routes.get_embedding",
                        return_value=[0.1]) as mock_emb:
                 resp = client.post("/knowledge/search/controls",
                                    json={"query": "test query", "limit": 5})
@@ -401,9 +401,9 @@ class TestSearchChunksRoute:
             "created_at": "2026-01-01T00:00:00+00:00",
             "distance": 0.2,
         }
-        with patch("memory_service.knowledge_routes.knowledge_repo.search_chunks",
+        with patch("cyber_knowledge.routes.knowledge_repo.search_chunks",
                    return_value=[mock_hit]):
-            with patch("memory_service.knowledge_routes.get_embedding",
+            with patch("cyber_knowledge.routes.get_embedding",
                        return_value=[0.1, 0.2, 0.3]):
                 resp = client.post("/knowledge/search/chunks",
                                    json={"query": "test", "limit": 5})
@@ -419,9 +419,9 @@ class TestSearchChunksRoute:
         """POST /knowledge/search/chunks calls get_embedding with knowledge model."""
         client, session = app_client_b
 
-        with patch("memory_service.knowledge_routes.knowledge_repo.search_chunks",
+        with patch("cyber_knowledge.routes.knowledge_repo.search_chunks",
                    return_value=[]):
-            with patch("memory_service.knowledge_routes.get_embedding",
+            with patch("cyber_knowledge.routes.get_embedding",
                        return_value=[0.1]) as mock_emb:
                 resp = client.post("/knowledge/search/chunks",
                                    json={"query": "chunk query", "limit": 5})
@@ -458,7 +458,7 @@ class TestListNormsRoute:
                 "created_at": "2026-01-02T00:00:00+00:00",
             },
         ]
-        with patch("memory_service.knowledge_routes.knowledge_repo.list_norms",
+        with patch("cyber_knowledge.routes.knowledge_repo.list_norms",
                    return_value=mock_norms):
             resp = client.get("/knowledge/norms")
 
@@ -473,7 +473,7 @@ class TestListNormsRoute:
         """GET /knowledge/norms returns empty list when no norms exist."""
         client, session = app_client_b
 
-        with patch("memory_service.knowledge_routes.knowledge_repo.list_norms",
+        with patch("cyber_knowledge.routes.knowledge_repo.list_norms",
                    return_value=[]):
             resp = client.get("/knowledge/norms")
 
@@ -499,7 +499,7 @@ class TestListDocumentsRoute:
                 "created_at": "2026-01-01T00:00:00+00:00",
             },
         ]
-        with patch("memory_service.knowledge_routes.knowledge_repo.list_documents",
+        with patch("cyber_knowledge.routes.knowledge_repo.list_documents",
                    return_value=mock_docs):
             resp = client.get("/knowledge/documents")
 
@@ -522,7 +522,7 @@ class TestListIncompleteJurisdictionsRoute:
             "norms_without_jurisdiction": [],
             "controls_without_jurisdiction": [],
         }
-        with patch("memory_service.knowledge_routes.knowledge_repo.list_incomplete_jurisdictions",
+        with patch("cyber_knowledge.routes.knowledge_repo.list_incomplete_jurisdictions",
                    return_value=mock_result):
             resp = client.get("/knowledge/incomplete-jurisdictions")
 

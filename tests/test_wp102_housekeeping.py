@@ -15,7 +15,7 @@ from neo4j.exceptions import ServiceUnavailable
 
 os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
 
-from memory_service.knowledge_routes import router as knowledge_router
+from cyber_knowledge.routes import router as knowledge_router
 
 
 # ---------------------------------------------------------------------------
@@ -47,9 +47,9 @@ class TestChunksSupportsUrl:
     def test_new_plural_url_is_registered(self, client):
         """POST /knowledge/chunks/supports must exist (not 404/405)."""
         test_client, mock_session, _ = client
-        with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "c1"}), \
-             patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw1"}), \
-             patch("memory_service.knowledge_repo.create_supports_edge_framework", return_value={
+        with patch("cyber_knowledge.repo.get_chunk", return_value={"id": "c1"}), \
+             patch("cyber_knowledge.repo.get_framework", return_value={"id": "fw1"}), \
+             patch("cyber_knowledge.repo.create_supports_edge_framework", return_value={
                  "chunk_id": "c1", "framework_id": "fw1", "confidence": 0.9,
                  "raw_score": None, "status": "auto-inferred",
                  "created_at": "2026-01-01T00:00:00+00:00",
@@ -105,7 +105,7 @@ class Test503Guards:
         assert resp.status_code == 503
 
     def test_post_chunks_returns_503(self, unavailable_client):
-        with patch("memory_service.knowledge_routes.get_embedding", return_value=[0.1] * 10):
+        with patch("cyber_knowledge.routes.get_embedding", return_value=[0.1] * 10):
             resp = unavailable_client.post("/knowledge/chunks", json={
                 "id": "ch-1", "body": "text", "sequence": 0, "doc_id": "doc-1",
             })

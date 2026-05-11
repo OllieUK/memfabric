@@ -11,7 +11,7 @@ os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ class TestTraceDownRepo:
 
     def test_trace_down_groups_chunks_under_documents(self):
         session = self._make_session()
-        with patch("memory_service.knowledge_repo.get_control", return_value={"id": "c-1"}):
+        with patch("cyber_knowledge.repo.get_control", return_value={"id": "c-1"}):
             session.run.return_value.single.return_value = {
                 "control_id": "c-1",
                 "doc_chunks": [
@@ -156,7 +156,7 @@ class TestTraceDownRepo:
 
     def test_trace_down_splits_evidence_and_gap_memories(self):
         session = self._make_session()
-        with patch("memory_service.knowledge_repo.get_control", return_value={"id": "c-1"}):
+        with patch("cyber_knowledge.repo.get_control", return_value={"id": "c-1"}):
             session.run.return_value.single.return_value = {
                 "control_id": "c-1",
                 "doc_chunks": [],
@@ -173,7 +173,7 @@ class TestTraceDownRepo:
 
     def test_trace_down_returns_empty_lists_with_no_memory_nodes(self):
         session = self._make_session()
-        with patch("memory_service.knowledge_repo.get_control", return_value={"id": "c-1"}):
+        with patch("cyber_knowledge.repo.get_control", return_value={"id": "c-1"}):
             session.run.return_value.single.return_value = {
                 "control_id": "c-1",
                 "doc_chunks": [],
@@ -186,7 +186,7 @@ class TestTraceDownRepo:
 
     def test_trace_down_org_id_passed_as_param(self):
         session = self._make_session()
-        with patch("memory_service.knowledge_repo.get_control", return_value={"id": "c-1"}):
+        with patch("cyber_knowledge.repo.get_control", return_value={"id": "c-1"}):
             session.run.return_value.single.return_value = {
                 "control_id": "c-1", "doc_chunks": [], "memory_refs": []
             }
@@ -196,7 +196,7 @@ class TestTraceDownRepo:
 
     def test_trace_down_org_id_none_passes_none(self):
         session = self._make_session()
-        with patch("memory_service.knowledge_repo.get_control", return_value={"id": "c-1"}):
+        with patch("cyber_knowledge.repo.get_control", return_value={"id": "c-1"}):
             session.run.return_value.single.return_value = {
                 "control_id": "c-1", "doc_chunks": [], "memory_refs": []
             }
@@ -380,7 +380,7 @@ class TestGapAnalysisRepo:
 class TestTraceabilityRoutes:
     def test_get_trace_up_returns_200(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.trace_up") as mock_fn:
+        with patch("cyber_knowledge.repo.trace_up") as mock_fn:
             mock_fn.return_value = {
                 "control_id": "c-1",
                 "business_attributes": [{"id": "ba-1", "name": "Confidentiality"}],
@@ -395,13 +395,13 @@ class TestTraceabilityRoutes:
 
     def test_get_trace_up_returns_404_when_missing(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.trace_up", return_value=None):
+        with patch("cyber_knowledge.repo.trace_up", return_value=None):
             resp = client.get("/knowledge/controls/nonexistent/trace-up")
         assert resp.status_code == 404
 
     def test_get_trace_down_returns_200(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.trace_down") as mock_fn:
+        with patch("cyber_knowledge.repo.trace_down") as mock_fn:
             mock_fn.return_value = {
                 "control_id": "c-1",
                 "documents": [],
@@ -416,7 +416,7 @@ class TestTraceabilityRoutes:
 
     def test_get_trace_down_accepts_org_id_param(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.trace_down") as mock_fn:
+        with patch("cyber_knowledge.repo.trace_down") as mock_fn:
             mock_fn.return_value = {
                 "control_id": "c-1",
                 "documents": [],
@@ -431,13 +431,13 @@ class TestTraceabilityRoutes:
 
     def test_get_trace_down_returns_404_when_missing(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.trace_down", return_value=None):
+        with patch("cyber_knowledge.repo.trace_down", return_value=None):
             resp = client.get("/knowledge/controls/nonexistent/trace-down")
         assert resp.status_code == 404
 
     def test_get_attribute_coverage_returns_200(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.attribute_coverage") as mock_fn:
+        with patch("cyber_knowledge.repo.attribute_coverage") as mock_fn:
             mock_fn.return_value = {
                 "attribute_id": "ba-1",
                 "total_controls": 4,
@@ -453,13 +453,13 @@ class TestTraceabilityRoutes:
 
     def test_get_attribute_coverage_returns_404_when_missing(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.attribute_coverage", return_value=None):
+        with patch("cyber_knowledge.repo.attribute_coverage", return_value=None):
             resp = client.get("/knowledge/attributes/nonexistent/coverage")
         assert resp.status_code == 404
 
     def test_post_gap_analysis_returns_200_empty_body(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.gap_analysis") as mock_fn:
+        with patch("cyber_knowledge.repo.gap_analysis") as mock_fn:
             mock_fn.return_value = {"covered": [], "partial": [], "uncovered": []}
             resp = client.post("/knowledge/gap-analysis", json={})
         assert resp.status_code == 200
@@ -470,7 +470,7 @@ class TestTraceabilityRoutes:
 
     def test_post_gap_analysis_with_control_ids(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.gap_analysis") as mock_fn:
+        with patch("cyber_knowledge.repo.gap_analysis") as mock_fn:
             mock_fn.return_value = {"covered": [], "partial": [], "uncovered": []}
             resp = client.post("/knowledge/gap-analysis", json={"control_ids": ["c-1", "c-2"]})
         assert resp.status_code == 200
@@ -479,7 +479,7 @@ class TestTraceabilityRoutes:
 
     def test_post_gap_analysis_with_org_id(self, app_client):
         client, session = app_client
-        with patch("memory_service.knowledge_repo.gap_analysis") as mock_fn:
+        with patch("cyber_knowledge.repo.gap_analysis") as mock_fn:
             mock_fn.return_value = {"covered": [], "partial": [], "uncovered": []}
             resp = client.post("/knowledge/gap-analysis", json={"org_id": "org-acme"})
         assert resp.status_code == 200

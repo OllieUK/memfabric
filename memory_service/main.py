@@ -278,7 +278,7 @@ async def add_memory(req: AddMemoryRequest, request: Request) -> AddMemoryRespon
                 importance_floor_factor=settings.importance_floor_factor,
             )
             if settings.enable_knowledge_layer and (req.control_ids or req.doc_ids):
-                from memory_service import knowledge_bridge
+                from cyber_knowledge import bridge as knowledge_bridge
                 if req.control_ids:
                     missing = knowledge_bridge.validate_controls(session, req.control_ids)
                     if missing:
@@ -379,7 +379,7 @@ async def search_memory(
             )
             hydration = {}
             if settings.enable_knowledge_layer and primary_ids:
-                from memory_service import knowledge_bridge
+                from cyber_knowledge import bridge as knowledge_bridge
                 hydration = knowledge_bridge.hydrate_controls_and_documents(
                     session, list(primary_ids)
                 )
@@ -1229,7 +1229,7 @@ async def update_memory(
                     raise HTTPException(status_code=404, detail="Memory not found or not active")
             memory_repo.update_memory(session, memory_id, repo_patch, new_embedding, now)
             if settings.enable_knowledge_layer and bridge_fields:
-                from memory_service import knowledge_bridge
+                from cyber_knowledge import bridge as knowledge_bridge
                 if "control_ids" in bridge_fields:
                     missing = knowledge_bridge.validate_controls(session, bridge_fields["control_ids"])
                     if missing:
@@ -1285,7 +1285,7 @@ async def merge_memory(
                 default_edge_decay_rate=settings.edge_decay_rate,
             )
             if settings.enable_knowledge_layer:
-                from memory_service import knowledge_bridge
+                from cyber_knowledge import bridge as knowledge_bridge
                 knowledge_bridge.rewire_cross_layer_edges(session, memory_id, req.target_id)
             memory_repo.append_operation_log(session, {
                 "operation": "merge",
@@ -1503,5 +1503,5 @@ async def get_graph(
 
 # Knowledge layer router — only registered when ENABLE_KNOWLEDGE_LAYER=true
 if settings.enable_knowledge_layer:
-    from memory_service.knowledge_routes import router as knowledge_router
+    from cyber_knowledge.routes import router as knowledge_router
     app.include_router(knowledge_router)

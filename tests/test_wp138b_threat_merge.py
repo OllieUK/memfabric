@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
 
 
 # ---------------------------------------------------------------------------

@@ -973,7 +973,7 @@ class TestCrossLayerIntegration:
         with TestClient(main_mod.app) as c:
             with patch("memory_service.memory_repo.find_duplicate_memory", return_value=None), \
                  patch("memory_service.memory_repo.add_memory"), \
-                 patch("memory_service.knowledge_bridge.link_controls") as mock_link:
+                 patch("cyber_knowledge.bridge.link_controls") as mock_link:
                 resp = c.post("/memory", json={
                     "fact": "test-wp076-cl flag off fact",
                     "type": "fact",

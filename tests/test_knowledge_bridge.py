@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, call
 
-from memory_service import knowledge_bridge
+from cyber_knowledge import bridge as knowledge_bridge
 
 
 class FakeRecord(dict):
