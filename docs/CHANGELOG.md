@@ -4,6 +4,69 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-173 — Cyber knowledge package split (logical separation per ADR-005) — 2026-05-11
+
+**Done. Architectural artefact ADR-005 (renumbered from ADR-003 after on-master collision discovered with the existing ADR-003-streamable-http-mcp-transport). Plan file at `docs/plans/wp-173-cyber-knowledge-package-split.md`. Deployed to homeserver and verified live: smoke test passes inside the recreated `memfabric-api` container.**
+
+Promotes the InfoSec/cyber knowledge layer from prefixed `knowledge_*` modules sitting alongside episodic memory into a first-class `cyber_knowledge/` Python sub-package. Logical separation only — same repo, same FastAPI process, same Memgraph instance. Splits #2 (separate repo) and #3 (separate service) are deferred behind explicit review triggers documented in ADR-005. Pre-positions the codebase for the cyber-product roadmap (WP-174 onwards) without paying the cost of full extraction yet.
+
+**Changes:**
+
+- **`docs/architecture/ADR-005-cyber-knowledge-package-boundary.md`** — Architectural decision. Two-door bridge contract: `cyber_knowledge/bridge.py` (consumed by `memory_service.main` for cross-layer edge ops) and `cyber_knowledge/mcp_tools.py` (consumed by `mcp_server.server` for cyber MCP tool registration). Audit rules and review triggers for splits #2 and #3 documented.
+- **`docs/plans/wp-173-cyber-knowledge-package-split.md`** — Full plan: file-move table (~40 cyber scripts), import-update strategy, Dockerfile change, test-marker scheme, 11 acceptance criteria, HITL-gated security edits, BACKLOG.md insertion sketch.
+- **`memory_service/knowledge_repo.py → cyber_knowledge/repo.py`** — Moved with all consumers updated.
+- **`memory_service/knowledge_routes.py → cyber_knowledge/routes.py`** — Moved; `app.include_router(...)` call site in `main.py` updated.
+- **`memory_service/knowledge_schemas.py → cyber_knowledge/schemas.py`** — Moved.
+- **`memory_service/knowledge_bridge.py → cyber_knowledge/bridge.py`** — Moved; four call sites in `main.py` rewired.
+- **`cyber_knowledge/mcp_tools.py`** — NEW. Extracted the five cyber MCP tools (`knowledge_search_controls`, `knowledge_search_chunks`, `knowledge_list_norms`, `knowledge_get_control`, `knowledge_get_norm`) from `mcp_server/server.py` into a single `register(mcp_app)` function. Re-exports `bridge` under the door-2 discipline.
+- **`scripts/*` → `cyber_knowledge/ingest/*`** — Moved ~40 cyber scripts including 12 framework inspectors/loaders, 6 WP-113 wiring/calibration scripts, 3 shared helpers (`script_utils.py`, `chunkers.py`, `pdf_utils.py`). `schema_utils.py` stays in `scripts/` as a documented dual-use exception.
+- **`scripts/*` deprecation shims** — 42 thin shims left in place that re-export module globals and proxy `__main__` execution. `DeprecationWarning` emitted on import. Scheduled for removal in WP-180 one cycle from now.
+- **`mcp_server/server.py`** — Inline cyber tool block (lines ~845–921) replaced with `register_cyber_tools(mcp_app)` call under feature flag. Bridge calls go through `cyber_knowledge.mcp_tools.bridge` re-export.
+- **`pyproject.toml`** — Added `cyber_knowledge*` to `[tool.setuptools.packages.find]`. Created `[tool.pytest.ini_options]` section (did not exist before) with `cyber` and `integration` markers registered.
+- **`Dockerfile`** — Added `COPY cyber_knowledge/ ./cyber_knowledge/` (mandatory — image build would fail without it on `ENABLE_KNOWLEDGE_LAYER=true`).
+- **23 cyber test files** — Marked with `pytestmark = pytest.mark.cyber`. Mixed test files (`test_wp102_housekeeping.py`, `test_wp105_mcp_http.py`) intentionally left unmarked.
+- **`.claude/settings.json` + `tests/test_wp_sec_r_settings.py`** — HITL-gated lockstep edits applied by Oliver: permission paths for `init_knowledge_schema.py` swapped to `cyber_knowledge/ingest/schema_init.py`.
+- **`KNOWLEDGE_LAYER.md`, BACKLOG.md ambient-chore rows, four historical plan headers, `notebooks/ingest_pipeline_inspector.ipynb`** — Path references updated to the new layout.
+
+**Deployment (2026-05-11, homeserver):**
+- Master 14 commits ahead of `origin/master` pushed via standard deploy chain (push to OllieUK/memfabric → bump submodule pointer in cit-home-stackdeploy → `pull --recurse-submodules` → `dcumf` rebuild).
+- API container `memfabric-api` recreated cleanly.
+- Smoke test passes inside container: Memgraph reachable at `bolt://memfabric-db:7687`, embedding model loaded (384-dim), Memory node insert + 3-arg `vector_search` against `mem_embedding_idx` + cleanup all green.
+
+**Surfaced and fixed in passing (commit `2d6ce40`):**
+- `scripts/smoke_test.py` was using the older 4-argument `vector_search.search("Memory", "embedding", k, vec)` signature, which Memgraph no longer supports. All production call sites in `memory_repo.py` and `cyber_knowledge/repo.py` were already on the 3-arg form against the named index. Fixed the smoke test to match (`vector_search.search("mem_embedding_idx", 1, $query_vec)`).
+
+**Test delta vs pre-merge master:**
+- 0 new failures.
+- 39 previously-failing tests now pass — patch targets that pointed at `scripts.X` were silently misaligned and only resolved correctly after the modules moved to `cyber_knowledge.ingest.X`.
+- `pytest -m cyber` selects 459 tests; `pytest -m 'not cyber'` selects 690.
+
+**Acceptance criteria status:**
+- AC 1–7 ✅ (test suite, two-door bridge invariant, package structure, ingest shims, marker, file moves)
+- AC 8 ✅ (smoke test live on homeserver)
+- AC 9 ⚠️ source-level only (flag-off path not exercised on running service — low risk; `main.py` and `server.py` both gate cyber registration on `settings.enable_knowledge_layer`)
+- AC 10 ✅ implicit (container build succeeded; cyber endpoints reachable in the running image)
+- AC 11 ✅ (HITL edits committed in `015a5fc`)
+
+**Retrospective:**
+
+- **What went well:** The two-door bridge contract is small and grep-auditable, which makes invariant violation easy to detect. The planner-agent review caught 8 substantive gaps before any code moved (the most consequential: `mcp_server` was a second cross-package consumer the original plan missed). The implementer agent honoured the HITL gate cleanly, leaving security-relevant edits queued for Oliver rather than reaching for them. The 39 side-effect test fixes — patch targets resolving correctly after the namespace alignment — were a bonus that proves the move surfaced latent staleness rather than introducing it.
+- **What to improve:** ADR file-number collision (initial commit at ADR-003 collided with the pre-existing ADR-003-streamable-http-mcp-transport on master). Required two follow-up commits to rename and update in-content references. Lesson: when introducing a new ADR, `ls docs/architecture/` *and* `git ls-tree --name-only HEAD docs/architecture/` before picking the number, in case there are tracked-but-uncommitted-locally files.
+- **Pattern to internalise:** `.gitignore` rule `.claude/` causes `git add .claude/<tracked-file>` to exit 1 with an ignore warning even when the file is already tracked. Workaround: `git add -u <path>` (update-only mode bypasses the ignore check on already-tracked files). Worth a follow-up commit adding `!.claude/settings.json` after the `.claude/` rule. Captured in fabric memory.
+- **Pattern to internalise:** `vector_search.search` in Memgraph takes exactly 3 arguments — `(index_name, num_results, query_vector)`. Any 4-arg call site is stale. All production code paths correctly use the named-index 3-arg form; never call with a label-and-property pair. Captured in fabric memory.
+- **Surfaced follow-ups:** WP-174 (ADR-006 asset/policy + OSCAL params), WP-175 (generic OSCAL ingest pipeline), WP-176 (GS++ ingest), WP-177 (CISA KEV), WP-178 (D3FEND, promoted from old WP-114), WP-179 (pressure engine), WP-180 (shim removal). Plus ambient chores: ADR file-number lookup before allocation, `.gitignore` `!.claude/settings.json` exception.
+
+**Commits:**
+- `d0d5a70` — WP-173 plan + initial ADR-003 file
+- `d088c9c` — Rename ADR-003 → ADR-005 (collision fix)
+- `169dc20` — In-content ADR-003 → ADR-005 reference sweep
+- `02ad5d9` `d52dbae` `8b56144` `f498404` `2d57259` `06dbe4b` `84eb05e` `0752852` `aa72871` — Implementation batches 1–7 + simplify (on worktree branch, merged via `91ef7a3`)
+- `91ef7a3` — Merge worktree into master (no-ff, full history preserved)
+- `015a5fc` — HITL-gated security edits (`.claude/settings.json` + `tests/test_wp_sec_r_settings.py`)
+- `2d6ce40` — `scripts/smoke_test.py` 3-arg `vector_search` fix
+
+---
+
 ### WP-113 — Security architecture layer: SABSA, precepts, and business attributes — 2026-05-07
 
 **Done. All 9 phases complete. Strategic threat-to-business traversal path operational in production.**
