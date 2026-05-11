@@ -196,14 +196,14 @@ def test_create_supports_edge_framework_uses_framework_label():
 
 def test_init_knowledge_schema_has_ctrl_embedding_idx():
     import inspect
-    from scripts import init_knowledge_schema
+    from cyber_knowledge.ingest import schema_init as init_knowledge_schema
     source = inspect.getsource(init_knowledge_schema)
     assert "ctrl_embedding_idx" in source, "ctrl_embedding_idx must be present in init_knowledge_schema (added by WP-101)"
 
 
 def test_init_knowledge_schema_has_framework_embedding_idx():
     import inspect
-    from scripts import init_knowledge_schema
+    from cyber_knowledge.ingest import schema_init as init_knowledge_schema
     source = inspect.getsource(init_knowledge_schema)
     assert "framework_embedding_idx" in source
     assert "Framework" in source

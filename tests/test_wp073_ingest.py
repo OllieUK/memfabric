@@ -281,7 +281,7 @@ def test_review_mode_prevents_edge_creation(tmp_path, capsys):
     import sys
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
@@ -325,7 +325,7 @@ def test_review_mode_prints_summary(tmp_path, capsys):
 
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
@@ -369,7 +369,7 @@ def test_auto_supports_below_threshold_creates_edge(tmp_path):
 
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
@@ -409,7 +409,7 @@ def test_auto_supports_above_threshold_skipped(tmp_path):
 
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
