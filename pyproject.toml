@@ -26,5 +26,5 @@ memory     = "memory_client.cli:app"
 memory-mcp = "mcp_server.server:main"
 
 [tool.setuptools.packages.find]
-include = ["memory_client*", "memory_service*", "mcp_server*"]
+include = ["memory_client*", "memory_service*", "mcp_server*", "cyber_knowledge*"]
 
