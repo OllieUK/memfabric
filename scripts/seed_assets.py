@@ -1,50 +1,31 @@
-#!/usr/bin/env python3
-"""Seed 4 universal Asset reference nodes from data/threats/assets.yaml."""
-import sys
-from pathlib import Path
+"""Deprecation shim — WP-173. Moved to cyber_knowledge.ingest.assets_seed.
 
-import httpx
-import yaml
-from pydantic_settings import BaseSettings, SettingsConfigDict
+Re-exports the full module namespace (including underscore-prefixed names)
+so existing test imports via importlib.spec_from_file_location keep working.
+Remove in WP-180 (see ADR-003).
+"""
+import warnings as _warnings
 
+_warnings.warn(
+    "scripts/seed_assets.py has moved to cyber_knowledge/ingest/assets_seed.py (WP-173). "
+    "Update imports to `from cyber_knowledge.ingest.assets_seed import ...` "
+    "and invocations to `python -m cyber_knowledge.ingest.assets_seed`.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-class SeedSettings(BaseSettings):
-    api_base_url: str = "http://localhost:8000"
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+# Re-export everything (including underscore-prefixed names) by copying the
+# target module's globals. `from X import *` would silently skip _-prefixed
+# names and break unit tests that target internal helpers.
+from cyber_knowledge.ingest import assets_seed as _target  # noqa: E402
 
+for _name in dir(_target):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_target, _name)
 
-ASSETS_FILE = Path(__file__).parent.parent / "data" / "threats" / "assets.yaml"
-
-
-def main() -> None:
-    cfg = SeedSettings()
-
-    if not ASSETS_FILE.exists():
-        print(f"Error: assets file not found: {ASSETS_FILE}", file=sys.stderr)
-        sys.exit(1)
-
-    with open(ASSETS_FILE) as f:
-        data = yaml.safe_load(f)
-
-    assets = data.get("assets", [])
-    print(f"Seeding {len(assets)} asset(s) from {ASSETS_FILE.name}")
-
-    failures = 0
-    with httpx.Client(base_url=cfg.api_base_url, timeout=30) as client:
-        for asset in assets:
-            r = client.post("/knowledge/assets", json=asset)
-            if r.status_code in (200, 201):
-                print(f"  [OK] {asset['id']}")
-            elif r.status_code == 409:
-                print(f"  [EXISTS] {asset['id']}")
-            else:
-                print(f"  [FAIL] {asset['id']}: {r.status_code} {r.text}", file=sys.stderr)
-                failures += 1
-
-    print("\nDone.")
-    if failures:
-        sys.exit(1)
-
+del _target, _name
 
 if __name__ == "__main__":
-    main()
+    from cyber_knowledge.ingest.assets_seed import main as _main  # noqa: E402
+    _main()
+

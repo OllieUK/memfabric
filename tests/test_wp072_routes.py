@@ -46,10 +46,10 @@ def test_add_memory_with_control_ids_calls_bridge(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.find_duplicate_memory", return_value=None), \
          patch("memory_service.memory_repo.add_memory"), \
-         patch("memory_service.knowledge_bridge.validate_controls", return_value=[]) as mock_validate, \
-         patch("memory_service.knowledge_bridge.link_controls") as mock_link, \
-         patch("memory_service.knowledge_bridge.validate_documents", return_value=[]), \
-         patch("memory_service.knowledge_bridge.link_documents"), \
+         patch("cyber_knowledge.bridge.validate_controls", return_value=[]) as mock_validate, \
+         patch("cyber_knowledge.bridge.link_controls") as mock_link, \
+         patch("cyber_knowledge.bridge.validate_documents", return_value=[]), \
+         patch("cyber_knowledge.bridge.link_documents"), \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.post("/memory", json={
             "fact": "test fact", "type": "fact", "agent_id": "agent1",
@@ -64,7 +64,7 @@ def test_add_memory_missing_control_returns_400(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.find_duplicate_memory", return_value=None), \
          patch("memory_service.memory_repo.add_memory"), \
-         patch("memory_service.knowledge_bridge.validate_controls", return_value=["bad-id"]), \
+         patch("cyber_knowledge.bridge.validate_controls", return_value=["bad-id"]), \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.post("/memory", json={
             "fact": "test fact", "type": "fact", "agent_id": "agent1",
@@ -78,9 +78,9 @@ def test_add_memory_missing_doc_returns_400(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.find_duplicate_memory", return_value=None), \
          patch("memory_service.memory_repo.add_memory"), \
-         patch("memory_service.knowledge_bridge.validate_controls", return_value=[]), \
-         patch("memory_service.knowledge_bridge.link_controls"), \
-         patch("memory_service.knowledge_bridge.validate_documents", return_value=["bad-doc"]), \
+         patch("cyber_knowledge.bridge.validate_controls", return_value=[]), \
+         patch("cyber_knowledge.bridge.link_controls"), \
+         patch("cyber_knowledge.bridge.validate_documents", return_value=["bad-doc"]), \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.post("/memory", json={
             "fact": "test fact", "type": "fact", "agent_id": "agent1",
@@ -94,7 +94,7 @@ def test_add_memory_flag_off_ignores_control_ids(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.find_duplicate_memory", return_value=None), \
          patch("memory_service.memory_repo.add_memory"), \
-         patch("memory_service.knowledge_bridge.link_controls") as mock_link, \
+         patch("cyber_knowledge.bridge.link_controls") as mock_link, \
          patch.object(_current_settings(), "enable_knowledge_layer", False):
         resp = test_client.post("/memory", json={
             "fact": "test fact", "type": "fact", "agent_id": "agent1",
@@ -113,8 +113,8 @@ def test_update_memory_replaces_control_edges(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.update_memory") as mock_repo_update, \
          patch("memory_service.memory_repo.append_operation_log"), \
-         patch("memory_service.knowledge_bridge.validate_controls", return_value=[]) as mock_validate, \
-         patch("memory_service.knowledge_bridge.replace_control_edges") as mock_replace, \
+         patch("cyber_knowledge.bridge.validate_controls", return_value=[]) as mock_validate, \
+         patch("cyber_knowledge.bridge.replace_control_edges") as mock_replace, \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.patch("/memory/mem-123", json={
             "control_ids": ["c2"],
@@ -128,7 +128,7 @@ def test_update_memory_flag_off_ignores_control_ids(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.update_memory"), \
          patch("memory_service.memory_repo.append_operation_log"), \
-         patch("memory_service.knowledge_bridge.replace_control_edges") as mock_replace, \
+         patch("cyber_knowledge.bridge.replace_control_edges") as mock_replace, \
          patch.object(_current_settings(), "enable_knowledge_layer", False):
         resp = test_client.patch("/memory/mem-123", json={
             "control_ids": ["c2"],
@@ -142,8 +142,8 @@ def test_update_memory_bridge_fields_not_in_repo_call(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.update_memory") as mock_repo_update, \
          patch("memory_service.memory_repo.append_operation_log"), \
-         patch("memory_service.knowledge_bridge.validate_controls", return_value=[]), \
-         patch("memory_service.knowledge_bridge.replace_control_edges"), \
+         patch("cyber_knowledge.bridge.validate_controls", return_value=[]), \
+         patch("cyber_knowledge.bridge.replace_control_edges"), \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.patch("/memory/mem-123", json={
             "control_ids": ["c2"],
@@ -161,8 +161,8 @@ def test_update_memory_bridge_only_404_on_missing_memory(client):
     with patch("memory_service.memory_repo.update_memory"), \
          patch("memory_service.memory_repo.append_operation_log"), \
          patch("memory_service.memory_repo.get_memory_for_update", return_value=None) as mock_get, \
-         patch("memory_service.knowledge_bridge.validate_controls", return_value=[]), \
-         patch("memory_service.knowledge_bridge.replace_control_edges") as mock_replace, \
+         patch("cyber_knowledge.bridge.validate_controls", return_value=[]), \
+         patch("cyber_knowledge.bridge.replace_control_edges") as mock_replace, \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.patch("/memory/ghost-id", json={
             "control_ids": ["c1"],
@@ -181,7 +181,7 @@ def test_merge_memory_rewires_cross_layer_edges(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.merge_memory"), \
          patch("memory_service.memory_repo.append_operation_log"), \
-         patch("memory_service.knowledge_bridge.rewire_cross_layer_edges") as mock_rewire, \
+         patch("cyber_knowledge.bridge.rewire_cross_layer_edges") as mock_rewire, \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.post("/memory/source-id/merge", json={
             "target_id": "target-id",
@@ -194,7 +194,7 @@ def test_merge_memory_flag_off_no_rewire(client):
     test_client, mock_session = client
     with patch("memory_service.memory_repo.merge_memory"), \
          patch("memory_service.memory_repo.append_operation_log"), \
-         patch("memory_service.knowledge_bridge.rewire_cross_layer_edges") as mock_rewire, \
+         patch("cyber_knowledge.bridge.rewire_cross_layer_edges") as mock_rewire, \
          patch.object(_current_settings(), "enable_knowledge_layer", False):
         resp = test_client.post("/memory/source-id/merge", json={
             "target_id": "target-id",
@@ -216,7 +216,7 @@ def test_search_memory_hydrates_controls_when_flag_on(client):
     }]
     with patch("memory_service.memory_repo.search_memories", return_value=mock_results), \
          patch("memory_service.memory_repo.fetch_associated", return_value={}), \
-         patch("memory_service.knowledge_bridge.hydrate_controls_and_documents",
+         patch("cyber_knowledge.bridge.hydrate_controls_and_documents",
                return_value={"m1": {"controls": [{"id": "c1", "name": "Ctrl"}], "documents": []}}) as mock_hydrate, \
          patch.object(_current_settings(), "enable_knowledge_layer", True):
         resp = test_client.post("/memory/search", json={"query": "test"})
@@ -234,7 +234,7 @@ def test_search_memory_controls_empty_when_flag_off(client):
     }]
     with patch("memory_service.memory_repo.search_memories", return_value=mock_results), \
          patch("memory_service.memory_repo.fetch_associated", return_value={}), \
-         patch("memory_service.knowledge_bridge.hydrate_controls_and_documents") as mock_hydrate, \
+         patch("cyber_knowledge.bridge.hydrate_controls_and_documents") as mock_hydrate, \
          patch.object(_current_settings(), "enable_knowledge_layer", False):
         resp = test_client.post("/memory/search", json={"query": "test"})
     assert resp.status_code == 200

@@ -13,10 +13,10 @@ from fastapi import APIRouter, HTTPException, Request
 from neo4j.exceptions import ServiceUnavailable
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
 from memory_service.config import settings
 from memory_service.embeddings import get_embedding
-from memory_service.knowledge_schemas import (
+from cyber_knowledge.schemas import (
     STATEMENT_TYPES,
     NORMATIVE_MODALITIES,
     CHUNK_STATUSES,

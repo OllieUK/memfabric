@@ -23,8 +23,8 @@ if "mitreattack" not in sys.modules:
 
 import pytest
 
-import scripts.ingest_attack as _attack_module
-from scripts.ingest_attack import _verify_stix_sha256, _resolve_stix_path
+import cyber_knowledge.ingest.attack as _attack_module
+from cyber_knowledge.ingest.attack import _verify_stix_sha256, _resolve_stix_path
 
 
 def test_verify_stix_sha256_clean(tmp_path, monkeypatch):

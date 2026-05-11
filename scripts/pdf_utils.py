@@ -1,16 +1,27 @@
-"""Shared PDF word-extraction utilities used by inspect_* and extract_cti_* scripts."""
-from collections import defaultdict
+"""Deprecation shim — WP-173. Moved to cyber_knowledge.ingest.pdf_utils.
 
+Re-exports the full module namespace (including underscore-prefixed names)
+so existing test imports via importlib.spec_from_file_location keep working.
+Remove in WP-180 (see ADR-003).
+"""
+import warnings as _warnings
 
-def words_to_lines(words: list[dict], y_tolerance: float = 3.0) -> list[list[dict]]:
-    """Group pdfplumber word dicts into visual lines by vertical midpoint."""
-    buckets: dict[int, list[dict]] = defaultdict(list)
-    for w in words:
-        mid_y = round((w["top"] + w["bottom"]) / 2 / y_tolerance) * y_tolerance
-        buckets[mid_y].append(w)
-    return [sorted(v, key=lambda w: w["x0"]) for _, v in sorted(buckets.items())]
+_warnings.warn(
+    "scripts/pdf_utils.py path has moved to cyber_knowledge/ingest/pdf_utils.py (WP-173). "
+    "Update imports to `from cyber_knowledge.ingest.pdf_utils import ...` "
+    "and invocations to `python -m cyber_knowledge.ingest.pdf_utils`.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
+# Re-export everything (including underscore-prefixed names) by copying the
+# target module's globals. `from X import *` would silently skip _-prefixed
+# names and break unit tests that target internal helpers.
+from cyber_knowledge.ingest import pdf_utils as _target  # noqa: E402
 
-def line_text(line_words: list[dict]) -> str:
-    """Reconstruct line text from a list of pdfplumber word dicts."""
-    return " ".join(w["text"] for w in line_words)
+for _name in dir(_target):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_target, _name)
+
+del _target, _name
+

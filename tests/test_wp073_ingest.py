@@ -9,7 +9,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from memory_service.knowledge_routes import router as knowledge_router
+from cyber_knowledge.routes import router as knowledge_router
+
+pytestmark = pytest.mark.cyber
 
 
 @pytest.fixture
@@ -45,9 +47,9 @@ def test_create_supports_returns_200(client):
         "status": "auto-inferred",
         "created_at": "2026-01-01T00:00:00+00:00",
     }
-    with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "chunk-1"}), \
-         patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw-1"}), \
-         patch("memory_service.knowledge_repo.create_supports_edge_framework", return_value=record):
+    with patch("cyber_knowledge.repo.get_chunk", return_value={"id": "chunk-1"}), \
+         patch("cyber_knowledge.repo.get_framework", return_value={"id": "fw-1"}), \
+         patch("cyber_knowledge.repo.create_supports_edge_framework", return_value=record):
         resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "chunk-1",
             "framework_id": "fw-1",
@@ -64,8 +66,8 @@ def test_create_supports_returns_200(client):
 
 def test_create_supports_missing_chunk_404(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_chunk", return_value=None), \
-         patch("memory_service.knowledge_repo.get_framework", return_value={"id": "fw-1"}):
+    with patch("cyber_knowledge.repo.get_chunk", return_value=None), \
+         patch("cyber_knowledge.repo.get_framework", return_value={"id": "fw-1"}):
         resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "nonexistent-chunk",
             "framework_id": "fw-1",
@@ -77,8 +79,8 @@ def test_create_supports_missing_chunk_404(client):
 
 def test_create_supports_missing_framework_404(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_chunk", return_value={"id": "chunk-1"}), \
-         patch("memory_service.knowledge_repo.get_framework", return_value=None):
+    with patch("cyber_knowledge.repo.get_chunk", return_value={"id": "chunk-1"}), \
+         patch("cyber_knowledge.repo.get_framework", return_value=None):
         resp = test_client.post("/knowledge/chunks/supports", json={
             "chunk_id": "chunk-1",
             "framework_id": "nonexistent-fw",
@@ -107,8 +109,8 @@ def test_get_chunks_for_control_returns_list(client):
             "confidence": 0.7, "status": "auto-inferred",
         },
     ]
-    with patch("memory_service.knowledge_repo.get_control", return_value={"id": "ctrl-1"}), \
-         patch("memory_service.knowledge_repo.get_chunks_for_control", return_value=chunks):
+    with patch("cyber_knowledge.repo.get_control", return_value={"id": "ctrl-1"}), \
+         patch("cyber_knowledge.repo.get_chunks_for_control", return_value=chunks):
         resp = test_client.get("/knowledge/controls/ctrl-1/chunks")
     assert resp.status_code == 200
     data = resp.json()
@@ -119,7 +121,7 @@ def test_get_chunks_for_control_returns_list(client):
 
 def test_get_chunks_for_control_missing_control_404(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_control", return_value=None):
+    with patch("cyber_knowledge.repo.get_control", return_value=None):
         resp = test_client.get("/knowledge/controls/ghost-ctrl/chunks")
     assert resp.status_code == 404
     assert "ghost-ctrl" in resp.json()["detail"]
@@ -127,8 +129,8 @@ def test_get_chunks_for_control_missing_control_404(client):
 
 def test_get_chunks_for_control_empty(client):
     test_client, mock_session = client
-    with patch("memory_service.knowledge_repo.get_control", return_value={"id": "ctrl-1"}), \
-         patch("memory_service.knowledge_repo.get_chunks_for_control", return_value=[]):
+    with patch("cyber_knowledge.repo.get_control", return_value={"id": "ctrl-1"}), \
+         patch("cyber_knowledge.repo.get_chunks_for_control", return_value=[]):
         resp = test_client.get("/knowledge/controls/ctrl-1/chunks")
     assert resp.status_code == 200
     assert resp.json() == []
@@ -140,7 +142,7 @@ def test_get_chunks_for_control_empty(client):
 
 
 def test_create_supports_edge_framework_calls_session_run():
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     record_data = {
@@ -170,7 +172,7 @@ def test_create_supports_edge_framework_calls_session_run():
 
 
 def test_create_supports_edge_framework_returns_none_when_no_match():
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     mock_session.run.return_value.single.return_value = None
@@ -183,7 +185,7 @@ def test_create_supports_edge_framework_returns_none_when_no_match():
 
 
 def test_get_chunks_for_control_repo_returns_list():
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     row1 = {
@@ -258,7 +260,7 @@ def _make_main_argv(tmp_path, content: str = "## Section\n" + "x" * 100) -> tupl
 
 def test_review_mode_prevents_edge_creation(tmp_path, capsys):
     """With ingest_chunk_review_mode=True, _post_supports must never be called."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -281,7 +283,7 @@ def test_review_mode_prevents_edge_creation(tmp_path, capsys):
     import sys
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
@@ -303,7 +305,7 @@ def test_review_mode_prevents_edge_creation(tmp_path, capsys):
 
 def test_review_mode_prints_summary(tmp_path, capsys):
     """With ingest_chunk_review_mode=True, stdout must contain candidate control_id."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -325,7 +327,7 @@ def test_review_mode_prints_summary(tmp_path, capsys):
 
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
@@ -343,7 +345,7 @@ def test_review_mode_prints_summary(tmp_path, capsys):
 
 def test_auto_supports_below_threshold_creates_edge(tmp_path):
     """With review_mode=False and distance < threshold, supports POST must be called."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -369,7 +371,7 @@ def test_auto_supports_below_threshold_creates_edge(tmp_path):
 
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000
@@ -387,7 +389,8 @@ def test_auto_supports_below_threshold_creates_edge(tmp_path):
 
 def test_auto_supports_above_threshold_skipped(tmp_path):
     """With distance > threshold, supports POST must NOT be called."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
+
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -409,7 +412,7 @@ def test_auto_supports_above_threshold_skipped(tmp_path):
 
     with patch("sys.argv", argv), \
          patch("httpx.Client", return_value=mock_client), \
-         patch("scripts.ingest_document.IngestSettings") as mock_cfg:
+         patch("cyber_knowledge.ingest.document.IngestSettings") as mock_cfg:
         cfg = mock_cfg.return_value
         cfg.api_base_url = "http://localhost:8000"
         cfg.ingest_chunk_size = 2000

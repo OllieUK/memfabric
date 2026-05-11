@@ -6,7 +6,10 @@ Pattern follows tests/test_knowledge_bridge.py exactly.
 import pytest
 from unittest.mock import MagicMock
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
+
+pytestmark = pytest.mark.cyber
+
 
 
 class FakeRecord(dict):

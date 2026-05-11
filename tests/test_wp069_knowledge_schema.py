@@ -9,7 +9,7 @@ indexes are created correctly and that the separation invariant holds.
 import pytest
 
 from memory_service import main as service_main
-from memory_service.knowledge_schemas import (
+from cyber_knowledge.schemas import (
     CHUNK_STATUSES,
     CONTROL_DOMAINS,
     CONTROL_RELATIONSHIP_TYPES,
@@ -19,6 +19,8 @@ from memory_service.knowledge_schemas import (
     SABSA_LAYERS,
 )
 from scripts import dump_db, restore_db
+
+pytestmark = pytest.mark.cyber
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +283,7 @@ def test_separation_memory_search_excludes_knowledge_nodes(client, test_driver):
     chunk_id = "test-wp069-chunk-001"
     try:
         from memory_service.embeddings import get_embedding
+
         emb = get_embedding("access control policy user authentication")
         with test_driver.session() as s:
             s.run(

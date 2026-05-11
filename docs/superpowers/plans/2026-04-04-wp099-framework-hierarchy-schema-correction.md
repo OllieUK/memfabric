@@ -1,5 +1,7 @@
 # WP-099: Framework Hierarchy Schema Correction Implementation Plan
 
+> **Note (2026-05-11):** Import paths and script locations referenced in this plan predate WP-173 (cyber-knowledge package split per [ADR-003](../architecture/ADR-003-cyber-knowledge-package-boundary.md)). `memory_service/knowledge_*` is now `cyber_knowledge/*`; `scripts/ingest_*` etc. are now `cyber_knowledge/ingest/*`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Correct the knowledge layer schema so that external standard hierarchy nodes (ISO 27001 clauses and Annex A controls) are stored as `:Framework` nodes with `level` + `body` fields, retiring the misuse of `:Control` for this purpose.

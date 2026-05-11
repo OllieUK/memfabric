@@ -14,7 +14,9 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
+
+pytestmark = pytest.mark.cyber
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +151,7 @@ class TestScriptHelpers:
             sys.path.insert(0, str(proj_root))
         # Import will succeed once the file is written; if not written yet this
         # will ImportError (expected during TDD red phase)
-        import scripts.apply_threat_dedup_wp138b as m
+        import cyber_knowledge.ingest.threat_dedup_apply as m
         self.mod = m
 
     def test_pick_canonical_higher_identifies_wins(self):
@@ -556,6 +558,7 @@ class TestMergeThreatIntegration:
             # Fetch operation log — raw from DB to avoid OperationLogEntry schema constraints
             with test_driver.session() as s:
                 from memory_service import memory_repo
+
                 raw_entries = memory_repo.get_operation_log(s)
             merge_entries = [
                 e for e in raw_entries

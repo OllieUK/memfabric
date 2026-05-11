@@ -8,12 +8,14 @@ import sys
 import pytest
 from unittest.mock import MagicMock, patch, call
 
+pytestmark = pytest.mark.cyber
+
 # Feature flag must be set before importing main/app
 os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from memory_service import knowledge_repo
+from cyber_knowledge import repo as knowledge_repo
 
 
 # ---------------------------------------------------------------------------
@@ -329,7 +331,7 @@ class TestKnowledgeRoutes:
             "id": "c-1", "name": "A.5", "description": None,
             "framework_id": "fw-1", "created_at": "2024-01-01T00:00:00+00:00"
         }
-        with patch("memory_service.knowledge_routes.get_embedding",
+        with patch("cyber_knowledge.routes.get_embedding",
                    return_value=[0.1, 0.2]) as mock_embed:
             resp = client.post("/knowledge/controls", json={
                 "id": "c-1", "name": "A.5", "framework_id": "fw-1"
@@ -348,7 +350,7 @@ class TestKnowledgeRoutes:
             "announced_at": None, "text_hash": None, "lang": None, "domain": None,
             "created_at": "2024-01-01T00:00:00+00:00"
         }
-        with patch("memory_service.knowledge_routes.get_embedding",
+        with patch("cyber_knowledge.routes.get_embedding",
                    return_value=[0.1]) as mock_embed:
             resp = client.post("/knowledge/norms", json={
                 "id": "n-1", "title": "N1", "body": "Must encrypt"
@@ -364,7 +366,7 @@ class TestKnowledgeRoutes:
             "id": "doc-1", "title": "Policy", "policy_level": "strategic",
             "source_url": None, "created_at": "2024-01-01T00:00:00+00:00"
         }
-        with patch("memory_service.knowledge_routes.get_embedding") as mock_embed:
+        with patch("cyber_knowledge.routes.get_embedding") as mock_embed:
             resp = client.post("/knowledge/documents", json={
                 "id": "doc-1", "title": "Policy", "policy_level": "strategic"
             })
@@ -387,7 +389,7 @@ class TestKnowledgeRoutes:
             "doc_id": "doc-1", "heading": None, "section_ref": None,
             "status": "unmatched", "created_at": "2024-01-01T00:00:00+00:00"
         }
-        with patch("memory_service.knowledge_routes.get_embedding",
+        with patch("cyber_knowledge.routes.get_embedding",
                    return_value=[0.1]) as mock_embed:
             resp = client.post("/knowledge/chunks", json={
                 "id": "ch-1", "body": "Chapter 1", "sequence": 0, "doc_id": "doc-1"
@@ -432,6 +434,7 @@ class TestKnowledgeRoutes:
             import memory_service.config as cfg_mod
             importlib.reload(cfg_mod)
             import memory_service.main as main_mod
+
             importlib.reload(main_mod)
             knowledge_paths = [r.path for r in main_mod.app.routes
                                if hasattr(r, "path") and r.path.startswith("/knowledge")]

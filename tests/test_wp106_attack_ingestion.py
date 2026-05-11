@@ -23,6 +23,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+pytestmark = pytest.mark.cyber
+
+
 _SCRIPT_PATH = pathlib.Path(__file__).parent.parent / "scripts" / "ingest_attack.py"
 
 

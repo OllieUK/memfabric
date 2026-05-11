@@ -5,6 +5,9 @@
 
 import pytest
 
+pytestmark = pytest.mark.cyber
+
+
 
 # ---------------------------------------------------------------------------
 # Helpers

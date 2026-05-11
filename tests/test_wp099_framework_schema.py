@@ -2,9 +2,11 @@
 import pytest
 from pydantic import ValidationError
 
+pytestmark = pytest.mark.cyber
+
 
 def test_framework_create_accepts_level_body_parent_id():
-    from memory_service.knowledge_routes import FrameworkCreate
+    from cyber_knowledge.routes import FrameworkCreate
     fw = FrameworkCreate(
         id="iso-27001-2022.6",
         title="Clause 6 — Planning",
@@ -18,19 +20,19 @@ def test_framework_create_accepts_level_body_parent_id():
 
 
 def test_framework_create_level_defaults_to_framework():
-    from memory_service.knowledge_routes import FrameworkCreate
+    from cyber_knowledge.routes import FrameworkCreate
     fw = FrameworkCreate(id="iso-27001-2022", title="ISO/IEC 27001")
     assert fw.level == "framework"
 
 
 def test_framework_create_body_optional():
-    from memory_service.knowledge_routes import FrameworkCreate
+    from cyber_knowledge.routes import FrameworkCreate
     fw = FrameworkCreate(id="iso-27001-2022", title="ISO/IEC 27001")
     assert fw.body is None
 
 
 def test_framework_response_includes_level_and_body():
-    from memory_service.knowledge_routes import FrameworkResponse
+    from cyber_knowledge.routes import FrameworkResponse
     resp = FrameworkResponse(
         id="iso-27001-2022.6",
         title="Clause 6",
@@ -43,7 +45,7 @@ def test_framework_response_includes_level_and_body():
 
 
 def test_framework_search_request_has_query_and_limit():
-    from memory_service.knowledge_routes import FrameworkSearchRequest
+    from cyber_knowledge.routes import FrameworkSearchRequest
     req = FrameworkSearchRequest(query="access control requirements")
     assert req.query == "access control requirements"
     assert req.limit == 10
@@ -51,7 +53,7 @@ def test_framework_search_request_has_query_and_limit():
 
 
 def test_supports_create_uses_framework_id():
-    from memory_service.knowledge_routes import SupportsCreate
+    from cyber_knowledge.routes import SupportsCreate
     req = SupportsCreate(
         chunk_id="chunk-001",
         framework_id="iso-27001-2022.a.5.1",
@@ -61,7 +63,7 @@ def test_supports_create_uses_framework_id():
 
 
 def test_supports_create_rejects_missing_framework_id():
-    from memory_service.knowledge_routes import SupportsCreate
+    from cyber_knowledge.routes import SupportsCreate
     with pytest.raises(ValidationError):
         SupportsCreate(chunk_id="chunk-001", confidence=0.9)
 
@@ -73,7 +75,7 @@ def test_supports_create_rejects_missing_framework_id():
 
 def test_upsert_framework_sets_level_and_body():
     from unittest.mock import MagicMock
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     mock_result = MagicMock()
@@ -107,7 +109,7 @@ def test_upsert_framework_sets_level_and_body():
 
 def test_upsert_framework_no_parent_no_contains_edge():
     from unittest.mock import MagicMock
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     mock_result = MagicMock()
@@ -138,7 +140,7 @@ def test_upsert_framework_no_parent_no_contains_edge():
 
 def test_get_framework_returns_level_and_body():
     from unittest.mock import MagicMock
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     record = {
@@ -159,7 +161,7 @@ def test_get_framework_returns_level_and_body():
 
 def test_search_frameworks_calls_vector_search():
     from unittest.mock import MagicMock
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     mock_session.run.return_value = []
@@ -171,7 +173,7 @@ def test_search_frameworks_calls_vector_search():
 
 def test_create_supports_edge_framework_uses_framework_label():
     from unittest.mock import MagicMock
-    from memory_service import knowledge_repo
+    from cyber_knowledge import repo as knowledge_repo
 
     mock_session = MagicMock()
     mock_session.run.return_value.single.return_value = {
@@ -196,14 +198,14 @@ def test_create_supports_edge_framework_uses_framework_label():
 
 def test_init_knowledge_schema_has_ctrl_embedding_idx():
     import inspect
-    from scripts import init_knowledge_schema
+    from cyber_knowledge.ingest import schema_init as init_knowledge_schema
     source = inspect.getsource(init_knowledge_schema)
     assert "ctrl_embedding_idx" in source, "ctrl_embedding_idx must be present in init_knowledge_schema (added by WP-101)"
 
 
 def test_init_knowledge_schema_has_framework_embedding_idx():
     import inspect
-    from scripts import init_knowledge_schema
+    from cyber_knowledge.ingest import schema_init as init_knowledge_schema
     source = inspect.getsource(init_knowledge_schema)
     assert "framework_embedding_idx" in source
     assert "Framework" in source
@@ -224,7 +226,7 @@ def test_config_has_ctrl_index_capacity():
 
 
 def test_knowledge_constraints_has_control():
-    from scripts.init_knowledge_schema import KNOWLEDGE_CONSTRAINTS
+    from cyber_knowledge.ingest.schema_init import KNOWLEDGE_CONSTRAINTS
     labels = [label for label, _ in KNOWLEDGE_CONSTRAINTS]
     assert "Control" in labels, "Control must be in KNOWLEDGE_CONSTRAINTS (added by WP-101)"
 
@@ -676,7 +678,8 @@ def test_framework_statement_type_defaults_none(client, test_driver):
 @pytest.mark.integration
 def test_init_knowledge_schema_creates_framework_embedding_idx(test_driver):
     """After running init_knowledge_schema, framework_embedding_idx must exist on Framework."""
-    from scripts.init_knowledge_schema import main as init_main
+    from cyber_knowledge.ingest.schema_init import main as init_main
+
     rc = init_main()
     assert rc == 0
 

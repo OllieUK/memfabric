@@ -4,6 +4,9 @@
 
 import pytest
 
+pytestmark = pytest.mark.cyber
+
+
 
 @pytest.mark.integration
 def test_business_attribute_index_exists(test_driver):

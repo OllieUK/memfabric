@@ -10,13 +10,16 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.cyber
+
+
 # ---------------------------------------------------------------------------
 # Dynamic import of scripts/extract_cti_threats.py
 # ---------------------------------------------------------------------------
 
 _spec = importlib.util.spec_from_file_location(
     "extract_cti_threats",
-    Path(__file__).parent.parent / "scripts" / "extract_cti_threats.py",
+    Path(__file__).parent.parent / "cyber_knowledge" / "ingest" / "cti_extract.py",
 )
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)

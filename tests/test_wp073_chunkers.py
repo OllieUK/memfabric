@@ -5,7 +5,7 @@ import tempfile
 
 import pytest
 
-from scripts.chunkers import ChunkData, chunk_markdown, chunk_pdf
+from cyber_knowledge.ingest.chunkers import ChunkData, chunk_markdown, chunk_pdf
 
 
 # --- chunk_markdown ---

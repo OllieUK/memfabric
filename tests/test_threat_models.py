@@ -8,13 +8,13 @@ import pytest
 import pydantic
 import yaml
 
-from memory_service.knowledge_routes import (
+from cyber_knowledge.routes import (
     ThreatReportCreate,
     ThreatCreate,
     AssetCreate,
     IdentifiesCreate,
 )
-from memory_service.knowledge_schemas import (
+from cyber_knowledge.schemas import (
     THREAT_REPORT_SCOPES,
     IDENTIFIES_SEVERITIES,
     IDENTIFIES_CONFIDENCES,
@@ -23,6 +23,8 @@ from memory_service.knowledge_schemas import (
     ASSET_EXPOSURES,
     ASSET_DATA_CLASSIFICATIONS,
 )
+
+pytestmark = pytest.mark.cyber
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
