@@ -84,11 +84,14 @@ def main() -> int:
             )
             print("  Node inserted.")
 
-            # Step 3: Run vector search
+            # Step 3: Run vector search.
+            # Memgraph's vector_search.search signature is
+            # (index_name, num_results, query_vector). The index
+            # `mem_embedding_idx` is created by init_schema.py at startup.
             print("Running vector search ...")
             result = session.run(
                 """
-                CALL vector_search.search("Memory", "embedding", 1, $query_vec)
+                CALL vector_search.search("mem_embedding_idx", 1, $query_vec)
                 YIELD node, distance
                 RETURN node.id AS id, distance
                 """,
