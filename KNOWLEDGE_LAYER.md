@@ -37,7 +37,7 @@ When `true`:
 - Schema must have been initialised separately (see section 5).
 - The service can operate without any Memory nodes populated.
 
-Schema initialisation is not automatic. Run `scripts/init_knowledge_schema.py` once after enabling
+Schema initialisation is not automatic. Run `cyber_knowledge/ingest/schema_init.py (or: python -m cyber_knowledge.ingest.schema_init)` once after enabling
 the flag for the first time.
 
 
@@ -117,7 +117,7 @@ Additional edges defined in ADR-002 (not yet in active routes):
 
 ## 5. How to Ingest a Framework
 
-Use `scripts/ingest_framework.py` to bulk-load a framework from a YAML catalogue file.
+Use `cyber_knowledge/ingest/framework.py` to bulk-load a framework from a YAML catalogue file.
 
 ### YAML file structure
 
@@ -165,13 +165,13 @@ business_attributes: []
 3. Validate the YAML without making API calls:
 
    ```
-   python scripts/ingest_framework.py my_framework.yaml --dry-run
+   python -m cyber_knowledge.ingest.framework my_framework.yaml --dry-run
    ```
 
 4. Ingest:
 
    ```
-   python scripts/ingest_framework.py my_framework.yaml
+   python -m cyber_knowledge.ingest.framework my_framework.yaml
    ```
 
    Output shows counts per entity type and `created` / `already existed` per item. The operation
@@ -186,13 +186,13 @@ that `CONTAINS` edges resolve correctly (the parent must exist before the child 
 
 ## 6. How to Ingest a Document
 
-Use `scripts/ingest_document.py` to ingest a PDF or Markdown file as a Document with chunked
+Use `cyber_knowledge/ingest/document.py` to ingest a PDF or Markdown file as a Document with chunked
 Chunk nodes.
 
 ### Supported formats
 
-- `.pdf` — extracted using `scripts/chunkers.chunk_pdf`
-- `.md`, `.markdown` — split using `scripts/chunkers.chunk_markdown`
+- `.pdf` — extracted using `cyber_knowledge.ingest.chunkers.chunk_pdf`
+- `.md`, `.markdown` — split using `cyber_knowledge.ingest.chunkers.chunk_markdown`
 
 ### Steps
 
@@ -201,7 +201,7 @@ Chunk nodes.
 2. Ingest a PDF policy document:
 
    ```
-   python scripts/ingest_document.py /path/to/policy.pdf \
+   python -m cyber_knowledge.ingest.document /path/to/policy.pdf \
        --doc-id acme-isms-policy-2024 \
        --title "ACME ISMS Policy 2024" \
        --doc-type policy \
@@ -211,7 +211,7 @@ Chunk nodes.
 3. Ingest a Markdown standard:
 
    ```
-   python scripts/ingest_document.py /path/to/standard.md \
+   python -m cyber_knowledge.ingest.document /path/to/standard.md \
        --doc-id acme-access-control-std \
        --title "ACME Access Control Standard" \
        --doc-type standard
@@ -240,7 +240,7 @@ and no edges are written. This is the safe default for first ingestion.
 To apply the candidates after review:
 
 ```
-INGEST_CHUNK_REVIEW_MODE=false python scripts/ingest_document.py ...
+INGEST_CHUNK_REVIEW_MODE=false python -m cyber_knowledge.ingest.document ...
 ```
 
 SUPPORTS edges are created with `status=auto-inferred`. Promote them to `confirmed` via the

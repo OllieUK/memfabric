@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY memory_service/ ./memory_service/
 COPY memory_client/ ./memory_client/
 COPY mcp_server/ ./mcp_server/
+COPY cyber_knowledge/ ./cyber_knowledge/
 COPY pyproject.toml ./
 
 RUN pip install --no-cache-dir -e .
