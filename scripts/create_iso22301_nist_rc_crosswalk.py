@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/iso22301_nist_rc_crosswalk.py path has moved to cyber_knowledge/ingest/iso22301_nist_rc_crosswalk.py (WP-173). "
+    "scripts/create_iso22301_nist_rc_crosswalk.py has moved to cyber_knowledge/ingest/iso22301_nist_rc_crosswalk.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.iso22301_nist_rc_crosswalk import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.iso22301_nist_rc_crosswalk`.",
     DeprecationWarning,

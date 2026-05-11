@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/business_attributes_seed.py path has moved to cyber_knowledge/ingest/business_attributes_seed.py (WP-173). "
+    "scripts/seed_business_attributes.py has moved to cyber_knowledge/ingest/business_attributes_seed.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.business_attributes_seed import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.business_attributes_seed`.",
     DeprecationWarning,

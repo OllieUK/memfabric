@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/cti_extract.py path has moved to cyber_knowledge/ingest/cti_extract.py (WP-173). "
+    "scripts/extract_cti_threats.py has moved to cyber_knowledge/ingest/cti_extract.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.cti_extract import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.cti_extract`.",
     DeprecationWarning,

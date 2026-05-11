@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/framework_informs_ba_leaves_wire.py path has moved to cyber_knowledge/ingest/framework_informs_ba_leaves_wire.py (WP-173). "
+    "scripts/wire_framework_informs_ba_leaves.py has moved to cyber_knowledge/ingest/framework_informs_ba_leaves_wire.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.framework_informs_ba_leaves_wire import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.framework_informs_ba_leaves_wire`.",
     DeprecationWarning,

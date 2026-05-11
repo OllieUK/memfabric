@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/wp113_t100_verify.py path has moved to cyber_knowledge/ingest/wp113_t100_verify.py (WP-173). "
+    "scripts/verify_wp113_t100_aligned_path.py has moved to cyber_knowledge/ingest/wp113_t100_verify.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.wp113_t100_verify import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.wp113_t100_verify`.",
     DeprecationWarning,

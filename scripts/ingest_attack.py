@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/attack.py path has moved to cyber_knowledge/ingest/attack.py (WP-173). "
+    "scripts/ingest_attack.py has moved to cyber_knowledge/ingest/attack.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.attack import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.attack`.",
     DeprecationWarning,

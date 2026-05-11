@@ -7,7 +7,7 @@ Remove in WP-180 (see ADR-003).
 import warnings as _warnings
 
 _warnings.warn(
-    "scripts/cross_framework_clusters_analyse.py path has moved to cyber_knowledge/ingest/cross_framework_clusters_analyse.py (WP-173). "
+    "scripts/analyse_cross_framework_clusters.py has moved to cyber_knowledge/ingest/cross_framework_clusters_analyse.py (WP-173). "
     "Update imports to `from cyber_knowledge.ingest.cross_framework_clusters_analyse import ...` "
     "and invocations to `python -m cyber_knowledge.ingest.cross_framework_clusters_analyse`.",
     DeprecationWarning,
