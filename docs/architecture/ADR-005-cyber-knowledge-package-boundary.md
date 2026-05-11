@@ -1,4 +1,4 @@
-# ADR-003: Cyber Knowledge Package Boundary
+# ADR-005: Cyber Knowledge Package Boundary
 
 | Field | Value |
 |-------|-------|
@@ -22,7 +22,7 @@ ADR-001 (2026-04-02) placed the knowledge layer inside graph-memory-fabric as a 
 2. **Forthcoming code-volume tip.** ADR-001's review trigger #2 ("knowledge code exceeds 50% of total codebase") is already close. The next slate (OSCAL ingest, GS++ ingestion, CISA KEV, CVE enrichment, D3FEND, pressure-engine, policy node model + policy gap report) will land 8–12 substantial modules + ingest scripts + tests over the next quarter. Without a package boundary, those land in the same flat namespace as the memory fabric.
 3. **OSCAL changes the ingest shape.** BSI publishes Grundschutz++ as a CC-BY-SA-4.0 OSCAL 1.1.3 catalog (`github.com/BSI-Bund/Stand-der-Technik-Bibliothek`, 998 controls). A generic OSCAL-aware ingest pipeline benefits Grundschutz++, NIST SP 800-53, and any future OSCAL-published standard equally. Its natural home is in `cyber_knowledge/ingest/oscal/`, not in the top-level `scripts/` namespace shared with episodic-memory operational scripts.
 
-ADR-001 explicitly anticipated this: "knowledge code volume exceeding 50% of total codebase" is a named review trigger, and "carve-out cost scales with cross-layer edge count" was an accepted constraint. ADR-003 acts on those triggers without paying the higher cost of full extraction yet.
+ADR-001 explicitly anticipated this: "knowledge code volume exceeding 50% of total codebase" is a named review trigger, and "carve-out cost scales with cross-layer edge count" was an accepted constraint. ADR-005 acts on those triggers without paying the higher cost of full extraction yet.
 
 ## Three split points considered
 
@@ -241,4 +241,4 @@ Re-evaluate as per ADR-001's existing review triggers, plus:
 - `data/frameworks/` and `data/threats/` location — stays at repo root. Data is data; moving it does not earn its keep.
 - Deployment topology (single Memgraph, single FastAPI process, single container) — unchanged.
 - Multi-tenant access control, RBAC, audit logging for the cyber layer — out of scope for this ADR; would be addressed when split #3's triggers fire.
-- Asset and Policy node models (the original ADR-003 scope) — moved to a separate ADR-004 to keep this one tightly focused on the package boundary. ADR-004 follows immediately.
+- Asset and Policy node models (the original ADR-005 scope) — moved to a separate ADR-004 to keep this one tightly focused on the package boundary. ADR-004 follows immediately.

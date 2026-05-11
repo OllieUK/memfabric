@@ -4,7 +4,7 @@
 |-------|-------|
 | Status | Plan |
 | Author | Oliver + Claude (graph-memory-fabric), 2026-05-11 |
-| ADR | [ADR-003](../architecture/ADR-003-cyber-knowledge-package-boundary.md) |
+| ADR | [ADR-005](../architecture/ADR-005-cyber-knowledge-package-boundary.md) |
 | Value | M |
 | Effort | M |
 | Priority | 1.0 |
@@ -12,14 +12,14 @@
 
 ## Goal
 
-Move the cyber knowledge layer into a first-class `cyber_knowledge/` Python sub-package per ADR-003. Logical separation only — same repo, same FastAPI process, same Memgraph instance. **Zero semantic change** to behaviour or data. The full test suite passing afterwards is the primary acceptance signal.
+Move the cyber knowledge layer into a first-class `cyber_knowledge/` Python sub-package per ADR-005. Logical separation only — same repo, same FastAPI process, same Memgraph instance. **Zero semantic change** to behaviour or data. The full test suite passing afterwards is the primary acceptance signal.
 
 ## Non-goals
 
 - No new endpoints, no new features, no new tests for new behaviour.
 - No deployment topology changes.
 - No data migration in Memgraph (the graph stays exactly as it is).
-- No new ADRs beyond ADR-003 (ADR-004 for asset/policy models is a *separate* upcoming WP).
+- No new ADRs beyond ADR-005 (ADR-004 for asset/policy models is a *separate* upcoming WP).
 - No removal of `ENABLE_KNOWLEDGE_LAYER` semantics.
 
 ## File moves
@@ -131,7 +131,7 @@ if settings.enable_knowledge_layer:
     app.include_router(knowledge_router)
 ```
 
-### mcp_server cyber tool extraction (new sub-task per ADR-003 §2 door 2)
+### mcp_server cyber tool extraction (new sub-task per ADR-005 §2 door 2)
 
 Today `mcp_server/server.py:845` does `from memory_service import knowledge_repo` and defines five cyber-knowledge MCP tools inline (`knowledge_search_controls`, `knowledge_search_chunks`, `knowledge_list_norms`, `knowledge_get_control`, `knowledge_get_norm`, lines ~848–921). This is the **second cross-package consumer** the original plan missed.
 
@@ -162,7 +162,7 @@ Update import path references in:
 - `docs/superpowers/plans/2026-04-04-wp099-framework-hierarchy-schema-correction.md`
 - `docs/superpowers/plans/2026-04-02-wp094-adr001-alignment.md`
 
-These are historical plan files; the right edit is a single note at the top of each ("Note 2026-05-11: import paths in this plan refer to the pre-WP-173 layout; see ADR-003.") rather than rewriting body content.
+These are historical plan files; the right edit is a single note at the top of each ("Note 2026-05-11: import paths in this plan refer to the pre-WP-173 layout; see ADR-005.") rather than rewriting body content.
 
 ## CLI shim
 
@@ -211,9 +211,9 @@ markers = [
 - `cyber_knowledge/__init__.py` — minimal, just exports nothing; the package boundary marker.
 - `cyber_knowledge/ingest/__init__.py` — same.
 - `cyber_knowledge/mcp_tools.py` — door 2 (mcp_server consumer), `register(mcp_app)` function holding the five cyber MCP tool registrations extracted from `mcp_server/server.py`.
-- `cyber_knowledge/README.md` — roadmap doc per ADR-003 §5. Sections: Mission (three use cases verbatim from Oliver 2026-05-11); Current scope; Roadmap (next slate); Bridge contract (link to ADR-003); See also (link to docs/cyber/).
+- `cyber_knowledge/README.md` — roadmap doc per ADR-005 §5. Sections: Mission (three use cases verbatim from Oliver 2026-05-11); Current scope; Roadmap (next slate); Bridge contract (link to ADR-005); See also (link to docs/cyber/).
 - `docs/cyber/README.md` — placeholder pointing back to `cyber_knowledge/README.md` and the ADR.
-- `docs/architecture/ADR-003-cyber-knowledge-package-boundary.md` — **already written.**
+- `docs/architecture/ADR-005-cyber-knowledge-package-boundary.md` — **already written.**
 
 ## Dockerfile and container changes
 
@@ -297,7 +297,7 @@ After the move, run the existing `scripts/smoke_test.py` and verify:
 
 ## Definition of Done
 
-1. ✅ ADR-003 committed (this WP creates it).
+1. ✅ ADR-005 committed (this WP creates it).
 2. ✅ Plan file (this file) committed.
 3. ✅ Test plan attached (this section).
 4. ✅ Test strategy run before any code (`engineering:testing-strategy` — outputs above).
@@ -313,14 +313,14 @@ After the move, run the existing `scripts/smoke_test.py` and verify:
 14. ✅ BACKLOG.md updated: WP-173 moved to Completed (or referenced in CHANGELOG); shim-removal item added as ambient chore.
 15. ✅ HITL-gated edits completed by Oliver: `.claude/settings.json` path updated; `tests/test_wp_sec_r_settings.py` updated; both verified to keep test suite green.
 16. ✅ Retrospective note in BACKLOG.md.
-17. ✅ Git commit: `WP-173: cyber-knowledge package split (logical separation per ADR-003)`.
+17. ✅ Git commit: `WP-173: cyber-knowledge package split (logical separation per ADR-005)`.
 
 ## BACKLOG.md insertion (proposed)
 
 Insert at the top of the Prioritised Backlog table, above the current Order 1 (WP-116):
 
 ```
-| 0 | R1 | WP-173 | Cyber knowledge package split (logical separation per ADR-003) | M | M | 1.0 | — | Mechanical refactor: promote `memory_service/knowledge_*` → `cyber_knowledge/` sub-package; move ~40 cyber ingest scripts to `cyber_knowledge/ingest/`; extract cyber MCP tools into `cyber_knowledge/mcp_tools.py`; add `cyber` pytest marker; thin shim layer in `scripts/` for one cycle. Zero semantic change. Blocks: WP-174 (ADR-004 asset/policy model), WP-175 (OSCAL ingest), WP-176 (Grundschutz++ ingest), WP-177 (KEV), WP-178 (D3FEND, supersedes WP-114), WP-179 (pressure engine), WP-180 (remove shim). See [ADR-003](docs/architecture/ADR-003-cyber-knowledge-package-boundary.md) and [plan](docs/plans/wp-173-cyber-knowledge-package-split.md). |
+| 0 | R1 | WP-173 | Cyber knowledge package split (logical separation per ADR-005) | M | M | 1.0 | — | Mechanical refactor: promote `memory_service/knowledge_*` → `cyber_knowledge/` sub-package; move ~40 cyber ingest scripts to `cyber_knowledge/ingest/`; extract cyber MCP tools into `cyber_knowledge/mcp_tools.py`; add `cyber` pytest marker; thin shim layer in `scripts/` for one cycle. Zero semantic change. Blocks: WP-174 (ADR-004 asset/policy model), WP-175 (OSCAL ingest), WP-176 (Grundschutz++ ingest), WP-177 (KEV), WP-178 (D3FEND, supersedes WP-114), WP-179 (pressure engine), WP-180 (remove shim). See [ADR-005](docs/architecture/ADR-005-cyber-knowledge-package-boundary.md) and [plan](docs/plans/wp-173-cyber-knowledge-package-split.md). |
 ```
 
 Adjust the existing "Currently In Progress" section to list WP-173 as the active item when execution starts.
