@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, call
 
 from cyber_knowledge import bridge as knowledge_bridge
 
+pytestmark = pytest.mark.cyber
+
+
 
 class FakeRecord(dict):
     pass

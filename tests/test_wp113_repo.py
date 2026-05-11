@@ -5,6 +5,9 @@ import pytest
 
 from cyber_knowledge import repo as knowledge_repo
 
+pytestmark = pytest.mark.cyber
+
+
 
 def _make_session_returning(record: dict):
     """Return a mock session whose .run().single() returns a neo4j-like record dict."""

@@ -2,6 +2,8 @@
 import pytest
 from pydantic import ValidationError
 
+pytestmark = pytest.mark.cyber
+
 
 def test_framework_create_accepts_level_body_parent_id():
     from cyber_knowledge.routes import FrameworkCreate
@@ -677,6 +679,7 @@ def test_framework_statement_type_defaults_none(client, test_driver):
 def test_init_knowledge_schema_creates_framework_embedding_idx(test_driver):
     """After running init_knowledge_schema, framework_embedding_idx must exist on Framework."""
     from cyber_knowledge.ingest.schema_init import main as init_main
+
     rc = init_main()
     assert rc == 0
 

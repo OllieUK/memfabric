@@ -7,6 +7,8 @@ import sys
 import pytest
 from unittest.mock import MagicMock, patch
 
+pytestmark = pytest.mark.cyber
+
 os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -26,6 +28,7 @@ def app_client():
     import memory_service.config as cfg_mod
     import memory_service.main as main_mod
     from fastapi.testclient import TestClient
+
 
     os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
     importlib.reload(cfg_mod)

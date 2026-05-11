@@ -10,6 +10,8 @@ from unittest.mock import MagicMock, call, patch
 import numpy as np
 import pytest
 
+pytestmark = pytest.mark.cyber
+
 _SCRIPT_PATH = pathlib.Path(__file__).parent.parent / 'scripts' / 'create_cross_framework_informs.py'
 
 
@@ -19,6 +21,7 @@ _SCRIPT_PATH = pathlib.Path(__file__).parent.parent / 'scripts' / 'create_cross_
 
 def _import_script():
     import importlib.util
+
     spec = importlib.util.spec_from_file_location(
         'create_cross_framework_informs',
         _SCRIPT_PATH,

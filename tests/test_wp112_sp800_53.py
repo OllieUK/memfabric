@@ -16,6 +16,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+pytestmark = pytest.mark.cyber
+
+
 _SP800_53_SCRIPT = pathlib.Path(__file__).parent.parent / "scripts" / "ingest_sp800_53.py"
 _CTID_SCRIPT = pathlib.Path(__file__).parent.parent / "scripts" / "ingest_sp800_53_attack_mappings.py"
 _CSF_SCRIPT = pathlib.Path(__file__).parent.parent / "scripts" / "ingest_sp800_53_csf_crosswalk.py"

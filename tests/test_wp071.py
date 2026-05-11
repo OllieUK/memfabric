@@ -9,6 +9,8 @@ from unittest.mock import MagicMock
 
 from cyber_knowledge import repo as knowledge_repo
 
+pytestmark = pytest.mark.cyber
+
 
 # ---------------------------------------------------------------------------
 # Helper: FakeRecord for mocking neo4j records
@@ -322,6 +324,7 @@ def app_client_b():
     """
     import memory_service.config as cfg_mod
     import memory_service.main as main_mod
+
 
     os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
     importlib.reload(cfg_mod)

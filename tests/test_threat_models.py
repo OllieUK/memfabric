@@ -24,6 +24,8 @@ from cyber_knowledge.schemas import (
     ASSET_DATA_CLASSIFICATIONS,
 )
 
+pytestmark = pytest.mark.cyber
+
 PROJECT_ROOT = Path(__file__).parent.parent
 
 

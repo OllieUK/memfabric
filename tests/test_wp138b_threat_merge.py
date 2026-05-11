@@ -16,6 +16,8 @@ import pytest
 
 from cyber_knowledge import repo as knowledge_repo
 
+pytestmark = pytest.mark.cyber
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -556,6 +558,7 @@ class TestMergeThreatIntegration:
             # Fetch operation log — raw from DB to avoid OperationLogEntry schema constraints
             with test_driver.session() as s:
                 from memory_service import memory_repo
+
                 raw_entries = memory_repo.get_operation_log(s)
             merge_entries = [
                 e for e in raw_entries

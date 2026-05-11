@@ -15,6 +15,8 @@ from pydantic import ValidationError
 from typer.testing import CliRunner
 from unittest.mock import MagicMock, patch
 
+pytestmark = pytest.mark.cyber
+
 # Ensure project root is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 # Ensure scripts/ directory is importable
@@ -252,6 +254,7 @@ def test_memory_client_search_chunks_optional_doc_id():
 
 def test_memory_client_list_norms_parses_response():
     from memory_client.client import MemoryClient
+
 
     mock_http = MagicMock()
     mock_resp = MagicMock()

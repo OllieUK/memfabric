@@ -20,6 +20,8 @@ from cyber_knowledge.schemas import (
 )
 from scripts import dump_db, restore_db
 
+pytestmark = pytest.mark.cyber
+
 
 # ---------------------------------------------------------------------------
 # Unit tests — config new settings (WP-094)
@@ -281,6 +283,7 @@ def test_separation_memory_search_excludes_knowledge_nodes(client, test_driver):
     chunk_id = "test-wp069-chunk-001"
     try:
         from memory_service.embeddings import get_embedding
+
         emb = get_embedding("access control policy user authentication")
         with test_driver.session() as s:
             s.run(

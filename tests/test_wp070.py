@@ -8,6 +8,8 @@ import sys
 import pytest
 from unittest.mock import MagicMock, patch, call
 
+pytestmark = pytest.mark.cyber
+
 # Feature flag must be set before importing main/app
 os.environ["ENABLE_KNOWLEDGE_LAYER"] = "true"
 
@@ -432,6 +434,7 @@ class TestKnowledgeRoutes:
             import memory_service.config as cfg_mod
             importlib.reload(cfg_mod)
             import memory_service.main as main_mod
+
             importlib.reload(main_mod)
             knowledge_paths = [r.path for r in main_mod.app.routes
                                if hasattr(r, "path") and r.path.startswith("/knowledge")]

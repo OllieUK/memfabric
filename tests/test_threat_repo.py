@@ -8,6 +8,9 @@ from unittest.mock import MagicMock
 
 from cyber_knowledge import repo as knowledge_repo
 
+pytestmark = pytest.mark.cyber
+
+
 
 class FakeRecord(dict):
     pass

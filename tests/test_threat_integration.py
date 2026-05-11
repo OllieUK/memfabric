@@ -10,6 +10,9 @@ import uuid
 
 import pytest
 
+pytestmark = pytest.mark.cyber
+
+
 
 # ---------------------------------------------------------------------------
 # Module-scoped cleanup: remove all test-wp108-* nodes before and after suite

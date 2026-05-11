@@ -11,6 +11,8 @@ from fastapi.testclient import TestClient
 
 from cyber_knowledge.routes import router as knowledge_router
 
+pytestmark = pytest.mark.cyber
+
 
 @pytest.fixture
 def client():
@@ -388,6 +390,7 @@ def test_auto_supports_below_threshold_creates_edge(tmp_path):
 def test_auto_supports_above_threshold_skipped(tmp_path):
     """With distance > threshold, supports POST must NOT be called."""
     from cyber_knowledge.ingest.document import main
+
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",

@@ -24,6 +24,8 @@ from cyber_knowledge.routes import (
     FrameworkCreate,
 )
 
+pytestmark = pytest.mark.cyber
+
 
 # ---------------------------------------------------------------------------
 # BA_STATUSES frozenset
