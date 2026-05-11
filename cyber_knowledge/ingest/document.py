@@ -126,7 +126,7 @@ def main() -> None:
 
     suffix = file_path.suffix.lower()
     if suffix == ".pdf":
-        from scripts.chunkers import chunk_pdf
+        from cyber_knowledge.ingest.chunkers import chunk_pdf
         chunks = chunk_pdf(
             str(file_path),
             cfg.ingest_chunk_size,
@@ -134,7 +134,7 @@ def main() -> None:
             cfg.ingest_min_chunk_chars,
         )
     elif suffix in (".md", ".markdown"):
-        from scripts.chunkers import chunk_markdown
+        from cyber_knowledge.ingest.chunkers import chunk_markdown
         chunks = chunk_markdown(
             file_path.read_text(encoding="utf-8"),
             cfg.ingest_min_chunk_chars,

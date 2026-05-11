@@ -23,7 +23,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from scripts.script_utils import fetch_ict_leaves, get_api_client, make_settings, search_threats
+from cyber_knowledge.ingest.script_utils import fetch_ict_leaves, get_api_client, make_settings, search_threats
 
 
 def _histogram(scores: list[float], bins: int) -> str:

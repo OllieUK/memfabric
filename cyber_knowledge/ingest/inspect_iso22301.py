@@ -1,40 +1,19 @@
 #!/usr/bin/env python3
-"""inspect_iso27001.py — Structure-aware extractor for ISO/IEC 27001:2022.
+"""inspect_iso22301.py — Structure-aware extractor for ISO 22301:2019.
 
-Produces a YAML file with one entry per clause / Annex A control, plus child
-entries for each normative sub-statement (list items), ready for human review
-before loading into the knowledge graph.
+Produces a YAML file with one entry per normative clause, plus child entries
+for each normative sub-statement (list items), ready for human review before
+loading into the knowledge graph.
 
 Usage:
-    python3 -m scripts.inspect_iso27001 <pdf_path> [--out <output.yaml>]
+    python3 -m scripts.inspect_iso22301 <pdf_path> [--out <output.yaml>]
 
-Output YAML structure:
-    - id: "6.1.3"
-      heading: "Information security risk treatment"
-      type: clause
-      text: |
-        The organization shall define and apply an information security risk
-        treatment process to:
-        a) select appropriate information security risk treatment options...
-      suggested_control_id: "iso-27001-2022.6.1.3"
-      notes: ""
-      statements:
-        - id: "6.1.3.a"
-          label: "a)"
-          body: "The organization shall define and apply an information security
-            risk treatment process to select appropriate information security
-            risk treatment options, taking account of the risk assessment results."
-        - id: "6.1.3.b"
-          label: "b)"
-          body: "The organization shall determine all controls that are necessary
-            to implement the information security risk treatment option(s) chosen."
-        ...
-
-Extraction approach:
-  Uses pdfplumber extract_words() for positional word data rather than
-  extract_text(), so that list items (a), b), —) are identified and kept on
-  separate lines. Normative sub-statements are fused with the preamble context
-  so they are complete, searchable obligations in isolation.
+Key differences from ISO 27005:
+  - Framework prefix: iso-22301-2019
+  - 30 pages total. Normative clauses 4-10 span roughly pages 8-25 (0-indexed ~7-24).
+  - Skip: Foreword, Introduction (pages 0-6), Annex (informative only), Bibliography.
+  - No normative Annex — Annex A is informative. Stop at first Annex heading.
+  - Clause 3 (Terms and definitions) is skipped like ISO 27005.
 """
 from __future__ import annotations
 
@@ -48,15 +27,13 @@ import yaml
 try:
     from pdf_utils import words_to_lines, line_text
 except ImportError:
-    from scripts.pdf_utils import words_to_lines, line_text
+    from cyber_knowledge.ingest.pdf_utils import words_to_lines, line_text
 
 # ---------------------------------------------------------------------------
 # Heading patterns
 # ---------------------------------------------------------------------------
 
 CLAUSE_RE = re.compile(r'^(\d+(?:\.\d+)*)\s{1,3}([A-Z][^\n]{2,})$')
-ANNEX_CONTROL_SEP = re.compile(r'^Control\s*$')
-ANNEX_CTRL_RE = re.compile(r'^(\d+\.\d+)\s+(.+)$')
 
 # List item starters — these begin normative sub-statements
 LIST_ITEM_RE = re.compile(
@@ -68,37 +45,38 @@ LIST_ITEM_RE = re.compile(
     r')'
 )
 
-# NOTE lines (informative, not normative — kept in text but not as statements)
+# NOTE lines (informative, not normative)
 NOTE_RE = re.compile(r'^NOTE\s*\d*\s')
 
-# Extract the label prefix from a list item line: "a) some text" → "a)", "some text"
+# Extract the label prefix from a list item: "a) text" → ("a)", "text")
 LIST_LABEL_RE = re.compile(
-    r'^('
-    r'[a-z]\)'
-    r'|\d+\)'
-    r'|—'
-    r'|[-•·]'
-    r')\s+(.*)'
-, re.DOTALL)
+    r'^([a-z]\)|\d+\)|—|[-•·])\s+(.*)',
+    re.DOTALL,
+)
 
 # ISO licence watermark detection
 _WATERMARK_TOKEN_RE = re.compile(r'[`]|(?<=[a-zA-Z]),(?=[a-zA-Z])')
 
 # Skip patterns
 SKIP_HEADERS = {
-    'ISO/IEC 27001:2022(E)',
-    'INTERNATIONAL STANDARD ISO/IEC 27001:2022(E)',
+    'ISO 22301:2019(E)',
+    'INTERNATIONAL STANDARD ISO 22301:2019(E)',
 }
 SKIP_RE = re.compile(
-    r'^(TTaabbllee|Table A\.1|©|ICS \d|Price based|Bibliography|Contents|Foreword|'
+    r'^(TTaabbllee|Table |Figure |©|ICS \d|Price based|Bibliography|Contents|Foreword|'
     r'Reference number|COPYRIGHT|All rights reserved|ISO copyright|CP 401|CH-\d|Phone:|Email:|'
     r'Website:|Published in|\.{4,})'
 )
-SECTION_HEADER_RE = re.compile(r'^\d+\s+[A-Z][a-z]+ controls\s*$')
+
+# Clauses to skip — Terms & Definitions (clause 3) are definitions, not obligations
+SKIP_CLAUSE_ROOTS = {'1', '2', '3'}
+
+# Annex heading — signals start of informative annex (stop normative extraction).
+ANNEX_RE = re.compile(r'^Annex\s+[A-Z](\s*\(|$)')
 
 
 # ---------------------------------------------------------------------------
-# Text cleaning
+# Text cleaning  (identical pipeline to inspect_iso27005.py)
 # ---------------------------------------------------------------------------
 
 def _clean_token(token: str) -> str:
@@ -139,7 +117,7 @@ def _is_note(text: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Body text and statement decomposition
+# Body text and statement decomposition  (shared with inspect_iso27005.py)
 # ---------------------------------------------------------------------------
 
 def _join_body(logical_lines: list[str]) -> str:
@@ -167,7 +145,6 @@ def _join_body(logical_lines: list[str]) -> str:
 
 
 class _Block:
-    """One preamble→list segment within a clause body."""
     def __init__(self, preamble: str):
         self.preamble = preamble
         self.items: list[dict] = []
@@ -177,26 +154,13 @@ class _Block:
 
 
 def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
-    """Parse logical lines into one or more preamble→list blocks.
-
-    A clause body may contain multiple sequential blocks, each with its own
-    introductory preamble followed by a list. When a prose line appears *after*
-    at least one list item has been seen, it resets the preamble for the next block.
-
-    Example (6.1.1):
-        Block 1: preamble = "When planning... to:"
-                 items = [a), b), c)]
-        Block 2: preamble = "The organization shall plan:"
-                 items = [d), e)]  where e) has children 1), 2)
-
-    NOTEs are informative and skipped entirely (including their continuations).
-    """
+    """Parse logical lines into one or more preamble→list blocks."""
     blocks: list[_Block] = []
     current_block = _Block('')
     preamble_parts: list[str] = []
     current_item_label: str | None = None
     current_item_parts: list[str] = []
-    in_list = False    # True once we've seen at least one list item in this block
+    in_list = False
     in_note = False
 
     def _flush_item() -> None:
@@ -231,10 +195,6 @@ def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
             rest = m.group(2).strip()
             current_item_parts = [rest] if rest else []
         elif in_list:
-            # A non-list line after list items have started.
-            # If it looks like a continuation of the current item (starts lowercase,
-            # or is clearly a sentence fragment like "processes; and"), absorb it.
-            # Otherwise start a new block.
             is_continuation = (
                 current_item_label is not None
                 and (
@@ -260,8 +220,6 @@ def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
 
 
 def _clean_item_text(text: str) -> str:
-    """Remove trailing punctuation fragments from a list item body."""
-    # Strip trailing '; and', '; or', '; and', then strip trailing semicolon/comma
     text = re.sub(r'[;,]\s*and\s*$', '', text, flags=re.IGNORECASE)
     text = re.sub(r'[;,]\s*or\s*$', '', text, flags=re.IGNORECASE)
     text = text.rstrip(';').rstrip(',').rstrip()
@@ -269,19 +227,8 @@ def _clean_item_text(text: str) -> str:
 
 
 def _fuse_statement(preamble: str, item_text: str) -> str:
-    """Combine preamble + item text into a complete normative sentence.
-
-    If preamble ends with ':' (listing pattern):
-        "stem body."  — item_text lowercased to flow naturally from stem.
-
-    If preamble is a standalone sentence (ends with '.'):
-        "preamble body." — capitalised separately.
-
-    If no preamble:
-        "Body." — capitalised.
-    """
+    """Combine preamble + item text into a complete normative sentence."""
     item_text = _clean_item_text(item_text)
-    # Strip trailing colon from item text (happens when item itself is a sub-list intro)
     item_text_clean = item_text.rstrip(':').rstrip()
     p = preamble.rstrip()
     if not p:
@@ -291,7 +238,6 @@ def _fuse_statement(preamble: str, item_text: str) -> str:
         return body.rstrip('.') + '.'
     if p.endswith(':'):
         stem = p[:-1].rstrip()
-        # Lowercase the first char so it flows as a continuation of the stem
         body = item_text_clean
         if body and body[0].isupper():
             body = body[0].lower() + body[1:]
@@ -309,11 +255,6 @@ _NUMERIC_LABEL_RE = re.compile(r'^\d+\)$')
 
 
 def _items_to_statements(items: list[dict], preamble: str, id_prefix: str) -> list[dict]:
-    """Convert a flat list of items (with a shared preamble) into statement dicts.
-
-    Items that end with ':' consume following dash/numeric items as children.
-    IDs: a)→.a, 1)→.1, —→.stmt-N
-    """
     statements: list[dict] = []
     dash_counter = 0
     i = 0
@@ -333,8 +274,6 @@ def _items_to_statements(items: list[dict], preamble: str, id_prefix: str) -> li
 
         stmt_id = f"{id_prefix}.{slug}"
 
-        # Absorb following child items if this item introduces a sub-list.
-        # Triggers: item text ends with ':', 'include', 'to', 'by', 'for', 'how to'
         _SUB_LIST_ENDINGS = (':', 'include', ' to', ' by', ' for', 'how to')
         child_items = []
         item_text_stripped = item_text.rstrip()
@@ -379,33 +318,15 @@ def _items_to_statements(items: list[dict], preamble: str, id_prefix: str) -> li
     return statements
 
 
-def _make_statements(
-    clause_id: str,
-    logical_lines: list[str],
-    id_prefix: str,
-    depth: int = 0,
-) -> list[dict]:
-    """Decompose logical lines into normative statement entries.
-
-    Handles multi-block clauses (e.g. 6.1.1) where multiple preamble→list
-    segments appear in sequence. Each block gets its own preamble context.
-
-    When a clause has multiple blocks, the blocks themselves become the top-level
-    statements, with their items as children. This matches the ISO structure where
-    "When planning... to: a) b) c)" and "The organization shall plan: d) e)" are
-    two distinct normative obligations.
-    """
+def _make_statements(clause_id: str, logical_lines: list[str], id_prefix: str) -> list[dict]:
     blocks = _parse_blocks(logical_lines)
     if not blocks:
         return []
 
     if len(blocks) == 1:
-        # Simple case: single block, items are top-level statements
         block = blocks[0]
         return _items_to_statements(block.items, block.preamble, id_prefix)
 
-    # Multi-block case: each block becomes a top-level statement (the preamble
-    # itself is the obligation), with its items as children
     statements: list[dict] = []
     for bi, block in enumerate(blocks, start=1):
         block_id = f"{id_prefix}.block-{bi}"
@@ -426,14 +347,20 @@ def _make_statements(
 
 
 # ---------------------------------------------------------------------------
-# Extraction — normative body (clauses 1–10)
+# Extraction — normative clauses (4 onwards, stop at Annex)
 # ---------------------------------------------------------------------------
 
 def extract_clauses(pdf_path: str) -> list[dict]:
-    """Extract clauses 1–10 (pages 7–16, 0-indexed 6–15)."""
+    """Extract normative clauses 4-10 from ISO 22301:2019.
+
+    - Skips clauses 1, 2, 3 (scope/refs/terms — not normative obligations).
+    - Stops at the first Annex heading (informative, not normative).
+    - Pages: starts at page 8 (0-indexed 7), ISO 22301 has 30 pages.
+    """
     entries: list[dict] = []
     current: dict | None = None
     logical_lines: list[str] = []
+    stop = False
 
     def _flush() -> None:
         if current is not None:
@@ -445,22 +372,40 @@ def extract_clauses(pdf_path: str) -> list[dict]:
             entries.append(current)
 
     with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages[6:16]:
+        for page in pdf.pages[7:]:   # start at page 8 (0-indexed 7)
+            if stop:
+                break
             words = page.extract_words(x_tolerance=2, y_tolerance=3)
             for line_words in words_to_lines(words):
                 raw = line_text(line_words)
                 line = _clean(raw)
                 if not line or _is_skip(line):
                     continue
+
+                # Stop at Annex
+                if ANNEX_RE.match(line):
+                    stop = True
+                    break
+
                 m = CLAUSE_RE.match(line)
                 if m:
-                    _flush()
                     clause_id = m.group(1)
+                    root = clause_id.split('.')[0]
+
+                    # Skip terms/definitions/scope/refs (clauses 1-3)
+                    if root in SKIP_CLAUSE_ROOTS:
+                        if current is not None:
+                            _flush()
+                            current = None
+                            logical_lines = []
+                        continue
+
+                    _flush()
                     current = {
                         'id': clause_id,
                         'heading': _clean(m.group(2)),
                         'type': 'clause',
-                        'suggested_control_id': f'iso-27001-2022.{clause_id}',
+                        'suggested_control_id': f'iso-22301-2019.{clause_id}',
                         'notes': '',
                     }
                     logical_lines = []
@@ -472,94 +417,11 @@ def extract_clauses(pdf_path: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Extraction — Annex A controls
-# ---------------------------------------------------------------------------
-
-def extract_annex_a(pdf_path: str) -> list[dict]:
-    """Extract Annex A controls (pages 17–24, 0-indexed 16–23)."""
-    entries: list[dict] = []
-    current_id: str | None = None
-    heading_parts: list[str] = []
-    heading_done = False
-    logical_lines: list[str] = []
-
-    def _flush() -> None:
-        if current_id is not None:
-            heading = _clean(' '.join(heading_parts).rstrip('-'))
-            text = _join_body(logical_lines)
-            annex_id = f'A.{current_id}'           # e.g. "A.5.1", "A.6.2"
-            ctrl_id = f'iso-27001-2022.a.{current_id}'
-            entry: dict = {
-                'id': annex_id,
-                'heading': heading,
-                'type': 'annex_control',
-                'suggested_control_id': ctrl_id,
-                'notes': '',
-                'text': text,
-            }
-            stmts = _make_statements(annex_id, logical_lines, ctrl_id)
-            if stmts:
-                entry['statements'] = stmts
-            entries.append(entry)
-
-    # Annex A uses a two-column table layout. The left column (x0 < 180) contains
-    # the control ID and multi-line heading; the right column (x0 >= 180) contains
-    # the body text. Both columns interleave on the same visual lines for controls
-    # with long headings (e.g. A.5.21, A.5.24). We split by x0 to separate them.
-    BODY_COL_X0 = 180.0
-
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages[16:24]:
-            words = page.extract_words(x_tolerance=2, y_tolerance=3)
-            for line_words in words_to_lines(words):
-                # Split words into left-column (heading/id) and right-column (body)
-                left_words = [w for w in line_words if w['x0'] < BODY_COL_X0]
-                right_words = [w for w in line_words if w['x0'] >= BODY_COL_X0]
-
-                # Process left-column content
-                if left_words:
-                    raw_left = line_text(left_words)
-                    left = _clean(raw_left)
-                    if left and not ANNEX_CONTROL_SEP.match(left) and not SECTION_HEADER_RE.match(left) and not _is_skip(left):
-                        m = ANNEX_CTRL_RE.match(left)
-                        if m and m.group(1).split('.')[0] in ('5', '6', '7', '8'):
-                            _flush()
-                            current_id = m.group(1)
-                            heading_parts = [m.group(2)]
-                            heading_done = False
-                            logical_lines = []
-                        elif current_id is not None and not heading_done:
-                            # Heading continuation in left column
-                            prev = heading_parts[-1] if heading_parts else ''
-                            if prev.endswith('-') or (left and left[0].islower()):
-                                heading_parts.append(left)
-                            else:
-                                heading_done = True
-
-                # Process right-column content (always body text)
-                if right_words and current_id is not None:
-                    raw_right = line_text(right_words)
-                    right = _clean(raw_right)
-                    if right and not ANNEX_CONTROL_SEP.match(right) and not _is_skip(right):
-                        if not heading_done:
-                            heading_done = True
-                        logical_lines.append(right)
-
-    _flush()
-    return entries
-
-
-# ---------------------------------------------------------------------------
-# CLI
+# Preserve manual corrections
 # ---------------------------------------------------------------------------
 
 def _load_preserved_text(out_path: Path) -> dict[str, str]:
-    """Return {id: text} for all entries with non-empty text in the existing YAML.
-
-    This preserves manual corrections made after a previous extraction run.
-    The YAML is the human review checkpoint — never discard a human correction
-    by blindly overwriting with a fresh extraction.
-    """
+    """Return {id: text} for all entries with non-empty text in the existing YAML."""
     if not out_path.exists():
         return {}
     with open(out_path, encoding='utf-8') as f:
@@ -568,25 +430,35 @@ def _load_preserved_text(out_path: Path) -> dict[str, str]:
 
 
 def _merge_preserved(entries: list[dict], preserved: dict[str, str]) -> list[dict]:
-    """Apply preserved corrections: existing non-empty text wins over fresh extraction."""
     for e in entries:
         if e['id'] in preserved:
             e['text'] = preserved[e['id']]
     return entries
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('pdf_path', help='Path to ISO/IEC 27001:2022 PDF')
-    parser.add_argument('--out', default='scripts/iso27001_inspection.yaml',
-                        help='Output YAML file (default: scripts/iso27001_inspection.yaml)')
-    parser.add_argument('--no-preserve', action='store_true',
-                        help='Overwrite existing YAML without preserving manual corrections')
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument('pdf_path', help='Path to ISO 22301:2019 PDF')
+    parser.add_argument(
+        '--out',
+        default='scripts/iso22301_inspection.yaml',
+        help='Output YAML file (default: scripts/iso22301_inspection.yaml)',
+    )
+    parser.add_argument(
+        '--no-preserve',
+        action='store_true',
+        help='Overwrite existing YAML without preserving manual corrections',
+    )
     args = parser.parse_args()
 
     out_path = Path(args.out)
 
-    # Read preserved corrections BEFORE extraction so we can restore them afterwards
     preserved: dict[str, str] = {}
     if not args.no_preserve:
         preserved = _load_preserved_text(out_path)
@@ -595,47 +467,33 @@ def main() -> None:
 
     pdf_path = args.pdf_path
     print(f'Extracting clauses from {pdf_path} ...')
-    clauses = extract_clauses(pdf_path)
-    print(f'  Clauses found: {len(clauses)}')
+    entries = extract_clauses(pdf_path)
+    print(f'  Clauses found: {len(entries)}')
 
-    print('Extracting Annex A controls ...')
-    annex = extract_annex_a(pdf_path)
-    print(f'  Annex A controls found: {len(annex)}')
-
-    all_entries = clauses + annex
-
-    # Restore any manual corrections that survived from the previous YAML
     if preserved:
-        all_entries = _merge_preserved(all_entries, preserved)
+        entries = _merge_preserved(entries, preserved)
 
-    # Count total statements
-    def _count_stmts(entries):
+    def _count_stmts(es):
         n = 0
-        for e in entries:
+        for e in es:
             for s in e.get('statements', []):
                 n += 1
                 n += _count_stmts(s.get('statements', []))
         return n
-    total_stmts = _count_stmts(all_entries)
+
+    total_stmts = _count_stmts(entries)
     print(f'  Normative statements extracted: {total_stmts}')
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, 'w', encoding='utf-8') as f:
-        yaml.dump(all_entries, f, allow_unicode=True, sort_keys=False, width=120)
+        yaml.dump(entries, f, allow_unicode=True, sort_keys=False, width=120)
 
-    empties = [e['id'] for e in all_entries if not e.get('text') and e['type'] == 'annex_control']
+    empties = [e['id'] for e in entries if not e.get('text')]
     if empties:
-        print(f'\n  ⚠  Annex A entries with empty text (manual review needed): {empties}')
-
-    section_empties = [e['id'] for e in all_entries if not e.get('text') and e['type'] == 'clause' and '.' not in str(e['id'])]
-    leaf_empties = [e['id'] for e in all_entries if not e.get('text') and e['type'] == 'clause' and '.' in str(e['id'])]
-    if section_empties:
-        print(f'  (Section headings with no body — expected): {section_empties}')
-    if leaf_empties:
-        print(f'  ⚠  Leaf clauses with empty text (manual review needed): {leaf_empties}')
+        print(f'\n  Warning: Clauses with empty text (manual review needed): {empties}')
 
     print(f'\nWritten: {out_path}')
-    print('Review the YAML, fill in any flagged entries, then load with scripts/load_iso27001_chunks.py')
+    print('Review the YAML, then load with scripts/load_iso22301_chunks.py')
 
 
 if __name__ == '__main__':

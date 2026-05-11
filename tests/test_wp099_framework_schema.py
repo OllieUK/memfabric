@@ -224,7 +224,7 @@ def test_config_has_ctrl_index_capacity():
 
 
 def test_knowledge_constraints_has_control():
-    from scripts.init_knowledge_schema import KNOWLEDGE_CONSTRAINTS
+    from cyber_knowledge.ingest.schema_init import KNOWLEDGE_CONSTRAINTS
     labels = [label for label, _ in KNOWLEDGE_CONSTRAINTS]
     assert "Control" in labels, "Control must be in KNOWLEDGE_CONSTRAINTS (added by WP-101)"
 
@@ -676,7 +676,7 @@ def test_framework_statement_type_defaults_none(client, test_driver):
 @pytest.mark.integration
 def test_init_knowledge_schema_creates_framework_embedding_idx(test_driver):
     """After running init_knowledge_schema, framework_embedding_idx must exist on Framework."""
-    from scripts.init_knowledge_schema import main as init_main
+    from cyber_knowledge.ingest.schema_init import main as init_main
     rc = init_main()
     assert rc == 0
 

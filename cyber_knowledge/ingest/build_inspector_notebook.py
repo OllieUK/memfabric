@@ -181,7 +181,7 @@ print(first_500)
     ))
 
     cells.append(code("""\
-from scripts.chunkers import chunk_pdf
+from cyber_knowledge.ingest.chunkers import chunk_pdf
 import statistics
 
 chunks = chunk_pdf(str(PDF_PATH), CHUNK_SIZE, OVERLAP, MIN_CHUNK_CHARS)

@@ -28,7 +28,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from scripts.script_utils import ApiSettings, get_api_client
+from cyber_knowledge.ingest.script_utils import ApiSettings, get_api_client
 
 _BA_ENDPOINT = "/knowledge/business-attributes"
 _SEARCH_ENDPOINT = "/knowledge/search/frameworks"

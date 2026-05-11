@@ -4,7 +4,7 @@ import importlib.util
 import numpy as np
 import pytest
 
-_SCRIPT_PATH = pathlib.Path(__file__).parent.parent / 'scripts' / 'analyse_cross_framework_clusters.py'
+_SCRIPT_PATH = pathlib.Path(__file__).parent.parent / 'cyber_knowledge' / 'ingest' / 'cross_framework_clusters_analyse.py'
 
 # Cache at module level — exec_module triggers heavy sklearn/numpy imports on every call.
 def _import_script():

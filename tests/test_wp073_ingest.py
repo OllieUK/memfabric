@@ -258,7 +258,7 @@ def _make_main_argv(tmp_path, content: str = "## Section\n" + "x" * 100) -> tupl
 
 def test_review_mode_prevents_edge_creation(tmp_path, capsys):
     """With ingest_chunk_review_mode=True, _post_supports must never be called."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -303,7 +303,7 @@ def test_review_mode_prevents_edge_creation(tmp_path, capsys):
 
 def test_review_mode_prints_summary(tmp_path, capsys):
     """With ingest_chunk_review_mode=True, stdout must contain candidate control_id."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -343,7 +343,7 @@ def test_review_mode_prints_summary(tmp_path, capsys):
 
 def test_auto_supports_below_threshold_creates_edge(tmp_path):
     """With review_mode=False and distance < threshold, supports POST must be called."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",
@@ -387,7 +387,7 @@ def test_auto_supports_below_threshold_creates_edge(tmp_path):
 
 def test_auto_supports_above_threshold_skipped(tmp_path):
     """With distance > threshold, supports POST must NOT be called."""
-    from scripts.ingest_document import main
+    from cyber_knowledge.ingest.document import main
 
     md_path, argv = _make_main_argv(tmp_path)
     doc_resp = {"id": "doc-test-1", "title": "Test Doc", "doc_type": "policy",

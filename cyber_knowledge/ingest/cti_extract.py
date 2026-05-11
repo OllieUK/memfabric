@@ -31,7 +31,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 try:
     from pdf_utils import words_to_lines, line_text
 except ImportError:
-    from scripts.pdf_utils import words_to_lines, line_text
+    from cyber_knowledge.ingest.pdf_utils import words_to_lines, line_text
 
 # Ensure project root on path so memory_service is importable
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent

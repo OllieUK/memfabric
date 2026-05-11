@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
-"""inspect_iso22301.py — Structure-aware extractor for ISO 22301:2019.
+"""inspect_din14027.py — Extractor for DIN SPEC 14027:2026-04 (Corporate Security).
 
-Produces a YAML file with one entry per normative clause, plus child entries
-for each normative sub-statement (list items), ready for human review before
-loading into the knowledge graph.
+German-language standard. Extracts normative clauses 1–20 (pages 12–45, 0-indexed).
+Annex A (tabular requirements matrix) is skipped — too complex for line extraction.
 
 Usage:
-    python3 -m scripts.inspect_iso22301 <pdf_path> [--out <output.yaml>]
-
-Key differences from ISO 27005:
-  - Framework prefix: iso-22301-2019
-  - 30 pages total. Normative clauses 4-10 span roughly pages 8-25 (0-indexed ~7-24).
-  - Skip: Foreword, Introduction (pages 0-6), Annex (informative only), Bibliography.
-  - No normative Annex — Annex A is informative. Stop at first Annex heading.
-  - Clause 3 (Terms and definitions) is skipped like ISO 27005.
+    python3 -m scripts.inspect_din14027 <pdf_path> [--out <output.yaml>]
 """
 from __future__ import annotations
 
@@ -27,114 +19,119 @@ import yaml
 try:
     from pdf_utils import words_to_lines, line_text
 except ImportError:
-    from scripts.pdf_utils import words_to_lines, line_text
+    from cyber_knowledge.ingest.pdf_utils import words_to_lines, line_text
 
 # ---------------------------------------------------------------------------
 # Heading patterns
 # ---------------------------------------------------------------------------
 
-CLAUSE_RE = re.compile(r'^(\d+(?:\.\d+)*)\s{1,3}([A-Z][^\n]{2,})$')
+# German headings can start with any character (not necessarily uppercase).
+# Permissive: number(s), whitespace, then 3+ chars of heading text.
+CLAUSE_RE = re.compile(r'^(\d+(?:\.\d+)*)\s{1,3}(.{3,})$')
 
-# List item starters — these begin normative sub-statements
+# List item starters — em-dash (U+2014) and alpha/numeric lettered lists
 LIST_ITEM_RE = re.compile(
     r'^('
     r'[a-z]\)\s'     # a) b) c)
     r'|\d+\)\s'      # 1) 2) 3)
-    r'|—\s'         # em-dash bullet
+    r'|—\s'          # em-dash bullet (U+2014)
     r'|[-•·]\s'      # other bullets
     r')'
 )
 
-# NOTE lines (informative, not normative)
-NOTE_RE = re.compile(r'^NOTE\s*\d*\s')
-
-# Extract the label prefix from a list item: "a) text" → ("a)", "text")
 LIST_LABEL_RE = re.compile(
     r'^([a-z]\)|\d+\)|—|[-•·])\s+(.*)',
     re.DOTALL,
 )
 
-# ISO licence watermark detection
-_WATERMARK_TOKEN_RE = re.compile(r'[`]|(?<=[a-zA-Z]),(?=[a-zA-Z])')
+# Annex heading — signals boundary (Anhang or Annex)
+ANNEX_RE = re.compile(r'^(Anhang|Annex)\s+[A-Z]')
 
-# Skip patterns
-SKIP_HEADERS = {
-    'ISO 22301:2019(E)',
-    'INTERNATIONAL STANDARD ISO 22301:2019(E)',
-}
-SKIP_RE = re.compile(
-    r'^(TTaabbllee|Table |Figure |©|ICS \d|Price based|Bibliography|Contents|Foreword|'
-    r'Reference number|COPYRIGHT|All rights reserved|ISO copyright|CP 401|CH-\d|Phone:|Email:|'
-    r'Website:|Published in|\.{4,})'
-)
+# Page number lines — standalone integers
+PAGE_NUMBER_RE = re.compile(r'^\d{1,3}$')
 
-# Clauses to skip — Terms & Definitions (clause 3) are definitions, not obligations
+# Skip clause roots — skip clauses 1, 2, 3 (scope, references, terms)
 SKIP_CLAUSE_ROOTS = {'1', '2', '3'}
 
-# Annex heading — signals start of informative annex (stop normative extraction).
-ANNEX_RE = re.compile(r'^Annex\s+[A-Z](\s*\(|$)')
+# Known header/footer patterns to discard
+SKIP_RE = re.compile(
+    r'^(DIN SPEC|©|Schutzrecht|Tabelle |Bild |Figure |Table |'
+    r'\.{4,}|ICS |Preis|Gesamtumfang|Normteil|'
+    r'Inhalt|Vorwort|Einleitung)'
+)
+
+# Watermark threshold: discard words with x0 < 30
+WATERMARK_X0_THRESHOLD = 30.0
+
+# Header column threshold: words far to the right or left that are page headers
+# Recto header x0 ≈ 424, verso header x0 ≈ 41 — but content starts at ~39.7 on verso
+# We detect headers by checking if first word on line is in a known set OR
+# if the line is short (1-2 words) and looks like a running header
+HEADER_STRINGS = {
+    'DIN SPEC 14027:2026-04',
+    'DIN SPEC 14027',
+}
+
+
+def _line_min_x0(line_words: list[dict]) -> float:
+    return min(w['x0'] for w in line_words)
 
 
 # ---------------------------------------------------------------------------
-# Text cleaning  (identical pipeline to inspect_iso27005.py)
+# Text cleaning
 # ---------------------------------------------------------------------------
 
-def _clean_token(token: str) -> str:
-    """Strip ISO licence watermark from a single PDF word token."""
-    if not _WATERMARK_TOKEN_RE.search(token):
-        return token
-    token = re.sub(r'[^a-zA-Z0-9()\'"  ;:.!?/-]', '', token)
-    token = re.sub(r'-{2,}', '', token)
-    token = re.sub(r'(?<=[a-zA-Z])-(?=[a-zA-Z])', '', token)
-    return token
+_CID_RE = re.compile(r'\(cid:\d+\)')
 
 
 def _clean(text: str) -> str:
-    """Normalise pdfplumber artefacts from a reconstructed line of text."""
-    tokens = text.split()
-    tokens = [_clean_token(t) for t in tokens]
-    text = ' '.join(t for t in tokens if t)
-    text = re.sub(r'-\s+', '', text)                           # soft-hyphen wraps
-    text = re.sub(r'(?<=[A-Z])\s(?=[a-z]{2,})', '', text)     # space-in-word artefact
-    text = re.sub(r'\[\d+\]', '', text)                        # superscript refs [1]
-    text = re.sub(r'\s+\d{1,2}$', '', text)                    # trailing page numbers
-    text = re.sub(r' {2,}', ' ', text)
+    text = _CID_RE.sub('', text)               # remove (cid:NNN) encoding artifacts
+    text = re.sub(r'(\w)-\s+(\w)', r'\1\2', text)  # soft-hyphen wraps mid-word
+    text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
 
 def _is_skip(line: str) -> bool:
-    if re.match(r'^\d{1,2}$', line):
+    if PAGE_NUMBER_RE.match(line):
         return True
-    return line in SKIP_HEADERS or bool(SKIP_RE.match(line))
+    if line in HEADER_STRINGS:
+        return True
+    if SKIP_RE.match(line):
+        return True
+    return False
 
 
 def _is_list_item(text: str) -> bool:
     return bool(LIST_ITEM_RE.match(text.strip()))
 
 
-def _is_note(text: str) -> bool:
-    return bool(NOTE_RE.match(text.strip()))
-
-
 # ---------------------------------------------------------------------------
-# Body text and statement decomposition  (shared with inspect_iso27005.py)
+# Body text assembly
 # ---------------------------------------------------------------------------
 
 def _join_body(logical_lines: list[str]) -> str:
-    """Assemble clause body text: list items on own lines, prose joined with spaces."""
     parts: list[str] = []
     current: list[str] = []
 
     def _flush() -> None:
         if current:
-            parts.append(' '.join(current))
+            # Join lines, merging hyphenated line endings (e.g. "Organisati-\nonswerte")
+            joined = ''
+            for i, chunk in enumerate(current):
+                if i == 0:
+                    joined = chunk
+                elif joined.endswith('-'):
+                    joined = joined[:-1] + chunk
+                else:
+                    joined = joined + ' ' + chunk
+            parts.append(joined)
             current.clear()
 
     for line in logical_lines:
         stripped = line.strip()
         if not stripped:
             continue
-        if _is_list_item(stripped) or _is_note(stripped):
+        if _is_list_item(stripped):
             _flush()
             current.append(stripped)
         else:
@@ -143,6 +140,10 @@ def _join_body(logical_lines: list[str]) -> str:
     _flush()
     return '\n'.join(parts)
 
+
+# ---------------------------------------------------------------------------
+# Statement decomposition (list items → normative statements)
+# ---------------------------------------------------------------------------
 
 class _Block:
     def __init__(self, preamble: str):
@@ -154,14 +155,12 @@ class _Block:
 
 
 def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
-    """Parse logical lines into one or more preamble→list blocks."""
     blocks: list[_Block] = []
     current_block = _Block('')
     preamble_parts: list[str] = []
     current_item_label: str | None = None
     current_item_parts: list[str] = []
     in_list = False
-    in_note = False
 
     def _flush_item() -> None:
         if current_item_label is not None:
@@ -177,14 +176,6 @@ def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
         stripped = line.strip()
         if not stripped:
             continue
-        if _is_note(stripped):
-            in_note = True
-            continue
-        if in_note:
-            if LIST_LABEL_RE.match(stripped):
-                in_note = False
-            else:
-                continue
 
         m = LIST_LABEL_RE.match(stripped)
         if m:
@@ -195,13 +186,11 @@ def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
             rest = m.group(2).strip()
             current_item_parts = [rest] if rest else []
         elif in_list:
+            # continuation of current item if it starts with lowercase or punctuation
             is_continuation = (
                 current_item_label is not None
-                and (
-                    stripped[0].islower()
-                    or stripped.startswith('processes')
-                    or not stripped[0].isupper()
-                )
+                and stripped
+                and not stripped[0].isupper()
             )
             if is_continuation:
                 current_item_parts.append(stripped)
@@ -220,6 +209,8 @@ def _parse_blocks(logical_lines: list[str]) -> list[_Block]:
 
 
 def _clean_item_text(text: str) -> str:
+    text = re.sub(r'[;,]\s*und\s*$', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'[;,]\s*oder\s*$', '', text, flags=re.IGNORECASE)
     text = re.sub(r'[;,]\s*and\s*$', '', text, flags=re.IGNORECASE)
     text = re.sub(r'[;,]\s*or\s*$', '', text, flags=re.IGNORECASE)
     text = text.rstrip(';').rstrip(',').rstrip()
@@ -227,26 +218,17 @@ def _clean_item_text(text: str) -> str:
 
 
 def _fuse_statement(preamble: str, item_text: str) -> str:
-    """Combine preamble + item text into a complete normative sentence."""
     item_text = _clean_item_text(item_text)
     item_text_clean = item_text.rstrip(':').rstrip()
     p = preamble.rstrip()
     if not p:
-        body = item_text_clean
-        if body and body[0].islower():
-            body = body[0].upper() + body[1:]
-        return body.rstrip('.') + '.'
+        return item_text_clean.rstrip('.') + '.'
     if p.endswith(':'):
         stem = p[:-1].rstrip()
         body = item_text_clean
-        if body and body[0].isupper():
-            body = body[0].lower() + body[1:]
         return f"{stem} {body}.".rstrip('..') + '.'
     else:
-        body = item_text_clean
-        if body and body[0].islower():
-            body = body[0].upper() + body[1:]
-        return (f"{p} {body}").rstrip('.') + '.'
+        return (f"{p} {item_text_clean}").rstrip('.') + '.'
 
 
 _DASH_LABEL_RE = re.compile(r'^(—|[-•·])$')
@@ -257,10 +239,8 @@ _NUMERIC_LABEL_RE = re.compile(r'^\d+\)$')
 def _items_to_statements(items: list[dict], preamble: str, id_prefix: str) -> list[dict]:
     statements: list[dict] = []
     dash_counter = 0
-    i = 0
 
-    while i < len(items):
-        item = items[i]
+    for item in items:
         label = item['label']
         item_text = item['text']
 
@@ -273,46 +253,8 @@ def _items_to_statements(items: list[dict], preamble: str, id_prefix: str) -> li
             slug = f"stmt-{dash_counter}"
 
         stmt_id = f"{id_prefix}.{slug}"
-
-        _SUB_LIST_ENDINGS = (':', 'include', ' to', ' by', ' for', 'how to')
-        child_items = []
-        item_text_stripped = item_text.rstrip()
-        if any(item_text_stripped.endswith(e) for e in _SUB_LIST_ENDINGS):
-            j = i + 1
-            while j < len(items) and (
-                _DASH_LABEL_RE.match(items[j]['label'])
-                or _NUMERIC_LABEL_RE.match(items[j]['label'])
-            ):
-                child_items.append(items[j])
-                j += 1
-            if child_items:
-                i = j
-            else:
-                i += 1
-        else:
-            i += 1
-
         fused_body = _fuse_statement(preamble, item_text)
         stmt: dict = {'id': stmt_id, 'label': label, 'body': fused_body, 'notes': ''}
-
-        if child_items:
-            child_preamble = fused_body.rstrip('.')
-            child_stmts = []
-            child_dash_counter = 0
-            for ci in child_items:
-                cl = ci['label']
-                if _NUMERIC_LABEL_RE.match(cl):
-                    cslug = cl[:-1]
-                elif _ALPHA_LABEL_RE.match(cl):
-                    cslug = cl[0]
-                else:
-                    child_dash_counter += 1
-                    cslug = f"stmt-{child_dash_counter}"
-                child_id = f"{stmt_id}.{cslug}"
-                child_body = _fuse_statement(child_preamble + ':', ci['text'])
-                child_stmts.append({'id': child_id, 'label': cl, 'body': child_body, 'notes': ''})
-            stmt['statements'] = child_stmts
-
         statements.append(stmt)
 
     return statements
@@ -331,7 +273,6 @@ def _make_statements(clause_id: str, logical_lines: list[str], id_prefix: str) -
     for bi, block in enumerate(blocks, start=1):
         block_id = f"{id_prefix}.block-{bi}"
         block_body = block.preamble.rstrip(':').rstrip() + '.'
-        block_body = block_body[0].upper() + block_body[1:] if block_body else ''
         stmt: dict = {
             'id': block_id,
             'label': f'block-{bi}',
@@ -347,15 +288,37 @@ def _make_statements(clause_id: str, logical_lines: list[str], id_prefix: str) -
 
 
 # ---------------------------------------------------------------------------
-# Extraction — normative clauses (4 onwards, stop at Annex)
+# Page type detection (recto vs verso)
 # ---------------------------------------------------------------------------
 
-def extract_clauses(pdf_path: str) -> list[dict]:
-    """Extract normative clauses 4-10 from ISO 22301:2019.
+def _detect_page_type(words: list[dict]) -> str:
+    """Detect recto or verso based on first meaningful word x0 position."""
+    for w in words:
+        if w['x0'] >= WATERMARK_X0_THRESHOLD:
+            return 'verso' if w['x0'] < 55 else 'recto'
+    return 'recto'
 
-    - Skips clauses 1, 2, 3 (scope/refs/terms — not normative obligations).
-    - Stops at the first Annex heading (informative, not normative).
-    - Pages: starts at page 8 (0-indexed 7), ISO 22301 has 30 pages.
+
+def _filter_words(words: list[dict]) -> list[dict]:
+    """Remove watermark noise (x0 < 30)."""
+    return [w for w in words if w['x0'] >= WATERMARK_X0_THRESHOLD]
+
+
+# ---------------------------------------------------------------------------
+# Main extraction
+# ---------------------------------------------------------------------------
+
+# Page range: pages 12–45 (0-indexed), normative body clauses
+PAGE_START = 12
+PAGE_END = 45  # inclusive
+
+
+def extract_clauses(pdf_path: str) -> list[dict]:
+    """Extract normative clauses from DIN SPEC 14027:2026-04.
+
+    - Skips clauses 1, 2, 3 (scope/refs/terms).
+    - Stops at Annex A (Anhang A) boundary.
+    - Pages: 12–45 (0-indexed).
     """
     entries: list[dict] = []
     current: dict | None = None
@@ -372,17 +335,24 @@ def extract_clauses(pdf_path: str) -> list[dict]:
             entries.append(current)
 
     with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages[7:]:   # start at page 8 (0-indexed 7)
+        pages = pdf.pages[PAGE_START:PAGE_END + 1]
+        for page in pages:
             if stop:
                 break
             words = page.extract_words(x_tolerance=2, y_tolerance=3)
+            words = _filter_words(words)
+            if not words:
+                continue
+
             for line_words in words_to_lines(words):
+                if stop:
+                    break
                 raw = line_text(line_words)
                 line = _clean(raw)
                 if not line or _is_skip(line):
                     continue
 
-                # Stop at Annex
+                # Stop at Annex / Anhang
                 if ANNEX_RE.match(line):
                     stop = True
                     break
@@ -392,7 +362,7 @@ def extract_clauses(pdf_path: str) -> list[dict]:
                     clause_id = m.group(1)
                     root = clause_id.split('.')[0]
 
-                    # Skip terms/definitions/scope/refs (clauses 1-3)
+                    # Skip scope/references/terms (clauses 1–3)
                     if root in SKIP_CLAUSE_ROOTS:
                         if current is not None:
                             _flush()
@@ -405,7 +375,7 @@ def extract_clauses(pdf_path: str) -> list[dict]:
                         'id': clause_id,
                         'heading': _clean(m.group(2)),
                         'type': 'clause',
-                        'suggested_control_id': f'iso-22301-2019.{clause_id}',
+                        'suggested_control_id': f'din-spec-14027-2026.{clause_id}',
                         'notes': '',
                     }
                     logical_lines = []
@@ -417,26 +387,6 @@ def extract_clauses(pdf_path: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Preserve manual corrections
-# ---------------------------------------------------------------------------
-
-def _load_preserved_text(out_path: Path) -> dict[str, str]:
-    """Return {id: text} for all entries with non-empty text in the existing YAML."""
-    if not out_path.exists():
-        return {}
-    with open(out_path, encoding='utf-8') as f:
-        existing = yaml.safe_load(f) or []
-    return {e['id']: e['text'] for e in existing if e.get('text')}
-
-
-def _merge_preserved(entries: list[dict], preserved: dict[str, str]) -> list[dict]:
-    for e in entries:
-        if e['id'] in preserved:
-            e['text'] = preserved[e['id']]
-    return entries
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -444,41 +394,27 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument('pdf_path', help='Path to ISO 22301:2019 PDF')
+    parser.add_argument('pdf_path', help='Path to DIN SPEC 14027:2026-04 PDF')
     parser.add_argument(
         '--out',
-        default='scripts/iso22301_inspection.yaml',
-        help='Output YAML file (default: scripts/iso22301_inspection.yaml)',
-    )
-    parser.add_argument(
-        '--no-preserve',
-        action='store_true',
-        help='Overwrite existing YAML without preserving manual corrections',
+        default='scripts/din14027_inspection.yaml',
+        help='Output YAML file (default: scripts/din14027_inspection.yaml)',
     )
     args = parser.parse_args()
 
     out_path = Path(args.out)
-
-    preserved: dict[str, str] = {}
-    if not args.no_preserve:
-        preserved = _load_preserved_text(out_path)
-        if preserved:
-            print(f'  Preserving {len(preserved)} manually-corrected entries from existing YAML')
 
     pdf_path = args.pdf_path
     print(f'Extracting clauses from {pdf_path} ...')
     entries = extract_clauses(pdf_path)
     print(f'  Clauses found: {len(entries)}')
 
-    if preserved:
-        entries = _merge_preserved(entries, preserved)
-
-    def _count_stmts(es):
+    def _count_stmts(es: list) -> int:
         n = 0
         for e in es:
             for s in e.get('statements', []):
                 n += 1
-                n += _count_stmts(s.get('statements', []))
+                n += _count_stmts([s])
         return n
 
     total_stmts = _count_stmts(entries)
@@ -490,10 +426,9 @@ def main() -> None:
 
     empties = [e['id'] for e in entries if not e.get('text')]
     if empties:
-        print(f'\n  Warning: Clauses with empty text (manual review needed): {empties}')
+        print(f'\n  Clauses with empty text (manual review needed): {empties}')
 
     print(f'\nWritten: {out_path}')
-    print('Review the YAML, then load with scripts/load_iso22301_chunks.py')
 
 
 if __name__ == '__main__':

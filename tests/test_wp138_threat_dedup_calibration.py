@@ -1,7 +1,7 @@
 """
 tests/test_wp138_threat_dedup_calibration.py
 
-Unit and integration tests for scripts/calibrate_threat_dedup.py (WP-138).
+Unit and integration tests for cyber_knowledge/ingest/threat_dedup_calibrate.py (WP-138).
 
 Unit tests: no DB, no subprocess.
 Integration tests: require live Memgraph + FastAPI stack.
@@ -21,7 +21,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # Imports under test
 # ---------------------------------------------------------------------------
 
-from scripts.calibrate_threat_dedup import (
+from cyber_knowledge.ingest.threat_dedup_calibrate import (
     RecommendResult,
     _auto_recommend,
     _ocr_noise_heuristic,
@@ -216,7 +216,7 @@ def test_ocr_noise_heuristic():
 @pytest.mark.integration
 def test_histogram_runs_with_semantic_assertions():
     result = subprocess.run(
-        [sys.executable, "scripts/calibrate_threat_dedup.py", "--histogram", "--json"],
+        [sys.executable, "cyber_knowledge/ingest/threat_dedup_calibrate.py", "--histogram", "--json"],
         capture_output=True, text=True, cwd=_PROJECT_ROOT,
     )
     assert result.returncode == 0, result.stderr
@@ -247,7 +247,7 @@ def test_histogram_runs_with_semantic_assertions():
 @pytest.mark.integration
 def test_pair_rerun_predicts_uplift():
     result = subprocess.run(
-        [sys.executable, "scripts/calibrate_threat_dedup.py",
+        [sys.executable, "cyber_knowledge/ingest/threat_dedup_calibrate.py",
          "--pair-rerun", "--threshold", "0.28", "--json"],
         capture_output=True, text=True, cwd=_PROJECT_ROOT,
     )
@@ -271,7 +271,7 @@ def test_pair_rerun_predicts_uplift():
 @pytest.mark.integration
 def test_verify_runs_cleanly():
     result = subprocess.run(
-        [sys.executable, "scripts/calibrate_threat_dedup.py", "--verify", "--json"],
+        [sys.executable, "cyber_knowledge/ingest/threat_dedup_calibrate.py", "--verify", "--json"],
         capture_output=True, text=True, cwd=_PROJECT_ROOT,
     )
     # Exit 0 if within 0.03 drift, 1 if above

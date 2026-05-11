@@ -25,7 +25,7 @@ import numpy as np
 from neo4j import GraphDatabase
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from scripts.create_cross_framework_informs import (
+from cyber_knowledge.ingest.cross_framework_informs import (
     _fetch_nodes,
     create_informs_edges,
     threshold_pairs,

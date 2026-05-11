@@ -149,7 +149,7 @@ class TestScriptHelpers:
             sys.path.insert(0, str(proj_root))
         # Import will succeed once the file is written; if not written yet this
         # will ImportError (expected during TDD red phase)
-        import scripts.apply_threat_dedup_wp138b as m
+        import cyber_knowledge.ingest.threat_dedup_apply as m
         self.mod = m
 
     def test_pick_canonical_higher_identifies_wins(self):

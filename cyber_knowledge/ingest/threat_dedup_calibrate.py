@@ -37,7 +37,7 @@ from memory_service import memory_repo
 try:
     from create_cross_framework_informs import compute_histogram, cosine_similarity_matrix
 except ImportError:
-    from scripts.create_cross_framework_informs import compute_histogram, cosine_similarity_matrix
+    from cyber_knowledge.ingest.cross_framework_informs import compute_histogram, cosine_similarity_matrix
 
 
 # ---------------------------------------------------------------------------
