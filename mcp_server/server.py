@@ -127,7 +127,7 @@ def memory_add(
                 importance_floor_factor=settings.importance_floor_factor,
             )
             if settings.enable_knowledge_layer and (req.control_ids or req.doc_ids):
-                from memory_service import knowledge_bridge
+                from cyber_knowledge.mcp_tools import bridge as knowledge_bridge
                 if req.control_ids:
                     knowledge_bridge.link_controls(
                         session, memory_id_to_return, req.control_ids,
@@ -688,7 +688,7 @@ def memory_update(
         memory_repo.update_memory(session, memory_id, patch_fields, new_embedding, now)
 
         if settings.enable_knowledge_layer and bridge_fields:
-            from memory_service import knowledge_bridge
+            from cyber_knowledge.mcp_tools import bridge as knowledge_bridge
             if "control_ids" in bridge_fields:
                 knowledge_bridge.replace_control_edges(
                     session, memory_id,
@@ -772,7 +772,7 @@ def memory_merge(source_id: str, target_id: str) -> dict:
             default_edge_decay_rate=settings.edge_decay_rate,
         )
         if settings.enable_knowledge_layer:
-            from memory_service import knowledge_bridge
+            from cyber_knowledge.mcp_tools import bridge as knowledge_bridge
             knowledge_bridge.rewire_cross_layer_edges(session, source_id, target_id)
         memory_repo.append_operation_log(session, {
             "operation": "merge",
@@ -842,83 +842,8 @@ def memory_close_session() -> str:
 
 
 if settings.enable_knowledge_layer:
-    from memory_service import knowledge_repo
-
-    @mcp.tool
-    def knowledge_search_controls(
-        query: str,
-        limit: int = 10,
-        framework_id: str | None = None,
-    ) -> list[dict]:
-        """Search InfoSec controls by semantic similarity.
-
-        Use this tool when an agent needs to find controls relevant to a topic,
-        threat, or gap (e.g. "access control for privileged accounts"). Returns
-        controls ranked by vector distance to the query, optionally filtered to a
-        single framework (e.g. "nist-csf-2.0" or "iso-27001-2022").
-
-        Do NOT use this for searching episodic memories — call memory_search instead.
-        Requires ENABLE_KNOWLEDGE_LAYER=true and at least one framework loaded via
-        ingest_framework.py.
-        """
-        with _driver().session() as session:
-            return knowledge_repo.search_controls(session, query, limit=limit, framework_id=framework_id)
-
-    @mcp.tool
-    def knowledge_search_chunks(
-        query: str,
-        limit: int = 10,
-        doc_id: str | None = None,
-    ) -> list[dict]:
-        """Search policy/procedure document chunks by semantic similarity.
-
-        Use when an agent needs to find specific passages in loaded documents that
-        are relevant to a topic (e.g. "data retention requirements" or "incident
-        escalation procedure"). Returns chunks ranked by vector distance, optionally
-        filtered to a single document by its doc_id.
-
-        Do NOT use this for searching episodic memories — call memory_search instead.
-        Requires ENABLE_KNOWLEDGE_LAYER=true and at least one document ingested.
-        """
-        with _driver().session() as session:
-            return knowledge_repo.search_chunks(session, query, limit=limit, doc_id=doc_id)
-
-    @mcp.tool
-    def knowledge_list_norms() -> list[dict]:
-        """Return all regulatory norms in the knowledge layer.
-
-        Use when an agent needs the full catalogue of norms to present options to
-        the user or to identify which norms apply to a given control. Each norm has
-        id, name, text, status, and effective_date.
-
-        This is a catalogue listing, not a search. For semantic search over norm
-        text, use knowledge_search_controls (norms are linked to controls via
-        IMPLEMENTS edges; searching controls surfaces related norms indirectly).
-        """
-        with _driver().session() as session:
-            return knowledge_repo.list_norms(session)
-
-    @mcp.tool
-    def knowledge_get_control(control_id: str) -> dict:
-        """Fetch a single InfoSec control by its ID.
-
-        Use when an agent already has a control_id (e.g. from knowledge_search_controls)
-        and needs its full details: name, description, framework_id, and created_at.
-        Returns 404 detail if the control does not exist.
-        """
-        with _driver().session() as session:
-            return knowledge_repo.get_control(session, control_id)
-
-    @mcp.tool
-    def knowledge_get_norm(norm_id: str) -> dict:
-        """Fetch a single regulatory norm by its ID.
-
-        Use when an agent already has a norm_id (e.g. from knowledge_list_norms)
-        and needs its full details: name, text, status, and effective_date.
-        Returns 404 detail if the norm does not exist.
-        """
-        with _driver().session() as session:
-            return knowledge_repo.get_norm(session, norm_id)
+    from cyber_knowledge.mcp_tools import register as register_cyber_tools
+    register_cyber_tools(mcp)
 
 
 def main() -> None:

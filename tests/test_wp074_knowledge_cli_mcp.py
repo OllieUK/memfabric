@@ -29,41 +29,40 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 def test_mcp_tools_not_registered_when_flag_off():
     """When enable_knowledge_layer is False, knowledge tools are not registered.
 
-    We verify this by checking the source code contains the feature-flag guard,
-    which is equivalent to verifying the conditional registration at import time.
-    This avoids module reload side-effects on other tests.
+    Post-WP-173 (ADR-003 §2 door 2): cyber MCP tools live in
+    `cyber_knowledge.mcp_tools.register` and the gating call lives in
+    `mcp_server.server` under the feature-flag guard. We verify both:
+    the guard exists, and the cyber-tools `register` call is inside it.
     """
     import mcp_server.server as server_mod
     source = inspect.getsource(server_mod)
-    # The guard must exist AND knowledge_search_controls must only be defined inside it
     assert "if settings.enable_knowledge_layer:" in source, (
         "Expected feature-flag guard in mcp_server.server"
     )
-    # knowledge_search_controls must not be defined at module top-level (only inside the if block)
-    # We verify this by checking the function is not importable at global scope
-    # when the module is loaded with the flag on — but we verify via source that it's gated
     lines = source.splitlines()
-    # Find lines that define knowledge_search_controls (via @mcp.tool or def)
     for i, line in enumerate(lines):
-        if "knowledge_search_controls" in line and ("def " in line or "@" in line):
-            # It must be indented (inside the if block), not at top-level
+        if "register_cyber_tools" in line and ("import" in line or "(" in line):
+            # Must be indented (inside the if block), not at module top-level
             assert line.startswith(" ") or line.startswith("\t"), (
-                f"knowledge_search_controls defined outside if-block at line {i+1}: {line!r}"
+                f"register_cyber_tools referenced outside if-block at line {i+1}: {line!r}"
             )
 
 
 def test_mcp_tools_registered_when_flag_on():
-    """When enable_knowledge_layer is True the if-block is present in server source."""
-    # Module-level registration happens at import time, making it difficult to
-    # toggle reliably in unit tests without side-effects on other tests.
-    # We verify the feature-flag guard is present in the source instead.
+    """When enable_knowledge_layer is True, cyber tools are wired via the ADR-003 door-2 contract."""
     import mcp_server.server as server_mod
     source = inspect.getsource(server_mod)
     assert "if settings.enable_knowledge_layer:" in source, (
         "Expected feature-flag guard in mcp_server.server"
     )
-    assert "knowledge_search_controls" in source, (
-        "Expected knowledge_search_controls tool defined under flag guard"
+    assert "from cyber_knowledge.mcp_tools import register" in source, (
+        "Expected mcp_server.server to import register() from cyber_knowledge.mcp_tools (ADR-003 door 2)"
+    )
+    # Confirm the tool itself is defined inside cyber_knowledge.mcp_tools
+    import cyber_knowledge.mcp_tools as cyber_mcp_tools
+    cyber_source = inspect.getsource(cyber_mcp_tools)
+    assert "knowledge_search_controls" in cyber_source, (
+        "Expected knowledge_search_controls defined in cyber_knowledge.mcp_tools"
     )
 
 
