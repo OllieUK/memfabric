@@ -4,6 +4,36 @@ Chronological record of delivered WPs, retrospectives, and the Retrospective Log
 
 ---
 
+### WP-174 — ADR-006: Asset and Policy node model + OSCAL parameter handling — 2026-05-12
+
+**Done. Architectural artefact ADR-006. Plan file at `docs/plans/wp-174-adr-006-asset-policy-oscal-parameter.md`. Deployed to homeserver and verified live: schema_init runs twice (idempotent), all 5 new constraints and 2 new vector indexes present in production Memgraph, all 6 integration-test assertions verified inline, production data intact.**
+
+Lands the cyber-knowledge graph extensions for asset taxonomy and policy modelling. Schema-only WP — adds 5 uniqueness constraints + 2 vector indexes; no ingest, no CRUD, no API surface. Unblocks WP-175 (generic OSCAL ingest), WP-176 (GS++ apply), WP-179 (pressure engine).
+
+**Changes:**
+
+- **`docs/architecture/ADR-006-asset-policy-oscal-parameter-model.md`** — Architectural decision. Six numbered commitments: (A) `Asset -[:CLASSIFIED_AS]-> AssetClass`; (B) Formalise `Precept` with uniqueness; (C) Two-anchor `Policy` attachment — `ADDRESSES Precept` (semantic) + `IMPLEMENTS Control` (OSCAL-concrete); (D) `Param` as standalone node with `Control -[:HAS_PARAM]-> Param` and `Policy -[:BINDS {value}]-> Param`; (E) Optional `SCOPED_TO Organisation` for `AssetClass` / `Policy` / `PolicySection`, `Param` global; (F) Vector indexes only on `Policy` + `PolicySection`.
+- **`docs/plans/wp-174-adr-006-asset-policy-oscal-parameter.md`** — Full plan including the `/simplify` findings appendix recording 7 actioned cleanups and 3 deferred refactors (WP-181/182/183).
+- **`cyber_knowledge/ingest/schema_init.py`** — Extends `KNOWLEDGE_CONSTRAINTS` with 5 new entries (`Precept`, `AssetClass`, `Policy`, `PolicySection`, `Param`). Adds two new vector-index creation blocks for `policy_embedding_idx` and `policy_section_embedding_idx`. Imports from the new `cyber_knowledge/ingest/schema_utils.py` rather than `scripts/schema_utils.py`.
+- **`cyber_knowledge/ingest/schema_utils.py`** — NEW. Holds `get_embedding_dimension` and `create_constraint` inside the package boundary so they ship with the production image. Moved from `scripts/schema_utils.py` because the prod image's Dockerfile does not COPY `scripts/`, which was a latent WP-173 acceptance gap.
+- **`scripts/schema_utils.py`** — Deprecation shim. Re-exports `create_constraint`, `get_embedding_dimension`, and `SentenceTransformer` from `cyber_knowledge.ingest.schema_utils`. Emits `DeprecationWarning` on import. Kept so `scripts/init_schema.py` and `tests/test_wp077_schema_utils.py` continue to work; scheduled for removal in WP-180 alongside the other WP-173 shims.
+- **`cyber_knowledge/schemas.py`** — Three new enum `frozenset`s: `POLICY_STATUS = {draft, active, deprecated, retired}`; `PARAM_TYPE = {string, integer, enum, select, datetime, duration}`; `ASSET_CLASS_KIND = {it, ot, iot, integration, data, process, people, facility}`.
+- **`memory_service/config.py`** — Two new `pydantic-settings` capacity defaults: `policy_index_capacity: int = 5000`, `policy_section_index_capacity: int = 20000`.
+- **`.env.example`** — Adds `POLICY_INDEX_CAPACITY` and `POLICY_SECTION_INDEX_CAPACITY` placeholders following the existing `*_INDEX_CAPACITY` convention.
+- **`CLAUDE.md`** — Data-model quick-reference table extended with the four new node labels and the nine new edge types defined by ADR-006. ADR-006 added to the Architecture decisions table.
+- **`docker-compose.yml`** — Adds `ports: ["127.0.0.1:7687:7687"]` to `memfabric-db` (committed separately as `b0b0d40` to enable verification before this commit). Subsequently identified as providing no useful access because `sshd_config` has `AllowTcpForwarding no`; reverted in follow-up WP-181.
+- **`tests/cyber_knowledge/`** — NEW directory with 5 files: `__init__.py`, `test_schemas_enums.py` (1 parametrised test × 3 enums), `test_schema_init_constants.py` (2 tests), `test_adr_006_present.py` (4 ADR-lint tests), `test_schema_init_integration.py` (6 integration tests, module-scope `initialised_schema` fixture). 13 unit + ADR-lint tests pass locally.
+- **`tests/test_wp077_schema_utils.py`** — Updated `patch("schema_utils.SentenceTransformer")` to `patch("cyber_knowledge.ingest.schema_utils.SentenceTransformer")` so the mock target follows the moved code.
+- **`BACKLOG.md`** — WP-174 row deleted from Prioritised Backlog and from Currently In Progress. WP-181 (revert dead port-bind), WP-182 (vector-index loop refactor), WP-183 (shared test helper), WP-184 (`create_constraint` SKIP/OK output) added as follow-ups.
+
+**Retrospective:**
+
+*Went well.* Three parallel `/simplify` agents (reuse / quality / efficiency) independently converged on the same root finding — that the inlined `schema_utils` helpers should be moved into the package boundary rather than duplicated — which gave high confidence in the fix. The 6-tests-to-1-fixture collapse of `init_main()` calls in the integration suite is a meaningful runtime win for future schema WPs (each `init_main()` loads the SentenceTransformer model). The cherry-pick + fast-forward pattern for the bundled compose prep + schema WP gave two clean commits on master with no merge noise.
+
+*To improve.* Lost ~45 minutes on this WP chasing an SSH-tunnel access pattern that was structurally blocked by `AllowTcpForwarding no` in the homeserver `sshd_config`. Should have asked about hardening posture before pursuing tunnel diagnostics. Subsequently established as a durable rule (memory `88591b8a`): live-stack verification for schema-affecting WPs happens *after* deploy via Oliver's SSH access; pre-commit verification is local-only against unit + ADR-lint tests. Also flagged: the production `memfabric-api` image does not include `tests/`, so `pytest -m integration` cannot run inside `docker exec`; equivalent assertions ran inline via piped Python — adequate for schema-only WPs, may need rethinking for WPs that ship more substantial test surface.
+
+---
+
 ### WP-173 — Cyber knowledge package split (logical separation per ADR-005) — 2026-05-11
 
 **Done. Architectural artefact ADR-005 (renumbered from ADR-003 after on-master collision discovered with the existing ADR-003-streamable-http-mcp-transport). Plan file at `docs/plans/wp-173-cyber-knowledge-package-split.md`. Deployed to homeserver and verified live: smoke test passes inside the recreated `memfabric-api` container.**
