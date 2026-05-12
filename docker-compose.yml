@@ -7,6 +7,8 @@ services:
     image: memgraph/memgraph-mage:3.9.0
     container_name: memfabric-db
     command: ["--log-level=INFO"]
+    ports:
+      - "127.0.0.1:7687:7687"
     healthcheck:
       test: ["CMD", "python3", "-c",
              "import socket; s=socket.create_connection(('127.0.0.1',7687),timeout=2); s.close()"]
