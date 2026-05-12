@@ -133,6 +133,7 @@ Architectural decisions are recorded in `docs/architecture/` as ADRs. Consult th
 |-----|----------|-----------------|
 | [ADR-001](docs/architecture/ADR-001-knowledge-layer-placement.md) | InfoSec knowledge layer lives inside this project as a feature-flagged peer module with separate embedding config and a bridge module for cross-layer edges | Multi-user requirement, knowledge code >50% of total, non-InfoSec domain requested, cross-layer edges >10k |
 | [ADR-002](docs/architecture/ADR-002-knowledge-layer-graph-model.md) | Knowledge layer graph model: control tree as spine, norm trees, precepts as convergence layer, frameworks (structural) vs norms (prescriptive), threat intelligence with JEOPARDISES→Precept→BusinessAttribute strategic path, metric-based fulfilment, org-scoping on edges, temporal norm lifecycle | Metric schemas need dedicated nodes, CONTAINS overload causes ambiguity, non-SABSA framework adopted, CMDB integration needed, Norm/Framework distinction untenable |
+| [ADR-006](docs/architecture/ADR-006-asset-policy-oscal-parameter-model.md) | Asset and Policy node model + OSCAL parameter handling: `AssetClass` taxonomy above `Asset` (`CLASSIFIED_AS`); first-class `Precept` with uniqueness; `Policy`/`PolicySection` with two-anchor attachment (`ADDRESSES` Precept + `IMPLEMENTS` Control); standalone `Param` node (`Control HAS_PARAM Param`, `Policy BINDS Param {value}`); optional `SCOPED_TO Organisation` for AssetClass/Policy/PolicySection | Industry/business-type axes needed, Policy↔Document collapses to 1:1, non-OSCAL param shapes, Precept search demand, cross-org Policy reuse |
 
 ### Domain isolation: strand + project scoping
 
@@ -164,6 +165,8 @@ Do not introduce a second Memgraph instance or separate vector indexes for domai
 
 **Nodes:** `Memory`, `Strand`, `Agent`, `Person`, `Project`, `Task`
 
+**Knowledge-layer nodes (cyber_knowledge package):** `Framework`, `Control`, `Norm`, `Precept`, `BusinessAttribute`, `Document`, `Chunk`, `Organisation`, `Jurisdiction`, `Threat`, `ThreatReport`, `Asset`, `AssetClass` (WP-174), `Policy` (WP-174), `PolicySection` (WP-174), `Param` (WP-174)
+
 **Edges:**
 - `RELATED_TO` (Memory→Memory): semantic/associative similarity (auto-linked by vector search); properties: `weight float`
 - `LEADS_TO` (Memory→Memory): explicit causal edge — this fact produces or enables that consequence; directional, asymmetric; enables upstream ("why?") and downstream ("what does this affect?") traversal
@@ -176,6 +179,17 @@ Do not introduce a second Memgraph instance or separate vector indexes for domai
 - `BLOCKS` (Task→Task): this task blocks that one
 - `DEPENDS_ON` (Task→Task): this task depends on that one
 - `INSTANCE_OF` (Task→Task): child instance of a recurring parent; properties: `instance_seq int`
+
+**Knowledge-layer edges added by ADR-006 (WP-174):**
+- `CLASSIFIED_AS` (Asset→AssetClass): asset taxonomy classification; n:m
+- `SUBCLASS_OF` (AssetClass→AssetClass): class hierarchy (DAG)
+- `HAS_SECTION` (Policy→PolicySection): policy decomposition; properties: `order int`
+- `ADDRESSES` (Policy|PolicySection→Precept): semantic anchor of a policy onto the precept layer; properties: `confidence float` (optional). Edge widened from existing `Control→Precept` use.
+- `IMPLEMENTS` (Policy|PolicySection→Control): concrete OSCAL anchor of a policy onto a control
+- `HAS_PARAM` (Control→Param): OSCAL parameter declaration
+- `BINDS` (Policy|PolicySection→Param): org-specific resolution of a parameter; properties: `value string`, `bound_at datetime`
+- `CITES` (Policy|PolicySection→Document): policy cites a source document
+- `SCOPED_TO` (AssetClass|Policy|PolicySection→Organisation): optional org-scoping; absence = global
 
 **Key Memory properties:** `id` (UUID), `fact` (raw statement), `so_what` (impact/meaning, optional), `text` (derived: fact+so_what, used for embedding), `type` (fact/decision/insight/todo/event/observation), `tags[]`, `created_at`, `last_used_at`, `importance` (1–5), `strength` (0–1, reinforcement level, decays via Ebbinghaus curve), `recall_count`, `reinforcement_count`, `last_reinforced_at`, `decay_rate`, `embedding` (vector)
 

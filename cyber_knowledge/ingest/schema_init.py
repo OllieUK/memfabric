@@ -11,8 +11,8 @@ import sys
 
 from neo4j.exceptions import ClientError
 
+from cyber_knowledge.ingest.schema_utils import create_constraint, get_embedding_dimension
 from memory_service.config import Settings, get_driver
-from scripts.schema_utils import create_constraint, get_embedding_dimension
 
 
 # New uniqueness constraints: (label, property)
@@ -28,6 +28,11 @@ KNOWLEDGE_CONSTRAINTS = [
     ("Threat", "id"),
     ("ThreatReport", "id"),
     ("Asset", "id"),
+    ("Precept", "id"),
+    ("AssetClass", "id"),
+    ("Policy", "id"),
+    ("PolicySection", "id"),
+    ("Param", "id"),
 ]
 
 
@@ -270,6 +275,44 @@ def main() -> int:
 
             print("Validating vector index: business_attribute_embedding_idx ...")
             if not validate_vector_index(session, "business_attribute_embedding_idx", "BusinessAttribute", "embedding"):
+                success = False
+
+            # --- policy_embedding_idx ---
+            print("\nCreating vector index: policy_embedding_idx ...")
+            try:
+                create_vector_index(
+                    session,
+                    index_name="policy_embedding_idx",
+                    label="Policy",
+                    prop="embedding",
+                    dim=dim,
+                    capacity=settings.policy_index_capacity,
+                )
+            except Exception as exc:
+                print(f"  [FAIL] policy_embedding_idx: {exc}")
+                success = False
+
+            print("Validating vector index: policy_embedding_idx ...")
+            if not validate_vector_index(session, "policy_embedding_idx", "Policy", "embedding"):
+                success = False
+
+            # --- policy_section_embedding_idx ---
+            print("\nCreating vector index: policy_section_embedding_idx ...")
+            try:
+                create_vector_index(
+                    session,
+                    index_name="policy_section_embedding_idx",
+                    label="PolicySection",
+                    prop="embedding",
+                    dim=dim,
+                    capacity=settings.policy_section_index_capacity,
+                )
+            except Exception as exc:
+                print(f"  [FAIL] policy_section_embedding_idx: {exc}")
+                success = False
+
+            print("Validating vector index: policy_section_embedding_idx ...")
+            if not validate_vector_index(session, "policy_section_embedding_idx", "PolicySection", "embedding"):
                 success = False
 
             # --- Existing mem_embedding_idx capacity advisory ---

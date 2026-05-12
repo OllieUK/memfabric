@@ -162,3 +162,15 @@ INFLUENCE_STATUSES: frozenset[str] = frozenset({
 })
 
 CELL_ROLES: frozenset[str] = frozenset({"main-matrix-cell", "service-mgmt-cell"})
+
+POLICY_STATUS: frozenset[str] = frozenset({
+    "draft", "active", "deprecated", "retired",
+})
+
+PARAM_TYPE: frozenset[str] = frozenset({
+    "string", "integer", "enum", "select", "datetime", "duration",
+})
+
+ASSET_CLASS_KIND: frozenset[str] = frozenset({
+    "it", "ot", "iot", "integration", "data", "process", "people", "facility",
+})

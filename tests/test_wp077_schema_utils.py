@@ -47,7 +47,7 @@ def test_create_constraint_reraises_other_errors():
 
 def test_get_embedding_dimension_returns_int():
     """get_embedding_dimension returns the model's embedding dimension as int."""
-    with patch("schema_utils.SentenceTransformer") as mock_st:
+    with patch("cyber_knowledge.ingest.schema_utils.SentenceTransformer") as mock_st:
         mock_model = MagicMock()
         mock_model.get_sentence_embedding_dimension.return_value = 384
         mock_st.return_value = mock_model

@@ -1,21 +1,20 @@
-"""schema_utils.py — Shared utilities for Memgraph schema initialisation scripts."""
-from neo4j.exceptions import ClientError
-from sentence_transformers import SentenceTransformer
+"""Deprecation shim — schema utilities moved to cyber_knowledge.ingest.schema_utils.
 
+Kept so scripts/init_schema.py and tests/test_wp077_schema_utils.py keep working
+during the WP-173/174 package-boundary transition.
+"""
+import warnings
 
-def get_embedding_dimension(model_name: str) -> int:
-    """Load the named SentenceTransformer model and return its output dimension."""
-    return SentenceTransformer(model_name).get_sentence_embedding_dimension()
+from cyber_knowledge.ingest.schema_utils import (
+    SentenceTransformer,
+    create_constraint,
+    get_embedding_dimension,
+)
 
+warnings.warn(
+    "scripts.schema_utils is deprecated; import from cyber_knowledge.ingest.schema_utils.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-def create_constraint(session, label: str, prop: str) -> None:
-    """Create a uniqueness constraint; skip gracefully if it already exists."""
-    query = f"CREATE CONSTRAINT ON (n:{label}) ASSERT n.{prop} IS UNIQUE;"
-    try:
-        session.run(query)
-        print(f"  [OK] Constraint created: {label}.{prop} IS UNIQUE")
-    except ClientError as exc:
-        if "already exists" in str(exc).lower():
-            print(f"  [SKIP] Constraint already exists: {label}.{prop} IS UNIQUE")
-        else:
-            raise
+__all__ = ["SentenceTransformer", "create_constraint", "get_embedding_dimension"]
